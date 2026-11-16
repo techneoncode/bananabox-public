@@ -62,7 +62,7 @@ const vscode = {
         createStatusBarItem: () => ({ show: noop, hide: noop, dispose: noop }),
         createTextEditorDecorationType: () => ({ dispose: noop }),
         showWarningMessage: async () => undefined, showErrorMessage: async () => undefined, showInformationMessage: async () => undefined,
-        onDidChangeActiveTextEditor: event('active'), onDidChangeVisibleTextEditors: event('visible'),
+        onDidChangeActiveTextEditor: event('active'), onDidChangeVisibleTextEditors: event('visible'), onDidChangeTextEditorSelection: event('selection'),
         get visibleTextEditors() { return state.active ? [state.active] : []; },
         get activeTextEditor() { return state.active; },
     },
@@ -262,7 +262,7 @@ test('typing is debounced; save coalesces pending scan and closing cancels it', 
     state.root = root;
     const doc = mutableDocument(file, 'int x;\n');
     state.docs = [doc];
-    state.active = { document: doc, setDecorations: noop };
+    state.active = { document: doc, setDecorations: noop, selection: { active: new Position(99, 0) } };
     const settings = { compiler: script, runOnOpen: false, debounceMs: 100, 'corrections.mode': 'off' };
     vscode.workspace.getConfiguration = () => ({ get: (k, d) => settings[k] ?? d });
     const context = { subscriptions: [], globalStorageUri: { fsPath: path.join(root, 'storage') } };
@@ -300,7 +300,7 @@ test('manifest exposes Off, Suggestion and Automatic with Off as the default', (
 test('inline lenses prioritise severity, retain full hover text and clear stale decorations', () => {
     const { Decorations, inlineText } = require('../../dist-test/codingStyle/ui');
     const { DEFAULT_SETTINGS } = require('../../dist-test/codingStyle/types');
-    const settings = { ...DEFAULT_SETTINGS, inline: { ...DEFAULT_SETTINGS.inline, maxMessageLength: 45 } };
+    const settings = { ...DEFAULT_SETTINGS, inline: { ...DEFAULT_SETTINGS.inline, maxMessageLength: 45, box: 'off' } };
     const create = vscode.window.createTextEditorDecorationType;
     const painted = new Map();
     const types = [];
@@ -313,28 +313,28 @@ test('inline lenses prioritise severity, retain full hover text and clear stale 
     try {
         const doc = mutableDocument('/tmp/lens.c', '    char *setter; int written;\n    if (setter ==NULL)\n');
         let calls = 0;
-        const editor = { document: doc, setDecorations: (type, options) => { calls++; painted.set(type, options); } };
+        const editor = { document: doc, setDecorations: (type, options) => { calls++; painted.set(type, options); }, selection: { active: new Position(99, 0) } };
         const minor = { file: '/tmp/lens.c', line: 1, column: 5, severity: 'warning', rawSeverity: 'warning', level: 'Minor', bucket: 'minor', ruleId: 'C-L3', message: 'missing space after binary operator', notes: [] };
         const major = { ...minor, level: 'Major', bucket: 'major', ruleId: 'C-L1', message: 'multiple statements on the same line' };
         const items = [minor, major, { ...minor, line: 2 }];
         renderer.renderInline(editor, items, settings);
-        const majorType = types.find(t => t.options.after.color.id === 'bananalens.inline.majorForeground');
-        const minorType = types.find(t => t.options.after.color.id === 'bananalens.inline.minorForeground');
+        const majorType = types.find(t => t.options.before.color.id === 'bananalens.inline.majorForeground');
+        const minorType = types.find(t => t.options.before.color.id === 'bananalens.inline.minorForeground');
         assert.ok(majorType && minorType);
         const lens = painted.get(majorType)[0];
-        assert.match(lens.renderOptions.after.contentText, /^▪ \[Major\] C-L1:/);
-        assert.ok(lens.renderOptions.after.contentText.includes('C-L1'));
+        assert.match(lens.renderOptions.before.contentText, /^▪ \[Major\] C-L1:/);
+        assert.ok(lens.renderOptions.before.contentText.includes('C-L1'));
         assert.equal(majorType.options.rangeBehavior, vscode.DecorationRangeBehavior.ClosedOpen);
-        assert.match(lens.renderOptions.after.contentText, /… $/);
+        assert.match(lens.renderOptions.before.contentText, /… $/);
         assert.ok(lens.hoverMessage.value.includes(major.message));
         assert.ok(lens.hoverMessage.value.includes(minor.message));
         assert.ok(lens.hoverMessage.value.includes('C-L1'));
         assert.ok(lens.hoverMessage.value.includes('C-L3'));
-        assert.deepEqual([lens.range.start.character, lens.range.end.character], [0, doc.lineAt(0).text.length]);
+        assert.deepEqual([lens.range.start.character, lens.range.end.character], [doc.lineAt(0).text.length, doc.lineAt(0).text.length]);
         assert.equal(majorType.options.backgroundColor, undefined);
         assert.equal(majorType.options.isWholeLine, undefined);
-        assert.equal(majorType.options.after.fontWeight, '600');
-        assert.equal(majorType.options.after.fontStyle, 'normal');
+        assert.equal(majorType.options.before.fontWeight, '600');
+        assert.equal(majorType.options.before.fontStyle, 'normal');
         assert.equal(majorType.options.borderWidth, '0 0 2px 0');
         assert.equal(inlineText(minor, 'compact'), '[Minor]');
         assert.equal(inlineText(minor, 'full'), '[Minor] C-L3: missing space after binary operator');
@@ -343,7 +343,7 @@ test('inline lenses prioritise severity, retain full hover text and clear stale 
         renderer.renderInline(editor, items, settings);
         assert.equal(calls, previousCalls);
         renderer.renderInline(editor, items, { ...settings, inline: { ...settings.inline, mode: 'compact' } });
-        assert.equal(painted.get(majorType)[0].renderOptions.after.contentText, '▪ [Major] · [Minor] ');
+        assert.equal(painted.get(majorType)[0].renderOptions.before.contentText, '▪ [Major] · [Minor] ');
         assert.ok(painted.get(majorType)[0].hoverMessage.value.includes('C-L1'));
         renderer.renderInline(editor, [minor], settings);
         assert.deepEqual(painted.get(majorType), []);
@@ -467,30 +467,30 @@ test('custom lens styles stay bounded, retain overflow details and support indep
     const renderer = new Decorations();
     try {
         const doc = mutableDocument('/tmp/custom.c', 'int x;\n');
-        const editor = { document: doc, setDecorations: (type, options) => painted.set(type, options) };
-        const other = { document: doc, setDecorations: noop };
+        const editor = { document: doc, setDecorations: (type, options) => painted.set(type, options), selection: { active: new Position(99, 0) } };
+        const other = { document: doc, setDecorations: noop, selection: { active: new Position(99, 0) } };
         const minor = { file: doc.uri.fsPath, line: 1, column: 1, severity: 'warning', rawSeverity: 'warning', bucket: 'minor', level: 'Minor', ruleId: 'C-L3', message: 'spacing', notes: [] };
         const major = { ...minor, bucket: 'major', level: 'Major', ruleId: 'C-L1', message: 'statements' };
         const settings = { ...DEFAULT_SETTINGS, inline: { ...DEFAULT_SETTINGS.inline,
-            showLevel: false, showMarker: false, showMessage: 'never', maxPerLine: 1, gap: 1,
+            showLevel: false, showMarker: false, showMessage: 'never', maxPerLine: 1, gap: 1, box: 'off',
             bold: false, italic: true, underline: false, background: false,
             colors: { ...DEFAULT_SETTINGS.inline.colors, major: { foreground: '#123456', background: '#65432180', underline: '#abcdef' } } } };
         renderer.renderInline(editor, [minor, major], settings);
         const type = types[0];
-        assert.equal(type.options.after.color, '#123456');
-        assert.equal(type.options.after.margin, '0 0 0 1ch');
-        assert.equal(type.options.after.fontWeight, 'normal');
-        assert.equal(type.options.after.fontStyle, 'italic');
-        assert.equal(type.options.after.backgroundColor, 'transparent');
+        assert.equal(type.options.before.color, '#123456');
+        assert.equal(type.options.before.margin, '0 0 0 1ch');
+        assert.equal(type.options.before.fontWeight, 'normal');
+        assert.equal(type.options.before.fontStyle, 'italic');
+        assert.equal(type.options.before.backgroundColor, 'transparent');
         assert.equal(type.options.borderWidth, '0');
-        assert.equal(painted.get(type)[0].renderOptions.after.contentText, 'C-L1 (+1) ');
-        assert.match(painted.get(type)[0].hoverMessage.value, /C-L3: spacing/);
+        assert.equal(painted.get(type)[0].renderOptions.before.contentText, 'C-L1 (+1) ');
+        assert.match(painted.get(type)[0].hoverMessage.value, /C-L3[\s\S]*spacing/);
         const items = [minor, major];
         for (let i = 0; i < 100; i++) renderer.renderInline(editor, items, settings);
         assert.equal(types.length, 1);
         renderer.renderInline(other, items, DEFAULT_SETTINGS);
         assert.equal(types.length, 2);
-        assert.equal(types[1].options.after.color.id, 'bananalens.inline.majorForeground');
+        assert.equal(types[1].options.before.color.id, 'bananalens.inline.majorForeground');
         renderer.renderInline(editor, items, { ...settings, inline: { ...settings.inline, gap: 2 } });
         assert.equal(type.disposed, true);
         assert.equal(types[1].disposed, false);
@@ -607,7 +607,7 @@ test('appearance-only configuration changes never request a compiler scan', asyn
     state.root = root;
     const doc = mutableDocument(path.join(root, 'main.c'), 'int x;\n');
     fs.writeFileSync(doc.uri.fsPath, doc.getText());
-    state.docs = [doc]; state.active = { document: doc, setDecorations: noop };
+    state.docs = [doc]; state.active = { document: doc, setDecorations: noop, selection: { active: new Position(99, 0) } };
     const config = vscode.workspace.getConfiguration;
     const settings = { compiler, runOnOpen: false, 'corrections.mode': 'off' };
     vscode.workspace.getConfiguration = () => ({ get: (key, fallback) => settings[key] ?? fallback });
@@ -680,7 +680,7 @@ test('remote disable clears existing diagnostics, blocks commands and project sc
     state.root = root;
     const doc = mutableDocument(path.join(root, 'main.c'), 'int x;\n');
     fs.writeFileSync(doc.uri.fsPath, doc.getText());
-    state.docs = [doc]; state.active = { document: doc, setDecorations: noop };
+    state.docs = [doc]; state.active = { document: doc, setDecorations: noop, selection: { active: new Position(99, 0) } };
     state.collection.clear();
     vscode.workspace.getConfiguration = () => ({
         get: (key, fallback) => key === 'compiler' ? compiler : key === 'runOnOpen' ? false : fallback,
@@ -762,4 +762,26 @@ test('Makefiles and unauthorized functions are checked without epiclang, with th
         state.root = previous.root; state.docs = previous.docs; state.active = previous.active;
         fs.rmSync(root, { recursive: true, force: true });
     }
+});
+
+test('several messages on the cursor line are stacked in a box, other lines show the worst one with a counter', () => {
+    const { Decorations } = require('../../dist-test/codingStyle/ui');
+    const { DEFAULT_SETTINGS } = require('../../dist-test/codingStyle/types');
+    const painted = [];
+    const renderer = new Decorations();
+    const doc = mutableDocument('/tmp/box.c', 'int a;\nint b;\n');
+    const at = line => ({ document: doc, selection: { active: new Position(line, 0) }, setDecorations: (_type, options) => painted.push(...options) });
+    const minor = { file: '/tmp/box.c', line: 1, column: 1, severity: 'warning', rawSeverity: 'warning', level: 'Minor', bucket: 'minor', ruleId: 'C-L3', message: 'spacing', notes: [] };
+    const major = { ...minor, level: 'Major', bucket: 'major', ruleId: 'C-L1', message: 'statements' };
+    try {
+        renderer.renderInline(at(0), [minor, major], DEFAULT_SETTINGS);
+        assert.equal(painted.length, 3); // two rows plus the underline
+        const rows = painted.filter(o => o.renderOptions);
+        assert.ok(rows.some(o => /display: inline-block/.test(o.renderOptions.before.textDecoration)));
+        assert.ok(rows.some(o => /top: 100%/.test(o.renderOptions.before.textDecoration)));
+        painted.length = 0;
+        renderer.renderInline(at(1), [minor, major], DEFAULT_SETTINGS);
+        assert.equal(painted.length, 2); // label plus the underline
+        assert.match(painted[0].renderOptions.before.contentText, /\(\+1\)/);
+    } finally { renderer.dispose(); }
 });

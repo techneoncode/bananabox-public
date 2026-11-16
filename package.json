@@ -906,6 +906,19 @@
           "scope": "resource",
           "order": 149
         },
+        "bananalens.inline.box": {
+          "type": "string",
+          "enum": ["off", "cursorLine", "always"],
+          "default": "cursorLine",
+          "enumDescriptions": [
+            "Keep every message on one line.",
+            "Show a box with one message per row on the line holding the cursor; other lines show the most severe message and a +N counter.",
+            "Always show the box when a line has several messages. It may cover the code of the following lines."
+          ],
+          "markdownDescription": "How to display several messages on the same line.",
+          "scope": "resource",
+          "order": 149
+        },
         "bananalens.inline.colors.fatal.foreground": {
           "type": "string",
           "default": "",

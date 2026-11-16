@@ -128,6 +128,7 @@ export interface Settings {
         showMarker: boolean;
         gap: number;
         maxPerLine: number;
+        box: 'off' | 'cursorLine' | 'always';
         bold: boolean;
         italic: boolean;
         underline: boolean;
@@ -192,6 +193,7 @@ export const DEFAULT_SETTINGS: Settings = {
         showMarker: true,
         gap: 4,
         maxPerLine: 0,
+        box: 'cursorLine',
         bold: true,
         italic: false,
         underline: true,
