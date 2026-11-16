@@ -318,14 +318,14 @@ test('inline lenses prioritise severity, retain full hover text and clear stale 
         const major = { ...minor, level: 'Major', bucket: 'major', ruleId: 'C-L1', message: 'multiple statements on the same line' };
         const items = [minor, major, { ...minor, line: 2 }];
         renderer.renderInline(editor, items, settings);
-        const majorType = types.find(t => t.options.before.color.id === 'bananalens.inline.majorForeground');
-        const minorType = types.find(t => t.options.before.color.id === 'bananalens.inline.minorForeground');
+        const majorType = types.find(t => t.options.after.color.id === 'bananalens.inline.majorForeground');
+        const minorType = types.find(t => t.options.after.color.id === 'bananalens.inline.minorForeground');
         assert.ok(majorType && minorType);
         const lens = painted.get(majorType)[0];
-        assert.match(lens.renderOptions.before.contentText, /^▪ \[Major\] C-L1:/);
-        assert.ok(lens.renderOptions.before.contentText.includes('C-L1'));
+        assert.match(lens.renderOptions.after.contentText, /^▪ \[Major\] C-L1:/);
+        assert.ok(lens.renderOptions.after.contentText.includes('C-L1'));
         assert.equal(majorType.options.rangeBehavior, vscode.DecorationRangeBehavior.ClosedOpen);
-        assert.match(lens.renderOptions.before.contentText, /… $/);
+        assert.match(lens.renderOptions.after.contentText, /… $/);
         assert.ok(lens.hoverMessage.value.includes(major.message));
         assert.ok(lens.hoverMessage.value.includes(minor.message));
         assert.ok(lens.hoverMessage.value.includes('C-L1'));
@@ -333,8 +333,8 @@ test('inline lenses prioritise severity, retain full hover text and clear stale 
         assert.deepEqual([lens.range.start.character, lens.range.end.character], [doc.lineAt(0).text.length, doc.lineAt(0).text.length]);
         assert.equal(majorType.options.backgroundColor, undefined);
         assert.equal(majorType.options.isWholeLine, undefined);
-        assert.equal(majorType.options.before.fontWeight, '600');
-        assert.equal(majorType.options.before.fontStyle, 'normal');
+        assert.equal(majorType.options.after.fontWeight, '600');
+        assert.equal(majorType.options.after.fontStyle, 'normal');
         assert.equal(majorType.options.borderWidth, '0 0 2px 0');
         assert.equal(inlineText(minor, 'compact'), '[Minor]');
         assert.equal(inlineText(minor, 'full'), '[Minor] C-L3: missing space after binary operator');
@@ -343,7 +343,7 @@ test('inline lenses prioritise severity, retain full hover text and clear stale 
         renderer.renderInline(editor, items, settings);
         assert.equal(calls, previousCalls);
         renderer.renderInline(editor, items, { ...settings, inline: { ...settings.inline, mode: 'compact' } });
-        assert.equal(painted.get(majorType)[0].renderOptions.before.contentText, '▪ [Major] · [Minor] ');
+        assert.equal(painted.get(majorType)[0].renderOptions.after.contentText, '▪ [Major] · [Minor] ');
         assert.ok(painted.get(majorType)[0].hoverMessage.value.includes('C-L1'));
         renderer.renderInline(editor, [minor], settings);
         assert.deepEqual(painted.get(majorType), []);
@@ -477,20 +477,20 @@ test('custom lens styles stay bounded, retain overflow details and support indep
             colors: { ...DEFAULT_SETTINGS.inline.colors, major: { foreground: '#123456', background: '#65432180', underline: '#abcdef' } } } };
         renderer.renderInline(editor, [minor, major], settings);
         const type = types[0];
-        assert.equal(type.options.before.color, '#123456');
-        assert.equal(type.options.before.margin, '0 0 0 1ch');
-        assert.equal(type.options.before.fontWeight, 'normal');
-        assert.equal(type.options.before.fontStyle, 'italic');
-        assert.equal(type.options.before.backgroundColor, 'transparent');
+        assert.equal(type.options.after.color, '#123456');
+        assert.equal(type.options.after.margin, '0 0 0 1ch');
+        assert.equal(type.options.after.fontWeight, 'normal');
+        assert.equal(type.options.after.fontStyle, 'italic');
+        assert.equal(type.options.after.backgroundColor, 'transparent');
         assert.equal(type.options.borderWidth, '0');
-        assert.equal(painted.get(type)[0].renderOptions.before.contentText, 'C-L1 (+1) ');
+        assert.equal(painted.get(type)[0].renderOptions.after.contentText, 'C-L1 (+1) ');
         assert.match(painted.get(type)[0].hoverMessage.value, /C-L3[\s\S]*spacing/);
         const items = [minor, major];
         for (let i = 0; i < 100; i++) renderer.renderInline(editor, items, settings);
         assert.equal(types.length, 1);
         renderer.renderInline(other, items, DEFAULT_SETTINGS);
         assert.equal(types.length, 2);
-        assert.equal(types[1].options.before.color.id, 'bananalens.inline.majorForeground');
+        assert.equal(types[1].options.after.color.id, 'bananalens.inline.majorForeground');
         renderer.renderInline(editor, items, { ...settings, inline: { ...settings.inline, gap: 2 } });
         assert.equal(type.disposed, true);
         assert.equal(types[1].disposed, false);
@@ -777,11 +777,11 @@ test('several messages on the cursor line are stacked in a box, other lines show
         renderer.renderInline(at(0), [minor, major], DEFAULT_SETTINGS);
         assert.equal(painted.length, 3); // two rows plus the underline
         const rows = painted.filter(o => o.renderOptions);
-        assert.ok(rows.some(o => /display: inline-block/.test(o.renderOptions.before.textDecoration)));
-        assert.ok(rows.some(o => /top: 100%/.test(o.renderOptions.before.textDecoration)));
+        assert.ok(rows.some(o => /display: inline-block/.test(o.renderOptions.after.textDecoration)));
+        assert.ok(rows.some(o => /top: 100%/.test(o.renderOptions.after.textDecoration)));
         painted.length = 0;
         renderer.renderInline(at(1), [minor, major], DEFAULT_SETTINGS);
         assert.equal(painted.length, 2); // label plus the underline
-        assert.match(painted[0].renderOptions.before.contentText, /\(\+1\)/);
+        assert.match(painted[0].renderOptions.after.contentText, /\(\+1\)/);
     } finally { renderer.dispose(); }
 });

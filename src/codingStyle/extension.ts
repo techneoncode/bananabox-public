@@ -171,6 +171,7 @@ class BananaLens implements vscode.Disposable {
     private notFoundShown = false;
     private lastConfigError = '';
     private refreshTimer: NodeJS.Timeout | undefined;
+    private restackTimer: NodeJS.Timeout | undefined;
     private readonly inlineModes = new Map<string, 'compact' | 'full'>();
     private corrections?: Corrections;
     private rulesProvider?: ProjectRulesProvider;
@@ -209,6 +210,7 @@ class BananaLens implements vscode.Disposable {
 
     dispose(): void {
         if (this.refreshTimer) clearTimeout(this.refreshTimer);
+        if (this.restackTimer) clearTimeout(this.restackTimer);
         for (const t of this.timers.values()) clearTimeout(t);
         for (const c of this.inflight.values()) c.abort();
         for (const c of this.workspaceScans) c.abort();
@@ -263,6 +265,7 @@ class BananaLens implements vscode.Disposable {
                     === 'cursorLine') {
                     this.renderEditor(e.textEditor);
                 }
+                this.restackInline(e.textEditor);
             }),
             vscode.window.onDidChangeVisibleTextEditors(() => {
                 this.decorations.releaseHidden(
@@ -1222,6 +1225,19 @@ class BananaLens implements vscode.Disposable {
             : undefined;
         this.statusBar.update(activeEditor, view, readSettings(uri));
         this.lens.refresh();
+    }
+
+    /**
+     * Of two end-of-line texts, VS Code shows the most recently painted one
+     * first. GitLens paints its blame a moment after the cursor moves, so we
+     * paint our lens again once it has settled to stay in front of it.
+     */
+    private restackInline(editor: vscode.TextEditor): void {
+        if (this.restackTimer) clearTimeout(this.restackTimer);
+        this.restackTimer = setTimeout(() => {
+            this.decorations.invalidateInline(editor);
+            this.renderEditor(editor);
+        }, 400);
     }
 
     private renderEditor(editor: vscode.TextEditor | undefined): void {

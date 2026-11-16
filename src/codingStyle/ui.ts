@@ -316,6 +316,11 @@ export class Decorations implements vscode.Disposable {
         for (const t of types) editor.setDecorations(t, []);
     }
 
+    /** Forget what was painted, so the next render paints it afresh. */
+    invalidateInline(editor: vscode.TextEditor): void {
+        this.inlineCache.delete(editor);
+    }
+
     releaseHidden(visible: readonly vscode.TextEditor[]): void {
         for (const [editor, entry] of this.editors) {
             if (visible.includes(editor)) continue;
@@ -497,10 +502,9 @@ export class Decorations implements vscode.Disposable {
                     || new vscode.ThemeColor(
                         `bananalens.inline.${severity}Underline`,
                     ),
-                // `before` on an empty range at the end of the line: it sorts
-                // ahead of the `after` text other extensions (GitLens blame)
-                // put at the same spot, so our message comes first.
-                before: {
+                // `after`, not `before`: with `before` the cursor stops behind
+                // the text, so End and the arrow keys would land after the lens.
+                after: {
                     color: settings.colors[severity].foreground
                         || new vscode.ThemeColor(
                             `bananalens.inline.${severity}Foreground`,
@@ -627,7 +631,7 @@ function inlineDecoration(
                 range: end,
                 hoverMessage: hover,
                 renderOptions: {
-                    before: { contentText: `${marker}${label}${overflow} ` },
+                    after: { contentText: `${marker}${label}${overflow} ` },
                 },
             },
         },
@@ -721,7 +725,7 @@ function inlineBox(
                 range: end,
                 hoverMessage: hover,
                 renderOptions: {
-                    before: {
+                    after: {
                         contentText: row,
                         // The first row stays in the text flow: it pushes
                         // other end-of-line text (GitLens blame) after the box.
