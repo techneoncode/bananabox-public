@@ -1,0 +1,1377 @@
+{
+  "name": "bananabox",
+  "displayName": "Bananabox",
+  "description": "%extension.description%",
+  "version": "1.3.0",
+  "publisher": "techneoncode",
+  "license": "MIT",
+  "icon": "images/icon_nobg.png",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Education",
+    "SCM Providers",
+    "Other",
+    "Linters",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "bananabox",
+    "epitech",
+    "epibox",
+    "grader",
+    "moulinette",
+    "projects",
+    "c",
+    "pool",
+    "epiclang",
+    "banana",
+    "coding style",
+    "norme",
+    "error lens",
+    "lint"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/techneoncode/bananabox-public"
+  },
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished",
+    "onLanguage:c",
+    "onLanguage:cpp",
+    "onLanguage:makefile"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "epibox",
+          "title": "Bananabox",
+          "icon": "media/activity.svg"
+        },
+        {
+          "id": "epibox-calendar",
+          "title": "%view.calendar.container%",
+          "icon": "media/calendar.svg"
+        }
+      ]
+    },
+    "views": {
+      "epibox": [
+        {
+          "type": "webview",
+          "id": "epibox.sidebar",
+          "name": "Bananabox",
+          "icon": "media/activity.svg"
+        }
+      ],
+      "epibox-calendar": [
+        {
+          "type": "webview",
+          "id": "epibox.calendar",
+          "name": "%view.calendar.name%",
+          "icon": "media/calendar.svg"
+        }
+      ],
+      "explorer": [
+        {
+          "id": "epibox.commits",
+          "name": "%view.commits.name%",
+          "icon": "images/gitdiff_nobg.png",
+          "contextualTitle": "Bananabox"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "epibox.signInMicrosoft",
+        "title": "Sign In with Microsoft",
+        "category": "Bananabox",
+        "icon": "$(account)"
+      },
+      {
+        "command": "epibox.signIn",
+        "title": "Sign In with Access Token",
+        "category": "Bananabox",
+        "icon": "$(key)"
+      },
+      {
+        "command": "epibox.signOut",
+        "title": "Sign Out",
+        "category": "Bananabox",
+        "icon": "$(sign-out)"
+      },
+      {
+        "command": "epibox.refresh",
+        "title": "Refresh",
+        "category": "Bananabox",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "epibox.openProject",
+        "title": "Open Project Details…",
+        "category": "Bananabox",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "epibox.openHome",
+        "title": "Open Home",
+        "category": "Bananabox",
+        "icon": "$(home)"
+      },
+      {
+        "command": "epibox.openCurrentProject",
+        "title": "Open Current Project in Editor",
+        "category": "Bananabox",
+        "icon": "$(layout-panel-center)"
+      },
+      {
+        "command": "epibox.runGrader",
+        "title": "Run Grader on Current Project",
+        "category": "Bananabox",
+        "icon": "$(play)"
+      },
+      {
+        "command": "epibox.cloneProject",
+        "title": "Clone Project Repository…",
+        "category": "Bananabox",
+        "icon": "$(repo-clone)"
+      },
+      {
+        "command": "epibox.openSubject",
+        "title": "Open Project Subject (PDF)",
+        "category": "Bananabox",
+        "icon": "$(file-pdf)"
+      },
+      {
+        "command": "epibox.openOnIntranet",
+        "title": "Open Project on my.epitech.eu",
+        "category": "Bananabox",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "epibox.codingStyle.run",
+        "title": "Bananabox Coding Style: Run epiclang on the current file"
+      },
+      {
+        "command": "epibox.codingStyle.valgrind",
+        "title": "Bananabox: Check memory leaks with valgrind",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "epibox.codingStyle.configureValgrind",
+        "title": "Bananabox: Set the command valgrind runs"
+      },
+      {
+        "command": "epibox.codingStyle.runWorkspace",
+        "title": "Bananabox Coding Style: Check the whole project"
+      },
+      {
+        "command": "epibox.codingStyle.showIssues",
+        "title": "Bananabox Coding Style: Show the violations of this file"
+      },
+      {
+        "command": "epibox.codingStyle.nextIssue",
+        "title": "Bananabox Coding Style: Go to next violation"
+      },
+      {
+        "command": "epibox.codingStyle.previousIssue",
+        "title": "Bananabox Coding Style: Go to previous violation"
+      },
+      {
+        "command": "epibox.codingStyle.fixTrailingWhitespace",
+        "title": "Bananabox Coding Style: Remove trailing whitespace in this file"
+      },
+      {
+        "command": "epibox.codingStyle.refreshBuildConfiguration",
+        "title": "Bananabox Coding Style: Refresh build configuration"
+      },
+      {
+        "command": "epibox.codingStyle.clear",
+        "title": "Bananabox Coding Style: Clear all diagnostics"
+      },
+      {
+        "command": "epibox.codingStyle.toggle",
+        "title": "Bananabox Coding Style: Enable / disable"
+      },
+      {
+        "command": "epibox.codingStyle.locateEpiclang",
+        "title": "Bananabox Coding Style: Locate the epiclang executable"
+      },
+      {
+        "command": "epibox.codingStyle.showOutput",
+        "title": "Bananabox Coding Style: Show output"
+      },
+      {
+        "command": "epibox.codingStyle.previewCorrections",
+        "title": "Bananabox Coding Style: Preview suggested corrections"
+      },
+      {
+        "command": "epibox.codingStyle.acceptCorrections",
+        "title": "Bananabox Coding Style: Accept all suggested corrections"
+      },
+      {
+        "command": "epibox.codingStyle.acceptCorrection",
+        "title": "Bananabox Coding Style: Accept this correction"
+      },
+      {
+        "command": "epibox.codingStyle.nextCorrection",
+        "title": "Bananabox Coding Style: Next suggested correction"
+      },
+      {
+        "command": "epibox.codingStyle.previousCorrection",
+        "title": "Bananabox Coding Style: Previous suggested correction"
+      },
+      {
+        "command": "epibox.codingStyle.dismissCorrections",
+        "title": "Bananabox Coding Style: Dismiss suggested corrections"
+      },
+      {
+        "command": "epibox.codingStyle.configureCorrections",
+        "title": "Bananabox Coding Style: Choose correction mode",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "epibox.codingStyle.configureAppearance",
+        "title": "Bananabox Coding Style: Customize lenses and colours",
+        "icon": "$(paintcan)"
+      },
+      {
+        "command": "epibox.checkReadiness",
+        "title": "Check Whether the Project Is Ready to Submit",
+        "category": "Bananabox",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "epibox.guidedDelivery",
+        "title": "Prepare Project Submission",
+        "category": "Bananabox",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "epibox.codingStyle.toggleInline",
+        "title": "Bananabox Coding Style: Toggle Inline Error Lenses",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "epibox.acknowledgeDefense",
+        "title": "Acknowledge Defense Reminder",
+        "category": "Bananabox",
+        "enablement": "epibox.defenseAlertActive"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "epibox.refresh",
+          "when": "view == epibox.sidebar && epibox.signedIn",
+          "group": "navigation@1"
+        },
+        {
+          "command": "epibox.openHome",
+          "when": "view == epibox.sidebar && epibox.signedIn",
+          "group": "navigation@0"
+        },
+        {
+          "command": "epibox.openCurrentProject",
+          "when": "view == epibox.sidebar && epibox.signedIn && epibox.hasCurrentProject",
+          "group": "navigation@2"
+        },
+        {
+          "command": "epibox.signOut",
+          "when": "view == epibox.sidebar && epibox.signedIn",
+          "group": "overflow@1"
+        },
+        {
+          "command": "epibox.codingStyle.runWorkspace",
+          "when": "view == epibox.sidebar",
+          "group": "codingStyle@1"
+        },
+        {
+          "command": "epibox.codingStyle.configureCorrections",
+          "when": "view == epibox.sidebar",
+          "group": "codingStyle@2"
+        },
+        {
+          "command": "epibox.codingStyle.configureAppearance",
+          "when": "view == epibox.sidebar",
+          "group": "codingStyle@3"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "epibox.signInMicrosoft",
+          "when": "!epibox.signedIn"
+        },
+        {
+          "command": "epibox.signIn",
+          "when": "!epibox.signedIn"
+        },
+        {
+          "command": "epibox.runGrader",
+          "when": "epibox.signedIn && epibox.hasCurrentProject"
+        },
+        {
+          "command": "epibox.openHome",
+          "when": "epibox.signedIn"
+        },
+        {
+          "command": "epibox.openCurrentProject",
+          "when": "epibox.signedIn && epibox.hasCurrentProject"
+        },
+        {
+          "command": "epibox.signOut",
+          "when": "epibox.signedIn"
+        },
+        {
+          "command": "epibox.refresh",
+          "when": "epibox.signedIn"
+        },
+        {
+          "command": "epibox.codingStyle.run",
+          "when": "editorLangId == c || editorLangId == cpp || editorLangId == makefile"
+        },
+        {
+          "command": "epibox.codingStyle.nextIssue",
+          "when": "editorLangId == c || editorLangId == cpp || editorLangId == makefile"
+        },
+        {
+          "command": "epibox.codingStyle.previousIssue",
+          "when": "editorLangId == c || editorLangId == cpp || editorLangId == makefile"
+        },
+        {
+          "command": "epibox.codingStyle.fixTrailingWhitespace",
+          "when": "editorLangId == c || editorLangId == cpp"
+        },
+        {
+          "command": "epibox.codingStyle.showIssues",
+          "when": "editorLangId == c || editorLangId == cpp || editorLangId == makefile"
+        },
+        {
+          "command": "epibox.checkReadiness",
+          "when": "epibox.signedIn && epibox.hasCurrentProject"
+        },
+        {
+          "command": "epibox.guidedDelivery",
+          "when": "epibox.signedIn && epibox.hasCurrentProject"
+        },
+        {
+          "command": "epibox.acknowledgeDefense",
+          "when": "false"
+        },
+        {
+          "command": "epibox.codingStyle.acceptCorrection",
+          "when": "epibox.codingStyle.hasCorrections"
+        },
+        {
+          "command": "epibox.codingStyle.nextCorrection",
+          "when": "epibox.codingStyle.hasCorrections"
+        },
+        {
+          "command": "epibox.codingStyle.previousCorrection",
+          "when": "epibox.codingStyle.hasCorrections"
+        }
+      ],
+      "editor/context": [
+        {
+          "submenu": "bananalens.editor",
+          "when": "editorLangId == c || editorLangId == cpp || editorLangId == makefile",
+          "group": "navigation"
+        }
+      ],
+      "bananalens.editor": [
+        {
+          "command": "epibox.codingStyle.run",
+          "group": "1_scan"
+        },
+        {
+          "command": "epibox.codingStyle.showIssues",
+          "group": "1_scan"
+        },
+        {
+          "command": "epibox.codingStyle.valgrind",
+          "when": "editorLangId == c",
+          "group": "1_scan"
+        },
+        {
+          "command": "epibox.codingStyle.configureCorrections",
+          "when": "editorLangId == c",
+          "group": "2_corrections"
+        },
+        {
+          "command": "epibox.codingStyle.previewCorrections",
+          "when": "epibox.codingStyle.hasCorrections",
+          "group": "2_corrections"
+        },
+        {
+          "command": "epibox.codingStyle.acceptCorrections",
+          "when": "epibox.codingStyle.hasCorrections",
+          "group": "2_corrections"
+        },
+        {
+          "command": "epibox.codingStyle.configureAppearance",
+          "group": "3_appearance"
+        },
+        {
+          "command": "epibox.codingStyle.toggleInline",
+          "group": "3_appearance@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Bananabox",
+      "properties": {
+        "epibox.apiBaseUrl": {
+          "type": "string",
+          "default": "https://my.epitech.eu",
+          "markdownDescription": "Base URL of the Epitech MyEpitech API.",
+          "scope": "application"
+        },
+        "epibox.browserPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Chrome, Edge, Brave, Chromium or Firefox executable used for the Microsoft sign-in window. Leave empty to detect it automatically. Without a compatible browser, Bananabox falls back to a copy-and-paste sign-in.",
+          "scope": "machine"
+        },
+        "epibox.cloneProtocol": {
+          "type": "string",
+          "enum": [
+            "ssh",
+            "https"
+          ],
+          "default": "ssh",
+          "markdownDescription": "Protocol used when cloning a project repository. Epitech repositories are normally accessed through SSH."
+        },
+        "epibox.defaultCloneDirectory": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Default parent folder proposed when cloning a project. Leave empty to start from your home directory."
+        },
+        "epibox.afterClone": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "current",
+            "window",
+            "workspace",
+            "ignore"
+          ],
+          "enumDescriptions": [
+            "Ask each time in a dialog.",
+            "Open the cloned folder in the current window.",
+            "Open the cloned folder in a new window.",
+            "Add the cloned folder to the current workspace.",
+            "Do nothing."
+          ],
+          "default": "ask",
+          "markdownDescription": "What to do once a project repository has been cloned."
+        },
+        "epibox.confirmGraderRun": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Ask for confirmation before running the grader, since each run uses one grader token. A warning is always shown when local commits are not pushed or files are uncommitted, whatever this setting says."
+        },
+        "epibox.preflightCodingStyle": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Before a grader run, check the whole project with Bananabox Coding Style. Fatal or major issues cancel the run unless you choose to ignore them (a coding style failure scores 0 and still uses a grader token). Only applies when the project folder is available locally."
+        },
+        "epibox.autoLocateCodingStyle": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "When a finished grader run reports coding style failures, automatically run Bananabox Coding Style on the project to show where they come from."
+        },
+        "epibox.deadlineNotifications": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Remind me one day and three hours before the project of the open folder closes, and show a countdown in the status bar."
+        },
+        "epibox.autoOpenProjectInEditor": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Automatically open the detailed project page in the editor area when the opened folder is a project repository."
+        },
+        "epibox.graderPollIntervalSeconds": {
+          "type": "number",
+          "default": 3,
+          "minimum": 2,
+          "maximum": 30,
+          "markdownDescription": "How often (in seconds) a running grader job is polled."
+        },
+        "epibox.showStatusBarItem": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show the grader summary (remaining tokens and latest score) in the status bar when a project repository is open."
+        },
+        "epibox.language": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "en",
+            "fr"
+          ],
+          "default": "auto",
+          "markdownDescription": "Language of the Bananabox interface. `auto` follows the VS Code display language."
+        },
+        "bananalens.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Enable Bananabox Coding Style.",
+          "order": 1,
+          "scope": "resource"
+        },
+        "bananalens.compiler": {
+          "type": "string",
+          "default": "epiclang",
+          "markdownDescription": "`epiclang` executable. Looked up in `PATH` and the usual install directories; use a full path if it cannot be found.",
+          "order": 101,
+          "scope": "machine-overridable"
+        },
+        "bananalens.autoIncludes": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Automatically add `-I` for every directory of the project that contains headers (`include/`, `lib/my/`…). This is what makes per-project configuration unnecessary.",
+          "order": 102,
+          "scope": "resource"
+        },
+        "bananalens.useMakefile": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Read `-I`, `-D` and `-std` from the project Makefile (static parsing, `make` is **not** run).",
+          "order": 103,
+          "scope": "resource"
+        },
+        "bananalens.useCompileCommands": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Use the flags of `compile_commands.json` when the project has one.",
+          "order": 104,
+          "scope": "resource"
+        },
+        "bananalens.makeDryRun": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Discover flags with `make -nB` (slow, executes `$(shell)` calls). Rarely needed now.",
+          "order": 105,
+          "scope": "resource"
+        },
+        "bananalens.makefileTarget": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Make target used by `bananalens.makeDryRun`.",
+          "order": 106,
+          "scope": "resource"
+        },
+        "bananalens.extraArgs": {
+          "type": "array",
+          "default": [],
+          "markdownDescription": "Extra flags added to every epiclang run, e.g. `-DDEBUG`.",
+          "items": {
+            "type": "string"
+          },
+          "order": 107,
+          "scope": "resource"
+        },
+        "bananalens.includePaths": {
+          "type": "array",
+          "default": [],
+          "markdownDescription": "Extra include directories (relative to the project root).",
+          "items": {
+            "type": "string"
+          },
+          "order": 108,
+          "scope": "resource"
+        },
+        "bananalens.exclude": {
+          "type": "array",
+          "default": [
+            "**/node_modules/**",
+            "**/.git/**",
+            "**/.vscode/**"
+          ],
+          "markdownDescription": "Globs of files Bananabox Coding Style must not check.",
+          "items": {
+            "type": "string"
+          },
+          "order": 109,
+          "scope": "resource"
+        },
+        "bananalens.configFile": {
+          "type": "string",
+          "default": ".bananalens.json",
+          "markdownDescription": "Optional per-project configuration file (relative to the project root). Almost never needed.",
+          "order": 110,
+          "scope": "resource"
+        },
+        "bananalens.ignoreWarnings": {
+          "type": "array",
+          "default": [
+            "unused-command-line-argument",
+            "linker input unused"
+          ],
+          "markdownDescription": "Diagnostic message fragments to ignore.",
+          "items": {
+            "type": "string"
+          },
+          "order": 111,
+          "scope": "resource"
+        },
+        "bananalens.runOnSave": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Check a file when it is saved.",
+          "order": 5,
+          "scope": "resource"
+        },
+        "bananalens.runOnOpen": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Check a file when it is opened or when its tab becomes active (skipped when the result is already up to date).",
+          "order": 6,
+          "scope": "resource"
+        },
+        "bananalens.runOnType": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Check while typing (on a temporary copy of the buffer, debounced).",
+          "order": 3,
+          "scope": "resource"
+        },
+        "bananalens.debounceMs": {
+          "type": "number",
+          "default": 600,
+          "markdownDescription": "Wait this many milliseconds after the last keystroke before scanning. 600 ms balances quick feedback with low CPU usage.",
+          "minimum": 100,
+          "order": 4,
+          "scope": "resource",
+          "maximum": 10000
+        },
+        "bananalens.timeoutMs": {
+          "type": "number",
+          "default": 30000,
+          "markdownDescription": "Kill epiclang when a run takes longer than this.",
+          "minimum": 1000,
+          "order": 116,
+          "scope": "resource"
+        },
+        "bananalens.maxConcurrency": {
+          "type": "number",
+          "default": 0,
+          "markdownDescription": "Maximum parallel epiclang processes. 0 selects 1 to 4 based on available CPUs, to keep editing responsive.",
+          "minimum": 0,
+          "order": 117,
+          "scope": "window",
+          "maximum": 32
+        },
+        "bananalens.problems.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Publish violations as VS Code diagnostics: underlined in the editor, listed in the Problems panel, with hover and quick fixes.",
+          "order": 8,
+          "scope": "resource"
+        },
+        "bananalens.inline.mode": {
+          "type": "string",
+          "default": "full",
+          "markdownDescription": "Styled inline diagnostics with a severity-coloured square, bold text and a subtle message background. `off` keeps only native diagnostic underlines and hover. Customize content, layout and severity colours with [Bananabox Coding Style: Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "enum": [
+            "off",
+            "compact",
+            "full"
+          ],
+          "enumDescriptions": [
+            "Native diagnostic underline and hover only",
+            "Level only (rule id in hover)",
+            "Level, rule id and message"
+          ],
+          "order": 7,
+          "scope": "resource"
+        },
+        "bananalens.inline.showClangWarnings": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Also show regular clang warnings in the inline text.",
+          "order": 120,
+          "scope": "resource"
+        },
+        "bananalens.inline.maxMessageLength": {
+          "type": "number",
+          "default": 140,
+          "markdownDescription": "Maximum inline message length.",
+          "minimum": 20,
+          "order": 121,
+          "scope": "resource",
+          "maximum": 1000
+        },
+        "bananalens.inline.preferErrorLens": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Defer to Error Lens for diagnostics it has not excluded. Bananabox Coding Style contributes `Banana` and `epiclang` to the default `errorLens.excludeBySource` so its own styled lenses render without duplicates.",
+          "order": 122,
+          "scope": "resource"
+        },
+        "bananalens.summary.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show the file summary and actions below the header, with counts, recheck and correction mode.",
+          "order": 9,
+          "scope": "resource"
+        },
+        "bananalens.summary.position": {
+          "type": "string",
+          "default": "afterHeader",
+          "markdownDescription": "Where the recap CodeLens is displayed.",
+          "enum": [
+            "afterHeader",
+            "top"
+          ],
+          "order": 124,
+          "scope": "resource"
+        },
+        "bananalens.summary.attribution": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Show the small “by techneon” lens next to the recap.",
+          "order": 125,
+          "scope": "resource"
+        },
+        "bananalens.statusLens.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show the coloured summary badge on an existing blank line below the header. Without a blank line, the recap stays in the CodeLens above the code. Requires `bananalens.summary.enabled`.",
+          "order": 10,
+          "scope": "resource"
+        },
+        "bananalens.statusBar.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show the status bar item.",
+          "order": 11,
+          "scope": "resource"
+        },
+        "bananalens.ruleDocUrl": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "URL template that makes the rule id clickable, `{rule}` is replaced by the id (e.g. `C-L2`).",
+          "order": 128,
+          "scope": "resource"
+        },
+        "bananalens.projectScanGlob": {
+          "type": "string",
+          "default": "**/*.{c,h}",
+          "markdownDescription": "Files checked by “Check the whole project”.",
+          "order": 129,
+          "scope": "resource"
+        },
+        "bananalens.verbose": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Log the full epiclang command line in the output channel.",
+          "order": 130,
+          "scope": "resource"
+        },
+        "bananalens.corrections.mode": {
+          "type": "string",
+          "enum": [
+            "off",
+            "suggest",
+            "onSave"
+          ],
+          "default": "off",
+          "markdownDescription": "Automatic correction engine: **Off** (default), **Suggestion** (after each save, every fix is shown inline as a diff next to the cursor: `Tab` accepts it, `Alt+]` / `Alt+[` move between fixes, `Esc` dismisses, `Ctrl+Alt+Enter` accepts all), or **Automatic** (apply corrections on save). You can also run **Bananabox Coding Style: Choose correction mode**. Proposals are checked with epiclang before being offered or applied. If verification fails, introduces a diagnostic or exceeds the time budget, corrections are skipped.",
+          "enumDescriptions": [
+            "Disable corrections (default). Banana diagnostics remain enabled.",
+            "After saving, review each fix inline: Tab accepts, Alt+] next, Esc dismisses.",
+            "Apply layout corrections when saving the file."
+          ],
+          "order": 2,
+          "scope": "resource",
+          "enumItemLabels": [
+            "Off",
+            "Suggestion",
+            "Automatic"
+          ]
+        },
+        "bananalens.corrections.clangFormat": {
+          "type": "string",
+          "default": "auto",
+          "markdownDescription": "Auto uses a compatible local clang-format or downloads a verified copy into extension storage once. Optionally override with a full executable path.",
+          "order": 132,
+          "scope": "machine-overridable"
+        },
+        "bananalens.corrections.whitespaceSensitiveMacros": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z_0-9]*$"
+          },
+          "default": [],
+          "markdownDescription": "Additional imported macros whose argument whitespace must be preserved (e.g. lowercase macros using stringification). Uppercase calls and function-like macros defined in this file are protected automatically.",
+          "order": 133,
+          "scope": "resource"
+        },
+        "bananalens.inline.showLevel": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show the severity label.",
+          "scope": "resource",
+          "order": 140
+        },
+        "bananalens.inline.showMarker": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show the severity square.",
+          "scope": "resource",
+          "order": 141
+        },
+        "bananalens.inline.bold": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Use bold inline text.",
+          "scope": "resource",
+          "order": 142
+        },
+        "bananalens.inline.italic": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Use italic inline text.",
+          "scope": "resource",
+          "order": 143
+        },
+        "bananalens.inline.underline": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Underline the source line using the severity colour.",
+          "scope": "resource",
+          "order": 144
+        },
+        "bananalens.inline.background": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show a background behind the inline message.",
+          "scope": "resource",
+          "order": 145
+        },
+        "bananalens.inline.showRuleId": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "always",
+            "never"
+          ],
+          "default": "auto",
+          "enumDescriptions": [
+            "Follow Compact / Full mode",
+            "Show in both Compact and Full mode",
+            "Hide from inline text; keep in hover"
+          ],
+          "markdownDescription": "Rule identifier.",
+          "scope": "resource",
+          "order": 146
+        },
+        "bananalens.inline.showMessage": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "always",
+            "never"
+          ],
+          "default": "auto",
+          "enumDescriptions": [
+            "Follow Compact / Full mode",
+            "Show in both Compact and Full mode",
+            "Hide from inline text; keep in hover"
+          ],
+          "markdownDescription": "Diagnostic message.",
+          "scope": "resource",
+          "order": 147
+        },
+        "bananalens.inline.gap": {
+          "type": "integer",
+          "default": 4,
+          "minimum": 0,
+          "maximum": 16,
+          "markdownDescription": "Space between source code and inline text, in character widths.",
+          "scope": "resource",
+          "order": 148
+        },
+        "bananalens.inline.maxPerLine": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 10,
+          "markdownDescription": "Maximum messages per line, most severe first. 0 shows all. Remaining messages are counted and available on hover.",
+          "scope": "resource",
+          "order": 149
+        },
+        "bananalens.inline.colors.fatal.foreground": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
+          "markdownDescription": "Fatal foreground colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "scope": "resource",
+          "order": 150
+        },
+        "bananalens.inline.colors.fatal.background": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
+          "markdownDescription": "Fatal background colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "scope": "resource",
+          "order": 151
+        },
+        "bananalens.inline.colors.fatal.underline": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
+          "markdownDescription": "Fatal underline colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "scope": "resource",
+          "order": 152
+        },
+        "bananalens.inline.colors.major.foreground": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
+          "markdownDescription": "Major foreground colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "scope": "resource",
+          "order": 153
+        },
+        "bananalens.inline.colors.major.background": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
+          "markdownDescription": "Major background colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "scope": "resource",
+          "order": 154
+        },
+        "bananalens.inline.colors.major.underline": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
+          "markdownDescription": "Major underline colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "scope": "resource",
+          "order": 155
+        },
+        "bananalens.inline.colors.minor.foreground": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
+          "markdownDescription": "Minor foreground colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "scope": "resource",
+          "order": 156
+        },
+        "bananalens.inline.colors.minor.background": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
+          "markdownDescription": "Minor background colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "scope": "resource",
+          "order": 157
+        },
+        "bananalens.inline.colors.minor.underline": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
+          "markdownDescription": "Minor underline colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "scope": "resource",
+          "order": 158
+        },
+        "bananalens.inline.colors.info.foreground": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
+          "markdownDescription": "Info foreground colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "scope": "resource",
+          "order": 159
+        },
+        "bananalens.inline.colors.info.background": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
+          "markdownDescription": "Info background colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "scope": "resource",
+          "order": 160
+        },
+        "bananalens.inline.colors.info.underline": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
+          "markdownDescription": "Info underline colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "scope": "resource",
+          "order": 161
+        },
+        "bananalens.functions.enabled": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "order": 8.1,
+          "markdownDescription": "Flag calls to functions missing from the subject's **allowed functions** (read automatically from the subject PDF, plus the ones you add on the project page). Works without epiclang. Calls to the project's own functions and macros are never flagged."
+        },
+        "bananalens.makefile.enabled": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "order": 8.2,
+          "markdownDescription": "Check Makefiles against the Epitech coding style without epiclang: `##` file header, 80 columns, required rules, binary name from the subject and `.PHONY`."
+        },
+        "bananalens.makefile.requiredRules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "all",
+            "clean",
+            "fclean",
+            "re"
+          ],
+          "scope": "resource",
+          "order": 8.3,
+          "markdownDescription": "Rules every project's main Makefile must define. The rules the subject asks for (e.g. `tests_run`, `unit_tests`) are added automatically."
+        },
+        "bananalens.makefile.maxLineLength": {
+          "type": "integer",
+          "default": 80,
+          "minimum": 40,
+          "maximum": 400,
+          "scope": "resource",
+          "order": 8.4,
+          "markdownDescription": "Maximum Makefile line length (C-F3). A tab counts as one column."
+        },
+        "bananalens.makefile.wildcard": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "order": 8.5,
+          "markdownDescription": "Flag `$(wildcard …)` in Makefiles as `[Info] M-W1: Unrecommended wildcard usage`: list sources one by one instead."
+        },
+        "bananalens.makefile.missingSources": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "order": 8.6,
+          "markdownDescription": "Flag the project's `.c` files that the Makefile's `SRC` does not list (`[Info] M-S1`, shown after the last `SRC` entry). Folders with their own Makefile (e.g. `lib/my`) are left to that Makefile."
+        },
+        "bananalens.valgrind.command": {
+          "type": "string",
+          "default": "",
+          "scope": "resource",
+          "order": 8.8,
+          "markdownDescription": "Program and arguments valgrind runs, from the project folder (e.g. `./my_ls -l src`). Empty runs `./NAME` from the Makefile. Leaks show as `[Major] VALGRIND` on the line that allocated them; build with `-g` to get the lines."
+        },
+        "bananalens.valgrind.unit": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "B",
+            "kB",
+            "MB",
+            "GB"
+          ],
+          "enumDescriptions": [
+            "Pick the unit from the amount",
+            "Bytes",
+            "Kilobytes (1000 B)",
+            "Megabytes",
+            "Gigabytes"
+          ],
+          "default": "auto",
+          "scope": "resource",
+          "order": 8.9,
+          "markdownDescription": "Unit of the memory lost by each leak."
+        },
+        "bananalens.makefile.missingSourcesIgnore": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "scope": "resource",
+          "order": 8.7,
+          "markdownDescription": "Files never reported as missing from `SRC`, as globs relative to the Makefile's folder (e.g. `tests/*.c`, `**/scratch_*.c`)."
+        },
+        "bananalens.inline.colors.function.foreground": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
+          "scope": "resource",
+          "order": 162,
+          "markdownDescription": "Unauthorized function foreground colour. Empty uses the theme (slate grey). Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance)."
+        },
+        "bananalens.inline.colors.function.background": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
+          "scope": "resource",
+          "order": 163,
+          "markdownDescription": "Unauthorized function background colour. Empty uses the theme (slate grey). Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance)."
+        },
+        "bananalens.inline.colors.function.underline": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
+          "scope": "resource",
+          "order": 164,
+          "markdownDescription": "Unauthorized function underline colour. Empty uses the theme (slate grey). Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance)."
+        }
+      }
+    },
+    "jsonValidation": [
+      {
+        "fileMatch": [
+          ".bananalens.json",
+          "bananalens.json"
+        ],
+        "url": "./schemas/bananalens.schema.json"
+      },
+      {
+        "fileMatch": [
+          ".bananabox.json"
+        ],
+        "url": "./schemas/bananabox.schema.json"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "epibox.codingStyle.acceptCorrections",
+        "key": "ctrl+alt+enter",
+        "mac": "cmd+alt+enter",
+        "when": "editorTextFocus && editorLangId == c && epibox.codingStyle.hasCorrections"
+      },
+      {
+        "command": "epibox.codingStyle.acceptCorrection",
+        "key": "tab",
+        "when": "editorTextFocus && editorLangId == c && epibox.codingStyle.correctionAtCursor && !editorHasSelection && !editorHasMultipleSelections && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorTabMovesFocus"
+      },
+      {
+        "command": "epibox.codingStyle.nextCorrection",
+        "key": "alt+]",
+        "when": "editorTextFocus && editorLangId == c && epibox.codingStyle.hasCorrections && !inlineSuggestionVisible"
+      },
+      {
+        "command": "epibox.codingStyle.previousCorrection",
+        "key": "alt+[",
+        "when": "editorTextFocus && editorLangId == c && epibox.codingStyle.hasCorrections && !inlineSuggestionVisible"
+      },
+      {
+        "command": "epibox.codingStyle.dismissCorrections",
+        "key": "escape",
+        "when": "editorTextFocus && editorLangId == c && epibox.codingStyle.hasCorrections && !suggestWidgetVisible && !inSnippetMode"
+      },
+      {
+        "command": "epibox.codingStyle.toggleInline",
+        "key": "ctrl+alt+l",
+        "mac": "cmd+alt+l",
+        "when": "editorTextFocus && (editorLangId == c || editorLangId == cpp || editorLangId == makefile)"
+      },
+      {
+        "command": "epibox.acknowledgeDefense",
+        "key": "ctrl+alt+shift+y",
+        "mac": "cmd+alt+shift+y",
+        "when": "epibox.defenseAlertActive"
+      }
+    ],
+    "submenus": [
+      {
+        "id": "bananalens.editor",
+        "label": "Bananabox Coding Style"
+      }
+    ],
+    "configurationDefaults": {
+      "errorLens.excludeBySource": [
+        "Banana",
+        "epiclang"
+      ]
+    },
+    "colors": [
+      {
+        "id": "bananalens.inline.fatalForeground",
+        "description": "Inline message and square for fatal Bananabox Coding Style diagnostics.",
+        "defaults": {
+          "dark": "#F28B82",
+          "light": "#B3261E",
+          "highContrast": "#FFFFFF",
+          "highContrastLight": "#000000"
+        }
+      },
+      {
+        "id": "bananalens.inline.fatalBackground",
+        "description": "Subtle inline message background for fatal Bananabox Coding Style diagnostics.",
+        "defaults": {
+          "dark": "#F28B8218",
+          "light": "#B3261E0D",
+          "highContrast": "#000000",
+          "highContrastLight": "#FFFFFF"
+        }
+      },
+      {
+        "id": "bananalens.inline.fatalUnderline",
+        "description": "Code underline for fatal Bananabox Coding Style diagnostics.",
+        "defaults": {
+          "dark": "#F28B8270",
+          "light": "#B3261E70",
+          "highContrast": "#FFFFFF",
+          "highContrastLight": "#000000"
+        }
+      },
+      {
+        "id": "bananalens.inline.majorForeground",
+        "description": "Inline message and square for major Bananabox Coding Style diagnostics.",
+        "defaults": {
+          "dark": "#E5C07B",
+          "light": "#805700",
+          "highContrast": "#FFFFFF",
+          "highContrastLight": "#000000"
+        }
+      },
+      {
+        "id": "bananalens.inline.majorBackground",
+        "description": "Subtle inline message background for major Bananabox Coding Style diagnostics.",
+        "defaults": {
+          "dark": "#E5C07B18",
+          "light": "#8057000D",
+          "highContrast": "#000000",
+          "highContrastLight": "#FFFFFF"
+        }
+      },
+      {
+        "id": "bananalens.inline.majorUnderline",
+        "description": "Code underline for major Bananabox Coding Style diagnostics.",
+        "defaults": {
+          "dark": "#E5C07B70",
+          "light": "#80570070",
+          "highContrast": "#FFFFFF",
+          "highContrastLight": "#000000"
+        }
+      },
+      {
+        "id": "bananalens.inline.minorForeground",
+        "description": "Inline message and square for minor Bananabox Coding Style diagnostics.",
+        "defaults": {
+          "dark": "#80C7D9",
+          "light": "#006779",
+          "highContrast": "#FFFFFF",
+          "highContrastLight": "#000000"
+        }
+      },
+      {
+        "id": "bananalens.inline.minorBackground",
+        "description": "Subtle inline message background for minor Bananabox Coding Style diagnostics.",
+        "defaults": {
+          "dark": "#80C7D918",
+          "light": "#0067790D",
+          "highContrast": "#000000",
+          "highContrastLight": "#FFFFFF"
+        }
+      },
+      {
+        "id": "bananalens.inline.minorUnderline",
+        "description": "Code underline for minor Bananabox Coding Style diagnostics.",
+        "defaults": {
+          "dark": "#80C7D970",
+          "light": "#00677970",
+          "highContrast": "#FFFFFF",
+          "highContrastLight": "#000000"
+        }
+      },
+      {
+        "id": "bananalens.inline.infoForeground",
+        "description": "Inline message and square for info Bananabox Coding Style diagnostics.",
+        "defaults": {
+          "dark": "#B5A2E0",
+          "light": "#6941A5",
+          "highContrast": "#FFFFFF",
+          "highContrastLight": "#000000"
+        }
+      },
+      {
+        "id": "bananalens.inline.infoBackground",
+        "description": "Subtle inline message background for info Bananabox Coding Style diagnostics.",
+        "defaults": {
+          "dark": "#B5A2E018",
+          "light": "#6941A50D",
+          "highContrast": "#000000",
+          "highContrastLight": "#FFFFFF"
+        }
+      },
+      {
+        "id": "bananalens.inline.infoUnderline",
+        "description": "Code underline for info Bananabox Coding Style diagnostics.",
+        "defaults": {
+          "dark": "#B5A2E070",
+          "light": "#6941A570",
+          "highContrast": "#FFFFFF",
+          "highContrastLight": "#000000"
+        }
+      },
+      {
+        "id": "bananalens.inline.functionForeground",
+        "description": "Inline message and square for calls to functions the subject does not allow.",
+        "defaults": {
+          "dark": "#A9B4C2",
+          "light": "#4B5563",
+          "highContrast": "#FFFFFF",
+          "highContrastLight": "#000000"
+        }
+      },
+      {
+        "id": "bananalens.inline.functionBackground",
+        "description": "Inline message background for calls to functions the subject does not allow.",
+        "defaults": {
+          "dark": "#A9B4C218",
+          "light": "#4B55630D",
+          "highContrast": "#000000",
+          "highContrastLight": "#FFFFFF"
+        }
+      },
+      {
+        "id": "bananalens.inline.functionUnderline",
+        "description": "Code underline for calls to functions the subject does not allow.",
+        "defaults": {
+          "dark": "#A9B4C270",
+          "light": "#4B556370",
+          "highContrast": "#FFFFFF",
+          "highContrastLight": "#000000"
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "node esbuild.mjs --tests && node --test dist-test/*.test.js test/codingStyle/*.test.js",
+    "package": "npm run typecheck && npm run build -- --production && vsce package --no-dependencies",
+    "vscode:prepublish": "npm run build -- --production",
+    "test:coding-style": "node esbuild.mjs --tests && node --test test/codingStyle/*.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.90.0",
+    "@types/ws": "^8.18.2",
+    "@vscode/codicons": "^0.0.36",
+    "@vscode/vsce": "^3.0.0",
+    "esbuild": "^0.24.0",
+    "pdfjs-dist": "4.10.38",
+    "typescript": "^5.6.0"
+  },
+  "dependencies": {
+    "ws": "^8.22.0"
+  },
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "MyEpitech remains available. Coding-style analysis and correction tools run only in trusted workspaces."
+    }
+  },
+  "author": {
+    "name": "techneoncode",
+    "url": "https://github.com/techneoncode"
+  },
+  "homepage": "https://github.com/techneoncode"
+}

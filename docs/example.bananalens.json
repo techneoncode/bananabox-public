@@ -1,0 +1,6 @@
+{
+  "includePaths": ["lib/my/include"],
+  "extraArgs": ["-DDEBUG"],
+  "ignoreWarnings": [],
+  "exclude": ["tests/**", "bonus/**"]
+}

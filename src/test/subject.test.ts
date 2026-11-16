@@ -1,0 +1,30 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import * as vscode from 'vscode';
+import { SubjectService } from '../services/subjectService';
+import { normalizeProject } from '../domain/projects';
+import type { EpitechClient } from '../api/client';
+
+test('direct PDF can be viewed, opened online, and saved for the system viewer', async () => {
+  const bytes = Buffer.from('%PDF-1.4\nTest fixture');
+  let downloads = 0;
+  const service = new SubjectService({ download: async () => { downloads++; return bytes; } } as unknown as EpitechClient);
+  const project = normalizeProject({ id: 1, name: 'Project', subjectUrl: '/subject.pdf' }, 'https://my.epitech.eu');
+  const opened: string[] = [];
+  let saved: Uint8Array | undefined;
+  (vscode.env as any).openExternal = async (uri: vscode.Uri) => { opened.push(uri.toString()); return true; };
+  (vscode.window as any).showSaveDialog = async () => vscode.Uri.file('/tmp/epibox-subject-test.pdf');
+  (vscode.workspace as any).fs = { writeFile: async (_uri: vscode.Uri, data: Uint8Array) => { saved = data; } };
+  const state = await service.load(project);
+  assert.equal(state.status, 'ready');
+  await service.openInBrowser(project);
+  assert.equal(opened[0], 'https://my.epitech.eu/subject.pdf');
+  await service.openOnComputer(project);
+  assert.deepEqual(saved, bytes);
+  assert.equal(opened[1], 'file:///tmp/epibox-subject-test.pdf');
+  assert.equal(downloads, 1);
+  (vscode.window as any).showSaveDialog = async () => undefined;
+  await service.openOnComputer(project);
+  assert.equal(opened.length, 2);
+  service.clear();
+});

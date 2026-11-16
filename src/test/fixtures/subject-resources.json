@@ -1,0 +1,55 @@
+[
+ {
+  "id": -1,
+  "kind": "folder",
+  "name": "Project",
+  "labelKey": "project",
+  "childrens": [
+   {
+    "id": 4979,
+    "kind": "file",
+    "name": "mini_printf-project.pdf",
+    "createdAt": "2026-10-11T12:42:01.045Z",
+    "updatedAt": "2026-10-11T12:42:01.058Z",
+    "blob": {
+     "id": 60299,
+     "s3Key": "files/units/projects/0a0faab6-7206-49f7-9358-6600a65ea5ff/mini_printf-project.pdf",
+     "mimeType": "application/pdf",
+     "size": 557606,
+     "checksum": "\"4783b8b4a1f06038559ecb39bc54fc94\"",
+     "ownerType": null,
+     "ownerId": null,
+     "createdAt": "2026-10-11T12:42:01.054Z"
+    },
+    "childrens": []
+   }
+  ],
+  "defaultExpanded": true
+ },
+ {
+  "id": -2,
+  "kind": "folder",
+  "name": "Bootstrap - mini_printf",
+  "childrens": [
+   {
+    "id": 4977,
+    "kind": "file",
+    "name": "mini_printf-bootstrap.pdf",
+    "createdAt": "2026-10-11T12:41:14.348Z",
+    "updatedAt": "2026-10-11T12:41:14.360Z",
+    "blob": {
+     "id": 60297,
+     "s3Key": "files/units/activities/17f28e0b-5484-44c5-a8e7-6ea4813e0dae/mini_printf-bootstrap.pdf",
+     "mimeType": "application/pdf",
+     "size": 558558,
+     "checksum": "\"3802d5541ab60a4995e03e5a805d3844\"",
+     "ownerType": null,
+     "ownerId": null,
+     "createdAt": "2026-10-11T12:41:14.355Z"
+    },
+    "childrens": []
+   }
+  ],
+  "defaultExpanded": false
+ }
+]

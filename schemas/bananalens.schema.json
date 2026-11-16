@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Banana Lens project configuration",
+  "description": "Optional. Banana Lens detects include directories and flags by itself; use this file only for unusual projects.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "compiler": { "type": "string", "description": "Compiler executable (default: epiclang)." },
+    "command": { "type": "string", "description": "Full command template. Placeholders: {file}, {fileBasename}, {workspace}, {project}. Only the flags are used; the file is appended automatically." },
+    "args": { "type": "array", "items": { "type": "string" }, "description": "Explicit flags. Disables include auto-detection." },
+    "extraArgs": { "type": "array", "items": { "type": "string" }, "description": "Extra flags appended to the auto-detected ones." },
+    "includePaths": { "type": "array", "items": { "type": "string" }, "description": "Extra include directories, relative to the project root." },
+    "autoIncludes": { "type": "boolean", "description": "Set to false to disable the include-directory auto-discovery." },
+    "env": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Environment variables for epiclang." },
+    "make": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "description": "Discover flags with `make -nB` (slow)." },
+        "target": { "type": "string" }
+      }
+    },
+    "inline": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "showClangWarnings": { "type": "boolean" },
+        "maxMessageLength": { "type": "number" }
+      }
+    },
+    "ignoreWarnings": { "type": "array", "items": { "type": "string" }, "description": "Message fragments to ignore." },
+    "exclude": { "type": "array", "items": { "type": "string" }, "description": "Globs (relative to the project root) of files that must not be checked, e.g. \"tests/**\"." }
+  }
+}

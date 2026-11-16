@@ -1,0 +1,14 @@
+my_merge.c:24:35: warning: passing arguments to a function without a prototype is deprecated in all versions of C and is not supported in C23
+   24 |         if (*begin1 == NULL || cmp(begin2->data, (*begin1)->data) < 0) {
+      |                                   ^
+my_merge.c:31:13: warning: [Banana] [Major] nested while statement at depth 3 (C-C1)
+   31 |             while (current != NULL
+      |             ^~~~~~~~~~~~~~~~~~~~~~
+my_merge.c:20:1: warning: [Banana] [Minor] blank line inside non-variable-declaration section (C-L6)
+   20 | 
+      | ^
+my_merge.c:12:68: error: [Banana] [Critical] function pointer without parameter (C-F6)
+my_merge.c:40:9: warning: [Banana] [Minor] trailing space (C-G7)
+my_merge.c:40:9: warning: [Banana] [Minor] trailing space (C-G7)
+my_merge.c:50:5: warning: unused variable 'x' [-Wunused-variable]
+my_merge.c:9:1: note: declared here

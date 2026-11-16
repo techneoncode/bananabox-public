@@ -1,0 +1,456 @@
+{
+  "quota": {
+    "total": 6,
+    "consumed": 6,
+    "remaining": 0,
+    "override": null
+  },
+  "runs": [
+    {
+      "id": 18180,
+      "state": "completed",
+      "testRunId": 7858370,
+      "requestedAt": "2026-09-24T17:04:32.925Z",
+      "startedAt": "2026-09-24T17:04:43.564Z",
+      "finishedAt": "2026-09-24T17:05:00.135Z"
+    },
+    {
+      "id": 16523,
+      "state": "completed",
+      "testRunId": "7854846",
+      "requestedAt": "2026-09-24T12:19:02.421Z",
+      "startedAt": "2026-09-24T12:19:10.372Z",
+      "finishedAt": "2026-09-24T12:19:27.017Z"
+    },
+    {
+      "id": 16316,
+      "state": "completed",
+      "testRunId": "7854210",
+      "requestedAt": "2026-09-24T11:09:08.531Z",
+      "startedAt": "2026-09-24T11:09:22.515Z",
+      "finishedAt": "2026-09-24T11:09:39.134Z"
+    },
+    {
+      "id": 16270,
+      "state": "completed",
+      "testRunId": "7854162",
+      "requestedAt": "2026-09-24T10:44:36.065Z",
+      "startedAt": "2026-09-24T10:44:47.518Z",
+      "finishedAt": "2026-09-24T10:45:03.983Z"
+    },
+    {
+      "id": 16194,
+      "state": "completed",
+      "testRunId": "7853960",
+      "requestedAt": "2026-09-24T10:19:14.690Z",
+      "startedAt": "2026-09-24T10:19:24.459Z",
+      "finishedAt": "2026-09-24T10:19:38.118Z"
+    },
+    {
+      "id": 15928,
+      "state": "completed",
+      "testRunId": "7853571",
+      "requestedAt": "2026-09-24T09:17:46.245Z",
+      "startedAt": "2026-09-24T09:17:57.165Z",
+      "finishedAt": "2026-09-24T09:18:13.516Z"
+    }
+  ],
+  "history": [
+    {
+      "id": 7853571,
+      "skillBreakdowns": {},
+      "failureFlags": [
+        "no-test-passed",
+        "coding-style-fail"
+      ],
+      "codingStyle": {
+        "penalty": {
+          "TooManyErrors": {}
+        },
+        "value": {
+          "fatal": 0,
+          "major": 3,
+          "minor": 0,
+          "info": 0
+        }
+      },
+      "prerequisitesMark": 1,
+      "properties": {
+        "date": "2026-09-24T09:18:10Z",
+        "commit": "0000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "id": 7853960,
+      "skillBreakdowns": {},
+      "failureFlags": [
+        "no-test-passed",
+        "coding-style-fail"
+      ],
+      "codingStyle": {
+        "penalty": {
+          "TooManyErrors": {}
+        },
+        "value": {
+          "fatal": 0,
+          "major": 2,
+          "minor": 4,
+          "info": 0
+        }
+      },
+      "prerequisitesMark": 1,
+      "properties": {
+        "date": "2026-09-24T10:19:35Z",
+        "commit": "0000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "id": 7854162,
+      "skillBreakdowns": {
+        "01 - task01": {
+          "count": 1,
+          "passed": 0,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        },
+        "02 - task02": {
+          "count": 1,
+          "passed": 0,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        },
+        "03 - task03": {
+          "count": 1,
+          "passed": 0,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        },
+        "04 - task04": {
+          "count": 1,
+          "passed": 0,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        },
+        "05 - task05": {
+          "count": 1,
+          "passed": 0,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        },
+        "06 - task06": {
+          "count": 1,
+          "passed": 0,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        }
+      },
+      "failureFlags": [
+        "no-test-passed"
+      ],
+      "codingStyle": {
+        "penalty": {
+          "Penalty": {
+            "value": 0
+          }
+        },
+        "value": {
+          "fatal": 0,
+          "major": 0,
+          "minor": 0,
+          "info": 0
+        }
+      },
+      "prerequisitesMark": 1,
+      "properties": {
+        "date": "2026-09-24T10:45:00Z",
+        "commit": "0000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "id": 7854210,
+      "skillBreakdowns": {
+        "01 - task01": {
+          "count": 1,
+          "passed": 1,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        },
+        "02 - task02": {
+          "count": 1,
+          "passed": 1,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        },
+        "03 - task03": {
+          "count": 1,
+          "passed": 1,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        },
+        "04 - task04": {
+          "count": 1,
+          "passed": 1,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        },
+        "05 - task05": {
+          "count": 1,
+          "passed": 1,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        },
+        "06 - task06": {
+          "count": 1,
+          "passed": 0,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        }
+      },
+      "failureFlags": [],
+      "codingStyle": {
+        "penalty": {
+          "Penalty": {
+            "value": 0
+          }
+        },
+        "value": {
+          "fatal": 0,
+          "major": 0,
+          "minor": 0,
+          "info": 0
+        }
+      },
+      "prerequisitesMark": 2,
+      "properties": {
+        "date": "2026-09-24T11:09:36Z",
+        "commit": "0000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "id": 7854846,
+      "skillBreakdowns": {
+        "01 - task01": {
+          "count": 1,
+          "passed": 1,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        },
+        "02 - task02": {
+          "count": 1,
+          "passed": 1,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        },
+        "03 - task03": {
+          "count": 1,
+          "passed": 1,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        },
+        "04 - task04": {
+          "count": 1,
+          "passed": 1,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        },
+        "05 - task05": {
+          "count": 1,
+          "passed": 1,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        },
+        "06 - task06": {
+          "count": 1,
+          "passed": 1,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        }
+      },
+      "failureFlags": [],
+      "codingStyle": {
+        "penalty": {
+          "Penalty": {
+            "value": 0
+          }
+        },
+        "value": {
+          "fatal": 0,
+          "major": 0,
+          "minor": 0,
+          "info": 0
+        }
+      },
+      "prerequisitesMark": 2,
+      "properties": {
+        "date": "2026-09-24T12:19:24Z",
+        "commit": "0000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "id": 7858370,
+      "skillBreakdowns": {
+        "01 - task01": {
+          "count": 1,
+          "passed": 1,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        },
+        "02 - task02": {
+          "count": 1,
+          "passed": 1,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        },
+        "03 - task03": {
+          "count": 1,
+          "passed": 1,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        },
+        "04 - task04": {
+          "count": 1,
+          "passed": 1,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        },
+        "05 - task05": {
+          "count": 1,
+          "passed": 1,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        },
+        "06 - task06": {
+          "count": 1,
+          "passed": 1,
+          "crashed": 0,
+          "mandatoryFailed": 0
+        }
+      },
+      "failureFlags": [],
+      "codingStyle": {
+        "penalty": {
+          "Penalty": {
+            "value": 0
+          }
+        },
+        "value": {
+          "fatal": 0,
+          "major": 0,
+          "minor": 0,
+          "info": 0
+        }
+      },
+      "prerequisitesMark": 2,
+      "properties": {
+        "date": "2026-09-24T17:04:57Z",
+        "commit": "0000000000000000000000000000000000000000"
+      }
+    }
+  ],
+  "detail": {
+    "skills": [
+      {
+        "BreakdownSkillReport": {
+          "name": "01 - task01",
+          "breakdown": {
+            "count": 1,
+            "passed": 1,
+            "crashed": 0,
+            "mandatoryFailed": 0
+          }
+        }
+      },
+      {
+        "BreakdownSkillReport": {
+          "name": "02 - task02",
+          "breakdown": {
+            "count": 1,
+            "passed": 1,
+            "crashed": 0,
+            "mandatoryFailed": 0
+          }
+        }
+      },
+      {
+        "BreakdownSkillReport": {
+          "name": "03 - task03",
+          "breakdown": {
+            "count": 1,
+            "passed": 1,
+            "crashed": 0,
+            "mandatoryFailed": 0
+          }
+        }
+      },
+      {
+        "BreakdownSkillReport": {
+          "name": "04 - task04",
+          "breakdown": {
+            "count": 1,
+            "passed": 1,
+            "crashed": 0,
+            "mandatoryFailed": 0
+          }
+        }
+      },
+      {
+        "BreakdownSkillReport": {
+          "name": "05 - task05",
+          "breakdown": {
+            "count": 1,
+            "passed": 1,
+            "crashed": 0,
+            "mandatoryFailed": 0
+          }
+        }
+      },
+      {
+        "BreakdownSkillReport": {
+          "name": "06 - task06",
+          "breakdown": {
+            "count": 1,
+            "passed": 1,
+            "crashed": 0,
+            "mandatoryFailed": 0
+          }
+        }
+      }
+    ],
+    "failureFlags": [],
+    "codingStyle": {
+      "Counts": {}
+    },
+    "coverage": {
+      "Default": {
+        "coveredLines": 0,
+        "totalLines": 0,
+        "coveredBranches": 0,
+        "totalBranches": 0,
+        "log": "------------------------------------------------------------------------------\n                           GCC Code Coverage Report\nDirectory: .\n------------------------------------------------------------------------------\nFile                                       Lines    Exec  Cover   Missing\n------------------------------------------------------------------------------\n------------------------------------------------------------------------------\nTOTAL                                          0       0    --%\n------------------------------------------------------------------------------"
+      }
+    }
+  },
+  "project": {
+    "id": 3236,
+    "name": "[CPool] Day13",
+    "fullName": "[CPool] Day13",
+    "description": "Day 13 - Graphical Programming OR binary tree",
+    "schoolYear": 2026,
+    "startDate": "2026-10-07T06:42:00.000Z",
+    "endDate": "2026-10-08T21:42:00.000Z",
+    "repoEnabled": true,
+    "isUserRegistered": true,
+    "registrations": [
+      {
+        "id": 123,
+        "groupName": "Demo"
+      }
+    ],
+    "unitInstance": {
+      "unitCode": "G-CPE-100",
+      "code": "STG-1",
+      "name": "G1 - Unix & C Lab Seminar (Part I)",
+      "schoolYear": 2026
+    }
+  }
+}

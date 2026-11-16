@@ -1,0 +1,141 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Bananabox project checks",
+  "type": "object",
+  "required": [
+    "version"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "build": {
+      "type": "object",
+      "required": [
+        "command"
+      ],
+      "properties": {
+        "command": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "timeoutSeconds": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 300
+        },
+        "cwd": {
+          "type": "string",
+          "description": "Working directory relative to the project."
+        }
+      },
+      "additionalProperties": false
+    },
+    "tests": {
+      "type": "object",
+      "required": [
+        "command"
+      ],
+      "properties": {
+        "command": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "timeoutSeconds": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 300
+        },
+        "cwd": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "requiredFiles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Paths to files that must be present in the project."
+    },
+    "forbiddenFunctions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z_]\\w*$"
+      },
+      "description": "C function references to flag; comments and literals are ignored."
+    },
+    "recipes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "command"
+        ],
+        "properties": {
+          "command": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "timeoutSeconds": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 300
+          },
+          "stdin": {
+            "type": "string"
+          },
+          "expectedStdout": {
+            "type": "string"
+          },
+          "expectedExitCode": {
+            "type": "integer",
+            "default": 0
+          },
+          "cwd": {
+            "type": "string"
+          },
+          "build": {
+            "type": "object",
+            "required": [
+              "command"
+            ],
+            "properties": {
+              "command": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "timeoutSeconds": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 300
+              },
+              "cwd": {
+                "type": "string",
+                "description": "Working directory relative to the project."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "description": "Exact grader task name \u2192 local reproduction recipe."
+    }
+  }
+}

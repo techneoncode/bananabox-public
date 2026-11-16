@@ -1,0 +1,6 @@
+{
+  "extension.description": "Vos projets Epitech, le grader, les diffs de commits et le coding style dans VS Code.",
+  "view.commits.name": "Diffs de commits",
+  "view.calendar.name": "Calendrier",
+  "view.calendar.container": "Calendrier Bananabox"
+}
