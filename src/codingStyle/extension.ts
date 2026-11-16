@@ -258,6 +258,12 @@ class BananaLens implements vscode.Disposable {
                     this.schedule(e.document, 80, 'open');
                 }
             }),
+            vscode.window.onDidChangeTextEditorSelection((e) => {
+                if (readSettings(e.textEditor.document.uri).inline.box
+                    === 'cursorLine') {
+                    this.renderEditor(e.textEditor);
+                }
+            }),
             vscode.window.onDidChangeVisibleTextEditors(() => {
                 this.decorations.releaseHidden(
                     vscode.window.visibleTextEditors,
