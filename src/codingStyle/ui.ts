@@ -707,11 +707,14 @@ function inlineBox(
 
     const boxed = rows.map((row, index): InlineRow => {
         const severity = inlineBucket(diagnostics[index]);
+        // Rows may sit on top of other lines' text, so the editor background
+        // goes underneath the (often translucent) severity colour.
+        const tint = settings.colors[severity].background
+            || `var(--vscode-bananalens-inline-${severity}Background)`;
         const background = settings.background
-            ? settings.colors[severity].background
-                || new vscode.ThemeColor(`bananalens.inline.${severity}Background`)
-            // Rows may sit on top of code, so they must never be see-through.
-            : new vscode.ThemeColor('editorWidget.background');
+            ? `linear-gradient(${tint}, ${tint}), `
+                + 'var(--vscode-editor-background)'
+            : 'var(--vscode-editor-background)';
         return {
             severity,
             options: {
@@ -720,21 +723,21 @@ function inlineBox(
                 renderOptions: {
                     before: {
                         contentText: row,
-                        backgroundColor: background,
                         // The first row stays in the text flow: it pushes
                         // other end-of-line text (GitLens blame) after the box.
                         // VS Code has no multi-line decoration, so the extra
                         // CSS rides along in textDecoration.
                         textDecoration: 'none;'
                             + (index === 0
-                                ? ' display: inline-block; vertical-align: top;'
+                                ? ' display: inline-block; vertical-align: top; position: relative;'
                                 : ' position: absolute;'
                                     + ` top: ${index * 100}%;`
                                     // The type's margin already adds the gap.
                                     + ` left: ${columns}ch;`)
                             + ` height: 100%; width: ${width}ch;`
                             + ' box-sizing: border-box; padding: 0 1ch;'
-                            + ' white-space: pre; z-index: 1;'
+                            + ' white-space: pre; z-index: 10;'
+                            + ` background: ${background};`
                             + ' border: 0 solid var(--vscode-editorWidget-border, #888);'
                             + ` border-width: ${index === 0 ? 1 : 0}px 1px`
                             + ` ${index === rows.length - 1 ? 1 : 0}px 1px;`
