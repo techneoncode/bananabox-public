@@ -60,6 +60,12 @@ export const APPEARANCE_FIELDS: Field[] = [
         max: 10,
     },
     {
+        key: 'inline.box',
+        label: 'Stacked box for several messages',
+        type: 'select',
+        values: ['off', 'cursorLine', 'always'],
+    },
+    {
         key: 'inline.maxMessageLength',
         label: 'Maximum message length',
         type: 'number',

@@ -53,6 +53,8 @@ export function readSettings(scope?: vscode.Uri): Settings {
     );
     const defaults = DEFAULT_SETTINGS;
     const mode = configuration.get<string>('inline.mode', defaults.inline.mode);
+    const box = configuration.get<string>('inline.box', defaults.inline.box);
+    const boxMode = box === 'off' || box === 'always' ? box : 'cursorLine';
     const position = configuration.get<string>(
         'summary.position',
         defaults.summary.position,
@@ -149,6 +151,7 @@ export function readSettings(scope?: vscode.Uri): Settings {
             showMarker: configuration.get('inline.showMarker', true),
             gap: boundedInteger('inline.gap', 4, 0, 16),
             maxPerLine: boundedInteger('inline.maxPerLine', 0, 0, 10),
+            box: boxMode,
             bold: configuration.get('inline.bold', true),
             italic: configuration.get('inline.italic', false),
             underline: configuration.get('inline.underline', true),

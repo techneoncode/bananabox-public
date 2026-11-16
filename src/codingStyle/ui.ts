@@ -281,6 +281,7 @@ interface InlineCacheEntry {
     version: number;
     settings: Settings['inline'];
     enabled: boolean;
+    cursorLines: string;
 }
 
 interface EditorDecorationTypes {
@@ -329,11 +330,15 @@ export class Decorations implements vscode.Disposable {
         items: readonly BananaDiagnostic[],
         settings: Settings,
     ): void {
+        const cursorLines = settings.inline.box === 'cursorLine'
+            ? String(editor.selection.active.line)
+            : '';
         const cached = this.inlineCache.get(editor);
         if (cached?.items === items
             && cached.version === editor.document.version
             && cached.settings === settings.inline
-            && cached.enabled === settings.enabled) {
+            && cached.enabled === settings.enabled
+            && cached.cursorLines === cursorLines) {
             return;
         }
         this.inlineCache.set(editor, {
@@ -341,6 +346,7 @@ export class Decorations implements vscode.Disposable {
             version: editor.document.version,
             settings: settings.inline,
             enabled: settings.enabled,
+            cursorLines,
         });
         const inlineTypes = this.typesForEditor(editor, settings.inline);
         if (!settings.enabled || settings.inline.mode === 'off') {
@@ -368,16 +374,33 @@ export class Decorations implements vscode.Disposable {
             list.sort((a, b) =>
                 INLINE_PRIORITY[inlineBucket(a)]
                 - INLINE_PRIORITY[inlineBucket(b)]);
-            const severity = inlineBucket(list[0]);
-            const options = inlineDecoration(
-                editor.document,
-                line,
-                list,
-                settings.inline,
+            const stacked = list.length > 1 && (
+                settings.inline.box === 'always'
+                || settings.inline.box === 'cursorLine'
+                && editor.selection.active.line === line
             );
-            const bucket = grouped.get(severity) ?? [];
-            bucket.push(options);
-            grouped.set(severity, bucket);
+            const rows = stacked
+                ? inlineBox(
+                    editor.document,
+                    line,
+                    list,
+                    settings.inline,
+                    Number(editor.options?.tabSize) || 4,
+                )
+                : inlineDecoration(
+                    editor.document,
+                    line,
+                    list,
+                    // Collapsed: worst message only, the rest is a +N counter.
+                    settings.inline.box === 'off' || list.length < 2
+                        ? settings.inline
+                        : { ...settings.inline, maxPerLine: 1 },
+                );
+            for (const row of rows) {
+                const bucket = grouped.get(row.severity) ?? [];
+                bucket.push(row.options);
+                grouped.set(row.severity, bucket);
+            }
         }
         for (const [severity, type] of inlineTypes) {
             if (!grouped.has(severity)) editor.setDecorations(type, []);
@@ -474,7 +497,10 @@ export class Decorations implements vscode.Disposable {
                     || new vscode.ThemeColor(
                         `bananalens.inline.${severity}Underline`,
                     ),
-                after: {
+                // `before` on an empty range at the end of the line: it sorts
+                // ahead of the `after` text other extensions (GitLens blame)
+                // put at the same spot, so our message comes first.
+                before: {
                     color: settings.colors[severity].foreground
                         || new vscode.ThemeColor(
                             `bananalens.inline.${severity}Foreground`,
@@ -551,12 +577,28 @@ export function mergeInlineTexts(texts: readonly string[]): string[] {
         : `${item.head} ${groups.get(item.head)!.join(', ')}`);
 }
 
+type InlineRow = {
+    severity: LensColorGroup;
+    options: vscode.DecorationOptions;
+};
+
+function lineRanges(
+    document: vscode.TextDocument,
+    line: number,
+): { whole: vscode.Range; end: vscode.Range } {
+    const length = document.lineAt(line).text.length;
+    return {
+        whole: new vscode.Range(line, 0, line, length),
+        end: new vscode.Range(line, length, line, length),
+    };
+}
+
 function inlineDecoration(
     document: vscode.TextDocument,
     line: number,
     diagnostics: BananaDiagnostic[],
     settings: Settings['inline'],
-): vscode.DecorationOptions {
+): InlineRow[] {
     const shown = settings.maxPerLine > 0
         ? diagnostics.slice(0, settings.maxPerLine)
         : diagnostics;
@@ -574,26 +616,143 @@ function inlineDecoration(
         ? `${text.slice(0, maxLength - 1)}…`
         : text;
     const marker = settings.showMarker ? '▪ ' : '';
-    const hover = new vscode.MarkdownString();
-    hover.appendText(diagnostics
-        .map(item => {
-            const rule = item.ruleId ? ` ${item.ruleId}` : '';
-            return `${inlineText(item, 'compact')}${rule}: ${item.message}`;
-        })
-        .join('\n\n'));
+    const hover = richHover(diagnostics, settings);
+    const { whole, end } = lineRanges(document, line);
+    const severity = inlineBucket(diagnostics[0]);
 
-    return {
-        range: new vscode.Range(
-            line,
-            0,
-            line,
-            document.lineAt(line).text.length,
-        ),
-        hoverMessage: hover,
-        renderOptions: {
-            after: { contentText: `${marker}${label}${overflow} ` },
+    return [
+        {
+            severity,
+            options: {
+                range: end,
+                hoverMessage: hover,
+                renderOptions: {
+                    before: { contentText: `${marker}${label}${overflow} ` },
+                },
+            },
         },
-    };
+        // Underline only: a hover on the code would open at the line start.
+        { severity, options: { range: whole } },
+    ];
+}
+
+/** Colour of a message in the hover: the user's own, else the theme's. */
+function hoverColor(
+    severity: LensColorGroup,
+    settings: Settings['inline'],
+): string {
+    return settings.colors[severity].foreground
+        || `var(--vscode-bananalens-inline-${severity}Foreground)`;
+}
+
+/**
+ * The hover card: one block per message, with its level and rule in the
+ * severity colour as a heading, then the message itself.
+ */
+function richHover(
+    diagnostics: readonly BananaDiagnostic[],
+    settings: Settings['inline'],
+): vscode.MarkdownString {
+    const hover = new vscode.MarkdownString(undefined, true);
+    hover.supportHtml = true;
+    const blocks = diagnostics.map(item => {
+        const color = hoverColor(inlineBucket(item), settings);
+        const level = String(item.level ?? item.rawSeverity)
+            .replace(/[<>&"']/g, '');
+        const rule = item.ruleId
+            ? ` &nbsp;\`${item.ruleId.replace(/[`<>&]/g, '')}\``
+            : '';
+        const message = new vscode.MarkdownString()
+            .appendText(item.message)
+            .value;
+
+        return `### <span style="color:${color};">$(circle-filled) ${level}</span>${rule}\n\n${message}`;
+    });
+    hover.appendMarkdown(blocks.join('\n\n---\n\n'));
+
+    return hover;
+}
+
+/**
+ * One row per message, stacked under the first one. Rows are absolutely
+ * positioned, so they all start where the line's text ends and the
+ * editor's line heights stay untouched.
+ */
+function inlineBox(
+    document: vscode.TextDocument,
+    line: number,
+    diagnostics: BananaDiagnostic[],
+    settings: Settings['inline'],
+    tabSize: number,
+): InlineRow[] {
+    // Where the code ends on screen, in character cells (tabs expanded).
+    // Rows below the first are placed from there, not from their DOM
+    // neighbours, because VS Code does not keep decorations in row order.
+    let columns = 0;
+    for (const char of document.lineAt(line).text) {
+        columns += char === '\t' ? tabSize - columns % tabSize : 1;
+    }
+    const maxLength = Math.max(20, settings.maxMessageLength);
+    const marker = settings.showMarker ? '▪ ' : '';
+    const rows = diagnostics.map(item => {
+        const text = inlineText(item, settings.mode, settings)
+            .replace(/\s+/g, ' ');
+        return `${marker}${text.length > maxLength
+            ? `${text.slice(0, maxLength - 1)}…`
+            : text}`;
+    });
+    const width = Math.max(...rows.map(row => row.length)) + 2;
+    const hover = richHover(diagnostics, settings);
+    const { whole, end } = lineRanges(document, line);
+
+    const boxed = rows.map((row, index): InlineRow => {
+        const severity = inlineBucket(diagnostics[index]);
+        const background = settings.background
+            ? settings.colors[severity].background
+                || new vscode.ThemeColor(`bananalens.inline.${severity}Background`)
+            // Rows may sit on top of code, so they must never be see-through.
+            : new vscode.ThemeColor('editorWidget.background');
+        return {
+            severity,
+            options: {
+                range: end,
+                hoverMessage: hover,
+                renderOptions: {
+                    before: {
+                        contentText: row,
+                        backgroundColor: background,
+                        // The first row stays in the text flow: it pushes
+                        // other end-of-line text (GitLens blame) after the box.
+                        // VS Code has no multi-line decoration, so the extra
+                        // CSS rides along in textDecoration.
+                        textDecoration: 'none;'
+                            + (index === 0
+                                ? ' display: inline-block; vertical-align: top;'
+                                : ' position: absolute;'
+                                    + ` top: ${index * 100}%;`
+                                    // The type's margin already adds the gap.
+                                    + ` left: ${columns}ch;`)
+                            + ` height: 100%; width: ${width}ch;`
+                            + ' box-sizing: border-box; padding: 0 1ch;'
+                            + ' white-space: pre; z-index: 1;'
+                            + ' border: 0 solid var(--vscode-editorWidget-border, #888);'
+                            + ` border-width: ${index === 0 ? 1 : 0}px 1px`
+                            + ` ${index === rows.length - 1 ? 1 : 0}px 1px;`
+                            + ` border-radius: ${index === 0 ? '4px 4px' : '0 0'}`
+                            + ` ${index === rows.length - 1 ? '4px 4px' : '0 0'};`,
+                    },
+                },
+            },
+        };
+    });
+
+    return [
+        ...boxed,
+        {
+            severity: boxed[0].severity,
+            options: { range: whole },
+        },
+    ];
 }
 
 export function inlineText(
