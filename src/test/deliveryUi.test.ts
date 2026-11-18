@@ -56,7 +56,7 @@ const summary = (id: number): TestResultSummary => ({ id, date: '2026-10-11T12:0
 test('revoked access renders a branded alert with two paragraphs and functional Appeal/Uninstall buttons', () => {
   const { ctx, messages } = context();
   ctx.t = createT('en');
-  const policy: RemoteConfig = { lens_active: true, my_api_active: true, version: '0.5.3', latest: '', authorizedUsers: [], bannedUsers: ['niels'] };
+  const policy: RemoteConfig = { lens_active: true, my_api_active: true, version: '0.5.3', latest: '', authorized: [], banned: [{ user: 'niels', features: ['lens_active', 'my_api_active'] }] };
   ctx.state.availability = remoteStatus(policy, '0.5.3', 'nielsLaptop');
   const rendered = renderAvailability(ctx)!;
   assert.equal(rendered.key, 'connection-refused');
@@ -78,7 +78,7 @@ test('revoked access renders a branded alert with two paragraphs and functional 
 test('My disabled screen exposes Refresh, Uninstall and Fetch version before sign-in', () => {
   const { ctx, messages } = context();
   ctx.t = createT('en');
-  ctx.state.availability = remoteStatus({ lens_active: true, my_api_active: false, version: '0.5.3', latest: '', authorizedUsers: [] }, '0.5.3', 'guest');
+  ctx.state.availability = remoteStatus({ lens_active: true, my_api_active: false, version: '0.5.3', latest: '', authorized: [], banned: [] }, '0.5.3', 'guest');
   const rendered = renderAvailability(ctx)!;
   assert.equal(rendered.key, 'api-disabled');
   const root = rendered.node as unknown as DomElement;
@@ -92,7 +92,7 @@ test('My disabled screen exposes Refresh, Uninstall and Fetch version before sig
 test('Lens-only restriction leaves My usable and shows a notice; My-only restriction preserves Lens', () => {
   const { ctx, messages } = context();
   ctx.t = createT('en');
-  const policy: RemoteConfig = { lens_active: true, my_api_active: true, version: '0.5.3', latest: '', authorizedUsers: [], bannedUsers: ['niels'], bannedFeatures: ['lens_active'] };
+  const policy: RemoteConfig = { lens_active: true, my_api_active: true, version: '0.5.3', latest: '', authorized: [], banned: [{ user: 'niels', features: ['lens_active'] }] };
   ctx.state.availability = remoteStatus(policy, '0.5.3', 'nielsLaptop');
   assert.equal(renderAvailability(ctx), null);
   const notice = renderLensRestriction(ctx) as unknown as DomElement;
@@ -100,7 +100,7 @@ test('Lens-only restriction leaves My usable and shows a notice; My-only restric
   assert.match(notice.textContent, /does not block access to My/);
   notice.all('button')[0].click();
   assert.deepEqual(messages.at(-1), { type: 'appeal' });
-  ctx.state.availability = remoteStatus({ ...policy, bannedFeatures: ['my_api_active'] }, '0.5.3', 'nielsLaptop');
+  ctx.state.availability = remoteStatus({ ...policy, banned: [{ user: 'niels', features: ['my_api_active'] }] }, '0.5.3', 'nielsLaptop');
   assert.equal(renderLensRestriction(ctx), null);
   assert.equal(ctx.state.availability.lensActive, true);
   assert.match(renderAvailability(ctx)!.node.textContent!, /access to 'My' has been revoked/);
@@ -108,13 +108,13 @@ test('Lens-only restriction leaves My usable and shows a notice; My-only restric
 
 test('endpoint activity displays only observed counters and handles an empty session without invented calls', () => {
   const { ctx } = context(); ctx.t = createT('en');
-  const policy: RemoteConfig = { lens_active: true, my_api_active: true, version: '0.5.5', latest: '', authorizedUsers: [], bannedUsers: ['niels'] };
+  const policy: RemoteConfig = { lens_active: true, my_api_active: true, version: '0.5.5', latest: '', authorized: [], banned: [{ user: 'niels', features: ['lens_active', 'my_api_active'] }] };
   ctx.state.apiActivity = { startedAt: 1234, endpoints: [
     { method: 'GET', route: '/api/students/profile', calls: 7, rateLimitedResponses: 1 },
     { method: 'POST', route: '/api/auth/refresh', calls: 2, rateLimitedResponses: 0 },
   ] };
   for (const bannedFeatures of [['my_api_active'], ['lens_active', 'my_api_active']] as const) {
-    ctx.state.availability = remoteStatus({ ...policy, bannedFeatures: [...bannedFeatures] }, '0.5.5', 'niels');
+    ctx.state.availability = remoteStatus({ ...policy, banned: [{ user: 'niels', features: [...bannedFeatures] }] }, '0.5.5', 'niels');
     const root = renderAvailability(ctx)!.node as unknown as DomElement;
     assert.match(root.textContent, /Endpoints called/);
     assert.match(root.textContent, /Local session/);
@@ -134,7 +134,7 @@ test('endpoint activity displays only observed counters and handles an empty ses
   delete ctx.state.apiActivity;
   empty = renderAvailability(ctx)!.node as unknown as DomElement;
   assert.match(empty.textContent, /No API calls have been observed/);
-  ctx.state.availability = remoteStatus({ ...policy, bannedUsers: [], my_api_active: false }, '0.5.5', 'niels');
+  ctx.state.availability = remoteStatus({ ...policy, banned: [], my_api_active: false }, '0.5.5', 'niels');
   assert.equal((renderAvailability(ctx)!.node as unknown as DomElement).all('table').length, 0);
   ctx.state.availability = remoteStatus(policy, '0.5.5', 'niels', true);
   assert.equal((renderAvailability(ctx)!.node as unknown as DomElement).all('table').length, 0);
@@ -142,13 +142,13 @@ test('endpoint activity displays only observed counters and handles an empty ses
 
 test('Refresh VSCode is disabled until uninstallation succeeds on every page with uninstall controls', () => {
   const { ctx, messages } = context(); ctx.t = createT('en');
-  const policy: RemoteConfig = { lens_active: true, my_api_active: true, version: '0.5.5', latest: '', authorizedUsers: [], bannedUsers: ['niels'] };
+  const policy: RemoteConfig = { lens_active: true, my_api_active: true, version: '0.5.5', latest: '', authorized: [], banned: [{ user: 'niels', features: ['lens_active', 'my_api_active'] }] };
   const scenarios = [
     remoteStatus(policy, '0.5.5', 'niels'),
-    remoteStatus({ ...policy, bannedFeatures: ['my_api_active'] }, '0.5.5', 'niels'),
-    remoteStatus({ ...policy, bannedFeatures: ['lens_active'] }, '0.5.5', 'niels'),
-    remoteStatus({ ...policy, bannedUsers: [], my_api_active: false }, '0.5.5', 'niels'),
-    remoteStatus({ ...policy, bannedUsers: [] }, '0.5.4', 'niels'),
+    remoteStatus({ ...policy, banned: [{ user: 'niels', features: ['my_api_active'] }] }, '0.5.5', 'niels'),
+    remoteStatus({ ...policy, banned: [{ user: 'niels', features: ['lens_active'] }] }, '0.5.5', 'niels'),
+    remoteStatus({ ...policy, banned: [], my_api_active: false }, '0.5.5', 'niels'),
+    remoteStatus({ ...policy, banned: [] }, '0.5.4', 'niels'),
   ];
   for (const state of scenarios) {
     ctx.state.availability = state;
@@ -168,7 +168,7 @@ test('Refresh VSCode is disabled until uninstallation succeeds on every page wit
 
 test('offline and version restrictions keep priority over usable feature settings', () => {
   const { ctx } = context();
-  const policy: RemoteConfig = { lens_active: true, my_api_active: true, version: '0.5.3', latest: '', authorizedUsers: [], bannedUsers: ['niels'], bannedFeatures: ['lens_active'] };
+  const policy: RemoteConfig = { lens_active: true, my_api_active: true, version: '0.5.3', latest: '', authorized: [], banned: [{ user: 'niels', features: ['lens_active'] }] };
   ctx.state.availability = remoteStatus(policy, '0.5.3', 'nielsLaptop', true);
   assert.equal(renderAvailability(ctx)!.key, 'offline-disabled');
   assert.equal(renderLensRestriction(ctx), null);
@@ -180,7 +180,7 @@ test('offline and version restrictions keep priority over usable feature setting
 test('update view shows real download progress and enables Reload VSCode only after installation succeeds', () => {
   const { ctx, messages } = context();
   ctx.t = createT('en');
-  const policy: RemoteConfig = { lens_active: true, my_api_active: true, version: '0.5.3', latest: '', authorizedUsers: [] };
+  const policy: RemoteConfig = { lens_active: true, my_api_active: true, version: '0.5.3', latest: '', authorized: [], banned: [] };
   const state = remoteStatus(policy, '0.5.2', 'guest');
   ctx.state.availability = state;
   for (const phase of ['idle', 'downloading', 'verifying', 'installing', 'error', 'installed'] as const) {

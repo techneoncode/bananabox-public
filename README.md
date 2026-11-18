@@ -64,6 +64,6 @@ Coding style works without signing in, in trusted workspaces only.
 
 ## Links
 
-[Submission guide (FR)](docs/grader.fr.md) · [Coding style](docs/coding-style.md) · [Development](docs/development.md) · [Remote configuration](docs/remote-control.md) · [MIT license](LICENSE)
+[Submission guide (FR)](docs/grader.fr.md) · [Coding style](docs/coding-style.md) · [Development](docs/development.md) · [Remote API](docs/remote-control.md) · [Terms and data collected](docs/terms.md) · [MIT license](LICENSE)
 
 Made by [techneoncode](https://github.com/techneoncode). Independent project, not affiliated with Epitech.

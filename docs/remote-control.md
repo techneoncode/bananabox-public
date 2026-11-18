@@ -1,39 +1,86 @@
-# Remote configuration and automatic updates
+# Remote control API
 
-Bananabox for VS Code reads this endpoint at startup, every minute, and when **Refresh** is clicked:
+Bananabox reads its remote policy from a Cloudflare Worker (`worker/`), deployed at `https://bananabox-api.niels-christophe.workers.dev`. Data lives in a Cloudflare D1 database (schema in `worker/migrations/`).
 
-`https://raw.githubusercontent.com/techneoncode/bananabox-public/refs/heads/main/api.json`
+Every response is JSON: `{ "ok": true, "data": ... }` or `{ "ok": false, "error": { "code", "message" } }`. Bodies are limited to 2 KB. Protected endpoints need `Authorization: Bearer <token>`: either an admin session token (see below) or, for everything, the Cloudflare admin token (`ADMIN_TOKEN`, called *root* here).
 
-```json
-{
-  "lens_active": true,
-  "my_api_active": true,
-  "version": "1.3.4",
-  "latest": "https://github.com/techneoncode/bananabox-public/releases/download/v1.3.4/bananabox-1.3.4.vsix",
-  "authorizedUsers": ["niels"],
-  "bannedUsers": [],
-  "bannedFeatures": ["lens_active", "my_api_active"]
-}
+## Public endpoints (used by the extension)
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/v1/config` | Policy read every minute: `lens_active`, `my_api_active`, `version`, `latest`, `authorized` (names) and `banned` (`[{ user, features }]`). |
+| `POST` | `/v1/nonce` | Returns a single-use nonce (valid 5 minutes). |
+| `POST` | `/v1/installs` | `{ installId, version, nonce }`: records a launch. Repeats within 60 s are not counted. |
+| `DELETE` | `/v1/installs` | `{ installId, nonce }`: deletes everything stored for this installation. |
+| `POST` | `/v1/updates` | `{ installId, from, to, nonce }`: records an installed update. Needs a registered installation; duplicates are ignored. |
+
+`installId` is 32 hex characters generated locally and never shared. Only its SHA-256 is stored. See [the terms](terms.md) for what is collected and why.
+
+## Admin accounts and audit log
+
+Admins authenticate with an `@epitech.eu` email and a password they own (it does not have to be their Epitech password; 12 to 128 characters). Passwords are stored as salted PBKDF2-SHA256 hashes (100 000 iterations), never in clear.
+
+```sh
+API=https://bananabox-api.niels-christophe.workers.dev
+read -rs -p "Password: " PW; echo
+TOKEN=$(curl -s -X POST "$API/v1/admin/login" -d "{\"email\":\"me@epitech.eu\",\"password\":\"$PW\"}" | jq -r .data.token)
 ```
 
-- `lens_active: false` stops coding style scans, diagnostics, lenses and corrections. Local settings cannot bypass the restriction.
-- `my_api_active: false` blocks MyEpitech requests and authentication, cancels pending requests, suspends the session, and replaces the Bananabox view with an account protection message. Stored credentials remain available for reactivation. **Refresh** checks access again; **Fetch version** checks the remote configuration and displays the installed and required versions; **Uninstall** invokes VS Code's actual uninstaller for `techneoncode.bananabox`.
-- `authorizedUsers` contains case-sensitive substrings of OS account names, obtained through Node's `os.userInfo().username` (the same account as `whoami` in the extension host). For example, `"niels"` matches `niels`, `nielsLaptop` and `superniels`, but not `Niels`. An authorized account bypasses the two remote activation switches. Local Lens preferences and workspace trust still apply. In SSH, containers or WSL, this is the account on the remote extension host.
-- `bannedUsers` is an optional list of case-sensitive OS account name substrings, defaulting to `[]`. A match denies the features in `bannedFeatures`, even if the account also matches `authorizedUsers`. Empty strings in either list are ignored.
-- `bannedFeatures` lists the features restricted for matching accounts: `["lens_active"]`, `["my_api_active"]`, both, or `[]` for neither. Missing `bannedFeatures` defaults to both for compatibility with older policies. Other accounts are unaffected by this list. A Lens-only restriction shows a notice while leaving the My interface usable. A My-only restriction shows a revoked-access page while Lens keeps working if otherwise enabled. When both are restricted, the page explains that Bananabox access has been revoked. **Appeal** opens `https://teams.microsoft.com/`; **Uninstall** actually uninstalls Bananabox. Updates are stopped only when both features are restricted for the account. These actions remain available while signed out or blocked.
-- `version` is the minimum build allowed, written as `major.minor.patch` with an optional `-prerelease` (for example `1.3.0` or `1.4.0-beta.2`). Versions are compared by semver precedence: `1.10.0` is newer than `1.9.0`, and `1.4.0-beta.2` is older than `1.4.0`. Any other form, such as `1.3` or `1.3.0+build`, is rejected with an error naming the value. An installed build older than `version` disables both features for everyone, including authorized users, and triggers the update. An equal or newer build works normally and is never downgraded or reinstalled, so a development build ahead of the published one stays as it is. The view shows the installed and required versions, with update progress or failure details.
-- `latest` must be the direct HTTPS VSIX asset of the public release tagged `v<version>`: `https://github.com/techneoncode/bananabox-public/releases/download/v<version>/bananabox-<version>.vsix`, as in the example above. The host must be `github.com`, the repository `techneoncode/bananabox-public`, and the tag and file name must match `version` exactly. Query strings and fragments are rejected. GitHub's HTTPS asset redirects are followed. A repository page, a release page, a URL of another repository, or a mismatched tag or file name is rejected with a message naming the problem.
-- An invalid `version` or `latest` makes the whole configuration invalid. It is handled like any other invalid response: both features are blocked until a valid configuration is received.
+A session lasts 12 hours. Five failed logins lock the account for 15 minutes. Every administrative change (and every login, logout and password change) is written to an append-only audit log, in the same transaction as the change. Reads are not logged.
 
-When the installed build is older than `version`, Bananabox downloads the VSIX without credentials, checks that its manifest identifies `techneoncode.bananabox` at the required version, then invokes VS Code's extension installer. Nothing is downloaded when the installed build is equal to or newer than `version`. It offers a reload when installation finishes. Features remain blocked until the required version is actually loaded. A successful installation is remembered so polling and window restarts do not repeatedly install it while waiting for a reload. Failed updates can be retried with **Refresh**, and are retried on the next scheduled check. The administrator must upload the matching VSIX before publishing the JSON version change.
+| Method | Path | Who | Purpose |
+| --- | --- | --- | --- |
+| `POST` | `/v1/admin/login` | public | `{ email, password }` returns `{ token, expires_at }`. |
+| `POST` | `/v1/admin/logout` | admin | Ends the current session. |
+| `GET` | `/v1/admin/me` | admin | Who am I. |
+| `PUT` | `/v1/admin/password` | admin | `{ current_password, new_password }`; other sessions are revoked. |
+| `GET` / `POST` | `/v1/admins` | root | List admin accounts / create `{ email, password }`. |
+| `DELETE` | `/v1/admins/:id` | root | Delete an account and its sessions. |
+| `PUT` | `/v1/admins/:id/password` | root | `{ password }`: reset, unlock and revoke sessions. |
+| `GET` | `/v1/logs` | root | Audit log, newest first. Filters: `actor` (email), `action`, `limit` (1 to 500), `before` (id, use `next_before` to page). |
 
-The update screen shows both versions, download progress in bytes and percent when the server reports a usable content length, and separate download, verification and installation steps. Without a known download size, and during verification and VS Code installation, it shows an indeterminate progress bar. **Reload VSCode** stays disabled until installation succeeds; the host also rejects premature reload requests.
+Logged actions: `login.success`, `login.failure`, `login.locked`, `logout`, `password.change`, `password.change_failed`, `admin.create`, `admin.delete`, `admin.password_reset`, `banned.add|update|delete`, `authorized.add|delete`, `policy.update`. Each entry has the time, the actor (`admin` with email, `root`, or `anonymous` for failed logins) and the details (previous and new values for updates). Logs are kept for 730 days.
 
-Offline access is blocked: a timeout, network failure, HTTP error or invalid configuration disables both features, including for authorized users. Cached configuration never grants offline access. A valid response automatically restores the features allowed by the switches, version and account. Network loss is detected on the next configuration check (every minute, with a ten-second timeout); **Refresh** checks immediately. If the update download fails while the JSON remains accessible, the version restriction continues to block both features.
+## Admin endpoints
 
-This is an availability mechanism, not an authentication system: account names and extension code are under the local user's control.
+Usable by any admin account and by root.
 
-Every uninstall control includes **Refresh VSCode**, disabled until VS Code successfully completes the uninstall command. The host also rejects early refresh requests. Failed uninstalls show an error and can be retried. Update pages include these controls alongside their separate **Reload VSCode** action, which still requires a successful update installation.
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` / `POST` | `/v1/banned` | List / add `{ name, reason?, features? }`. `features` is the non-empty subset of `lens_active`, `my_api_active` the account loses (default both). 409 if present. |
+| `PUT` | `/v1/banned/:id` | Change `features` and/or `reason`. |
+| `DELETE` | `/v1/banned/:id` | Remove an entry. |
+| `GET` / `POST` | `/v1/authorized` | List / add `{ name, reason? }`: accounts that bypass the activation switches. |
+| `DELETE` | `/v1/authorized/:id` | Remove an entry. |
+| `GET` / `PUT` | `/v1/policy` | `{ lens_active, my_api_active, version, latest }`. `latest` must be the `bananabox-<version>.vsix` asset of release `v<version>`. |
+| `GET` | `/v1/stats` | Installations, active (seen in the last 30 days), inactive, obsolete (older than the policy version), launches, per-version counts. |
+| `GET` | `/v1/versions` | Per-version counts with an `obsolete` flag. |
+| `GET` | `/v1/updates?limit=` | Update history, newest first (1 to 500, default 100). |
 
-The My-only and full revoked-access pages show local request counters from the extension's MyEpitech client: actual fetch attempts (including retries) grouped by HTTP method and route, and HTTP 429 responses actually received. Remotely blocked requests are not counted. Routes use placeholders for identifiers; query strings, tokens, bodies, account details and unknown path contents are not retained. Counters stay in memory, start empty, and reset on explicit sign-out, an account change or an extension restart. Remote suspension preserves them so the access screen can show recent observations from the current session. An empty session explicitly shows no observed API calls. These observations do not establish the cause of the remote restriction. No additional API requests are made to populate the table.
+```sh
+curl -X POST "$API/v1/banned" -H "Authorization: Bearer $TOKEN" -d '{"name":"someone","features":["lens_active"],"reason":"why"}'
+curl -X DELETE "$API/v1/banned/3" -H "Authorization: Bearer $TOKEN"
+curl "$API/v1/stats" -H "Authorization: Bearer $TOKEN"
+```
 
+## Policy semantics
+
+- `lens_active: false` stops coding style scans, diagnostics, lenses and corrections for everyone except authorized accounts. `my_api_active: false` blocks MyEpitech requests and authentication, cancelling in-flight calls.
+- `authorized` and the `user` of each `banned` entry are case-sensitive substrings of OS account names, from Node's `os.userInfo().username` (same as `whoami` in the extension host). `"niels"` matches `niels`, `nielsLaptop` and `superniels`, but not `Niels`. Matching happens locally: the account name is never sent to the API. In SSH, containers or WSL, it is the account of the remote extension host.
+- A matching `banned` entry denies its own `features`, even for an authorized account. When several entries match, their features add up. Names are validated: 1 to 64 characters among letters, digits, `_ . @ $ \ -`.
+- A Lens-only restriction shows a notice and leaves the My interface usable. A My-only restriction shows a revoked-access page while Lens keeps working. With both restricted, the page explains that access was revoked: **Appeal** opens `https://teams.microsoft.com/`, **Uninstall** uninstalls Bananabox, and updates stop. A restricted account sends no statistics.
+- An installed version older than `version` disables both features and triggers the automatic update to `latest`.
+
+## Operating the Worker
+
+```sh
+cd worker && npm install
+npm run migrate:remote   # apply new migrations to the production D1
+npm run deploy
+npx wrangler secret put ADMIN_TOKEN
+npm test                 # local D1 through `wrangler dev`
+```
+
+A daily cron deletes expired nonces, installations not seen for 180 days and update history older than 365 days.
+
+Versions up to 1.3.4 still read `api.json` from this repository. Keep it in sync with the Worker (`GET /v1/config`) while those versions are in use.
