@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { styleMessage } from './messages';
 import {
     BananaDiagnostic,
     DEFAULT_SETTINGS,
@@ -667,7 +668,7 @@ function richHover(
             ? ` &nbsp;\`${item.ruleId.replace(/[`<>&]/g, '')}\``
             : '';
         const message = new vscode.MarkdownString()
-            .appendText(item.message)
+            .appendText(styleMessage(item.message))
             .value;
 
         return `### <span style="color:${color};">$(circle-filled) ${level}</span>${rule}\n\n${message}`;
@@ -773,7 +774,9 @@ export function inlineText(
         options.showLevel ? `[${item.level ?? item.rawSeverity}]` : '',
         visible(options.showRuleId) ? item.ruleId : '',
     ].filter(Boolean).join(' ');
-    const message = visible(options.showMessage) ? item.message : '';
+    const message = visible(options.showMessage)
+        ? styleMessage(item.message)
+        : '';
     return prefix && message ? `${prefix}: ${message}` : prefix || message;
 }
 
