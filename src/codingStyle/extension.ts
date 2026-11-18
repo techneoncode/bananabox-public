@@ -61,6 +61,7 @@ import {
     valgrindInstalled,
 } from './valgrind';
 import type { ValgrindVM } from '../shared/types';
+import { styleMessage } from './messages';
 import {
     Decorations,
     ERROR_LENS_ID,
@@ -979,7 +980,7 @@ class BananaLens implements vscode.Disposable {
                 column: item.column,
                 bucket: item.bucket,
                 ruleId: item.ruleId,
-                message: item.message,
+                message: styleMessage(item.message),
             });
         }
         const durationMs = Date.now() - started;
@@ -1160,9 +1161,8 @@ class BananaLens implements vscode.Disposable {
                 : item.severity === 'information'
                     ? vscode.DiagnosticSeverity.Information
                     : vscode.DiagnosticSeverity.Hint;
-        const label = item.level
-            ? `[${item.level}] ${item.message}`
-            : item.message;
+        const text = styleMessage(item.message);
+        const label = item.level ? `[${item.level}] ${text}` : text;
         const d = new vscode.Diagnostic(
             new vscode.Range(lineIndex, start, lineIndex, end),
             label,
