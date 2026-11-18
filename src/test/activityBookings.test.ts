@@ -234,3 +234,10 @@ test('a split defense: slots of every window are read, the slot in the second wi
     assert.deepEqual(calls, ['GET:42', 'GET:43', 'DELETE:43/5', 'GET:42', 'GET:43']);
   } finally { service.dispose(); }
 });
+
+test('SUSIE sessions are recognised and trigger defense reminders', () => {
+  const [susie] = normalizeActivities([{ ...raw, name: 'SUSIE Session' }]);
+  assert.equal(susie.kind, 'susie');
+  susie.slots = normalizeSlots([slot(1, booking)], null, 111);
+  assert.equal(defenseEvents(project, [susie]).length, 1);
+});
