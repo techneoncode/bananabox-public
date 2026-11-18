@@ -30,6 +30,9 @@ export function readinessChecks(
   ].map(id => vm?.checks.find(c => c.id === id)
     ?? { id: id as DeliveryCheck['id'], status: 'unknown', detail: '' });
 
+  const valgrind = vm?.checks.find(c => c.id === 'valgrind');
+  if (valgrind) checks.push(valgrind);
+
   checks.push({
     id: 'git',
     status: git
