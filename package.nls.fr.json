@@ -3,6 +3,8 @@
   "view.commits.name": "Diffs de commits",
   "view.calendar.name": "Calendrier",
   "view.calendar.container": "Calendrier Bananabox",
+  "view.admin.container": "Bananabox admin",
+  "view.admin.name": "Tableau de bord admin",
   "pkg.sign.in.with.microsoft": "Se connecter avec Microsoft",
   "pkg.sign.in.with.access.token": "Se connecter avec un jeton d’accès",
   "pkg.sign.out": "Se déconnecter",

@@ -4,6 +4,8 @@ import { Controller } from './controller';
 import { ProjectPanels } from './views/projectPanel';
 import { HomePanel } from './views/homePanel';
 import { SidebarProvider } from './views/sidebarProvider';
+import { AdminView } from './views/adminView';
+import { AdminService } from './services/adminService';
 import {
   RemoteControl,
   type RemoteControlDependencies,
@@ -40,6 +42,20 @@ export async function activate(
   controller.home = new HomePanel(context.extensionUri, controller);
   registerAvailabilityActions(context, remote);
 
+  // The dashboard is offered to the accounts listed as admins; the API still demands a login.
+  const adminView = new AdminView(context.extensionUri, new AdminService(context.secrets, remoteDependencies?.fetch));
+  let wasAdmin: boolean | undefined;
+  const syncAdmin = () => {
+    const admin = remoteFeatures.status.admin === true;
+    if (admin === wasAdmin) return;
+    const lostAccess = wasAdmin === true && !admin;
+    wasAdmin = admin;
+    void vscode.commands.executeCommand('setContext', 'epibox.isAdmin', admin);
+    if (lostAccess) void adminView.revoke();
+  };
+  syncAdmin();
+  context.subscriptions.push(remoteFeatures.onDidChange(syncAdmin));
+
   await vscode.commands.executeCommand('setContext', 'epibox.signedIn', false);
   await vscode.commands.executeCommand(
     'setContext',
@@ -72,6 +88,11 @@ export async function activate(
     vscode.window.registerWebviewViewProvider(
       SidebarProvider.calendarViewType,
       new SidebarProvider(context.extensionUri, controller, true),
+      { webviewOptions: { retainContextWhenHidden: true } },
+    ),
+    vscode.window.registerWebviewViewProvider(
+      AdminView.viewType,
+      adminView,
       { webviewOptions: { retainContextWhenHidden: true } },
     ),
     cmd('epibox.signInMicrosoft', () => controller.signInMicrosoft()),

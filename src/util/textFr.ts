@@ -1,6 +1,7 @@
 /** French wording of the host-side texts, keyed by their English template (see `tr`). */
 export const FR_TEXT: Record<string, string> = {
   'Bananabox defense reminder': 'Rappel de défense Bananabox',
+  'Bananabox admin dashboard': 'Tableau de bord admin Bananabox',
   '$(sync~spin) Bananabox: grading…': '$(sync~spin) Bananabox : correction en cours…',
   'A grader run is already in progress.': 'Un run du grader est déjà en cours.',
   'Bananabox is disabled.': 'Bananabox est désactivé.',

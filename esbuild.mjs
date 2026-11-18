@@ -58,6 +58,7 @@ const common = { bundle: true, sourcemap: !production, minify: production, logLe
 
 const extension = { ...common, entryPoints: ['src/extension.ts'], outfile: 'dist/extension.js', platform: 'node', format: 'cjs', target: 'node20', external: ['vscode', 'bufferutil', 'utf-8-validate'] };
 const reminder = { ...common, entryPoints: ['src/webview/reminder.ts'], outfile: 'dist/webview/reminder.js', platform: 'browser', format: 'iife', target: 'es2022' };
+const admin = { ...common, entryPoints: ['src/webview/admin.ts'], outfile: 'dist/webview/admin.js', platform: 'browser', format: 'iife', target: 'es2022' };
 const pdfviewer = { ...common, entryPoints: ['src/webview/pdf.ts'], outfile: 'dist/webview/pdfviewer.js', platform: 'browser', format: 'iife', target: 'es2022' };
 // pdf.js for the extension host (reading a subject's allowed functions), loaded on demand from dist/pdftext.js.
 const pdftext = { ...common, entryPoints: ['src/pdfText/entry.ts'], outfile: 'dist/pdftext.js', platform: 'node', format: 'cjs', target: 'node20', minify: true, sourcemap: false, logLevel: 'warning' };
@@ -69,9 +70,10 @@ if (watch) {
   const b = await esbuild.context(webview);
   const c = await esbuild.context(pdfviewer);
   const d = await esbuild.context(reminder);
+  const e = await esbuild.context(admin);
   await esbuild.build(pdftext);
-  await Promise.all([a.watch(), b.watch(), c.watch(), d.watch()]);
+  await Promise.all([a.watch(), b.watch(), c.watch(), d.watch(), e.watch()]);
   console.log('[epibox] watching…');
 } else {
-  await Promise.all([esbuild.build(extension), esbuild.build(webview), esbuild.build(pdfviewer), esbuild.build(reminder), esbuild.build(pdftext)]);
+  await Promise.all([esbuild.build(extension), esbuild.build(webview), esbuild.build(pdfviewer), esbuild.build(reminder), esbuild.build(admin), esbuild.build(pdftext)]);
 }

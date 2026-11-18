@@ -7,6 +7,8 @@ export interface RemoteConfig {
   latest: string;
   authorized: string[];
   banned: BannedEntry[];
+  /** OS account names of the admins (exact match); absent from older API versions. */
+  admins?: string[];
 }
 
 /** An account-name fragment and the features it loses. */
@@ -22,6 +24,8 @@ export interface RemoteStatus {
   offline: boolean;
   connectionRefused: boolean;
   restrictedFeatures: RemoteFeature[];
+  /** Shows the admin dashboard; the API still requires an admin login. */
+  admin?: boolean;
   lensActive: boolean;
   myApiActive: boolean;
   update:
@@ -147,7 +151,10 @@ export function parseRemoteConfig(value: unknown): RemoteConfig {
     || !Array.isArray(config.authorized)
     || !config.authorized.every(user => typeof user === 'string')
     || !Array.isArray(config.banned)
-    || !config.banned.every(isBannedEntry)) {
+    || !config.banned.every(isBannedEntry)
+    || (config.admins !== undefined
+      && (!Array.isArray(config.admins)
+        || !config.admins.every(user => typeof user === 'string')))) {
     throw new Error('Invalid Bananabox remote configuration.');
   }
   parseSemver(config.version);
@@ -163,6 +170,7 @@ export function parseRemoteConfig(value: unknown): RemoteConfig {
       user: entry.user,
       features: [...new Set(entry.features)],
     })),
+    admins: [...(config.admins ?? [])],
   };
 }
 
@@ -198,6 +206,7 @@ export function remoteStatus(
     offline,
     connectionRefused,
     restrictedFeatures,
+    admin: username !== '' && (config?.admins ?? []).includes(username),
     lensActive: !restrictedFeatures.includes('lens_active')
       && !offline
       && !versionMismatch
