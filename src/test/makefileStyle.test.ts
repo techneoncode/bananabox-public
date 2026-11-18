@@ -168,3 +168,13 @@ test('M-S2: literal SRC entries that are not files are flagged', () => {
   const found = lintMakefile('/p/Makefile', text, { ...BASE, sources: { files: [], ignore: [], isFile: f => f === 'src/main.c' } }).filter(i => i.ruleId === 'M-S2');
   assert.deepEqual(found.map(i => [i.line, i.bucket, i.message]), [[9, 'major', 'SRC entry is not a file.']]);
 });
+
+test('style messages are translated to French and unknown ones are left alone', async () => {
+  const { translateMessage: tr } = await import('../codingStyle/messages');
+  assert.equal(tr('trailing space', 'fr'), 'espace en fin de ligne');
+  assert.equal(tr('nested while statement at depth 3', 'fr'), 'instruction while imbriquée à la profondeur 3');
+  assert.equal(tr('missing space after if keyword', 'fr'), 'espace manquant après le mot-clé if');
+  assert.equal(tr('Line too long (90 > 80 columns).', 'fr'), 'Ligne trop longue (90 > 80 colonnes).');
+  assert.equal(tr('something new', 'fr'), 'something new');
+  assert.equal(tr('trailing space', 'en'), 'trailing space');
+});
