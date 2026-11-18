@@ -38,13 +38,16 @@ function loadViewer(): Promise<PdfApi> {
 }
 
 export function renderSubject(ctx: Ctx, p: ProjectVM): HTMLElement {
-  const action = (target: 'editor' | 'browser' | 'desktop', symbol: string) => h('button.btn.ghost.small', {
+  const state = ctx.subjects.get(p.id);
+  const binaries = state?.status === 'ready' ? state.binaries ?? 0 : 0;
+  const action = (target: 'editor' | 'browser' | 'desktop' | 'binaries', symbol: string) => h('button.btn.ghost.small', {
     onclick: () => ctx.post({ type: 'openSubject', projectId: p.id, target }),
   }, icon(symbol), ctx.t(`subject.open.${target}`));
   return h('div.subject', { style: { display: 'grid', gap: '10px' } }, h('div.subject-actions',
     ctx.surface === 'sidebar' && action('editor', 'layout-panel-center'),
     action('browser', 'globe'),
     action('desktop', 'desktop-download'),
+    binaries > 0 && action('binaries', 'package'),
   ), renderSubjectBody(ctx, p));
 }
 

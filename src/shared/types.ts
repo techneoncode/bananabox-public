@@ -206,6 +206,8 @@ export type SubjectState =
       base64: string;
       docId: string;
       documents: SubjectDocVM[];
+      /** Attached files that are not PDFs (binaries, archives). */
+      binaries?: number;
     }
   | { status: 'unavailable'; reason: string }
   | { status: 'error'; message: string };

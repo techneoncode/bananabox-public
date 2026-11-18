@@ -6,6 +6,7 @@ import { EpitechClient } from '../api/client';
 import type { ProjectVM, SubjectState } from '../shared/types';
 import { config } from '../util/config';
 import { log } from '../util/log';
+import { createT } from '../shared/i18n';
 import {
   findSubjectUrl,
   listSubjectDocuments,
@@ -37,18 +38,26 @@ const documentVM = (d: SubjectDocument) => ({
 export class SubjectService {
   private readonly cache = new Map<number, SubjectState>();
   private readonly docs = new Map<number, SubjectDocument[]>();
+  private readonly binaries = new Map<number, SubjectDocument[]>();
   private generation = 0;
   private readonly sources = new Map<
     number,
     { url?: string; local?: vscode.Uri; docId?: string }
   >();
 
-  constructor(private readonly client: EpitechClient) {}
+  constructor(
+    private readonly client: EpitechClient,
+    private readonly t: (
+      key: string,
+      params?: Record<string, string | number>,
+    ) => string = createT('en'),
+  ) {}
 
   clear(): void {
     this.generation++;
     this.cache.clear();
     this.docs.clear();
+    this.binaries.clear();
     this.sources.clear();
   }
 
@@ -69,10 +78,7 @@ export class SubjectService {
     let listingError: unknown;
     if (docs.length === 0) {
       try {
-        docs = listSubjectDocuments(
-          await this.client.projectResources(project.id),
-        );
-        if (gen === this.generation) this.docs.set(project.id, docs);
+        docs = await this.list(project.id, gen);
       } catch (e) {
         listingError = e;
         log().warn(`attached files lookup failed for project ${project.id}`, e);
@@ -116,6 +122,7 @@ export class SubjectService {
         base64: bytes.toString('base64'),
         docId: chosen?.id ?? '',
         documents: docs.map(documentVM),
+        binaries: this.binaries.get(project.id)?.length ?? 0,
       };
       this.cache.set(project.id, state);
       return state;
@@ -138,10 +145,7 @@ export class SubjectService {
     const gen = this.generation;
     let docs = this.docs.get(project.id) ?? [];
     if (!docs.length) {
-      docs = listSubjectDocuments(
-        await this.client.projectResources(project.id),
-      );
-      if (gen === this.generation) this.docs.set(project.id, docs);
+      docs = await this.list(project.id, gen);
     }
 
     const doc = pickSubjectForFunctions(docs);
@@ -176,11 +180,52 @@ export class SubjectService {
     }
   }
 
+  private async list(
+    projectId: number,
+    gen: number,
+  ): Promise<SubjectDocument[]> {
+    const tree = await this.client.projectResources(projectId);
+    const docs = listSubjectDocuments(tree);
+    if (gen === this.generation) {
+      this.docs.set(projectId, docs);
+      this.binaries.set(projectId, listSubjectDocuments(tree, false));
+    }
+    return docs;
+  }
+
+  /** Saves every non-PDF file attached to the project (SettingUp-style binaries) into a folder the user picks. */
+  async downloadBinaries(project: ProjectVM): Promise<void> {
+    const gen = this.generation;
+    if (!this.binaries.has(project.id)) await this.list(project.id, gen);
+    const files = this.binaries.get(project.id) ?? [];
+    if (!files.length) return;
+    const folder = (await vscode.window.showOpenDialog({
+      title: this.t('subject.binaries.title'),
+      openLabel: this.t('subject.binaries.save'),
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      defaultUri: vscode.Uri.file(homedir()),
+    }))?.[0];
+    if (!folder || gen !== this.generation) return;
+    for (const doc of files) {
+      const bytes = await this.fetchResource(project.id, doc, gen, true);
+      await vscode.workspace.fs.writeFile(
+        vscode.Uri.joinPath(folder, basename(doc.name)),
+        bytes,
+      );
+    }
+    void vscode.window.showInformationMessage(
+      this.t('subject.binaries.done', { 0: files.length, 1: folder.fsPath }),
+    );
+  }
+
   /** Resolves a fresh signed link for an attached file and downloads it; one retry if the link was rejected. */
   private async fetchResource(
     projectId: number,
     doc: SubjectDocument,
     gen: number,
+    raw = false,
   ): Promise<Buffer> {
     const attempt = async (): Promise<Buffer> => {
       const link = parseResourceLink(
@@ -192,7 +237,7 @@ export class SubjectService {
       if (gen === this.generation) {
         this.sources.set(projectId, { url: link, docId: doc.id });
       }
-      return this.fetchPdf(link);
+      return this.fetchPdf(link, raw);
     };
 
     try {
@@ -208,7 +253,7 @@ export class SubjectService {
     }
   }
 
-  private async fetchPdf(url: string): Promise<Buffer> {
+  private async fetchPdf(url: string, raw = false): Promise<Buffer> {
     const base = new URL(config.apiBaseUrl());
     const target = new URL(url, base);
     let bytes: Buffer;
@@ -224,6 +269,7 @@ export class SubjectService {
       }
       bytes = Buffer.from(await res.arrayBuffer());
     }
+    if (raw) return bytes;
     if (bytes.length > MAX_BYTES) {
       throw new DownloadError('The PDF is too large to display.');
     }

@@ -505,6 +505,8 @@ export async function handleMessage(
         await c.subject.openInBrowser(project);
       } else if (m.target === 'desktop') {
         await c.subject.openOnComputer(project);
+      } else if (m.target === 'binaries') {
+        await c.subject.downloadBinaries(project);
       }
       return;
     }
