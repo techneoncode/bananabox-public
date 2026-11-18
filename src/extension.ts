@@ -10,6 +10,7 @@ import {
 } from './services/remoteControl';
 import { remoteFeatures } from './services/remoteFeatures';
 import { registerAvailabilityActions } from './services/availabilityActions';
+import { tr } from './util/text';
 
 export async function activate(
   context: vscode.ExtensionContext,
@@ -73,7 +74,7 @@ export async function activate(
           detail: p.status,
           id: p.id,
         })),
-        { title: 'Open project details', placeHolder: 'Search a project' },
+        { title: tr('Open project details'), placeHolder: tr('Search a project') },
       );
       if (pick) controller.openProject(pick.id);
     }),

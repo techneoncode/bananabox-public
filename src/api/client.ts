@@ -1,6 +1,7 @@
 import type { ProjectStatus, ProjectVM } from '../shared/types';
 import { ApiActivity } from '../domain/apiActivity';
 import { cachePolicy, GuardPausedError, RequestGuard } from './requestGuard';
+import { tr } from '../util/text';
 
 type Json = Record<string, any>;
 
@@ -104,7 +105,7 @@ export class EpitechClient {
     const attempt = async (): Promise<T> => {
       if (this.opts.isEnabled?.() === false) {
         throw new ApiError(
-          'My API has been remote disabled.',
+          tr('My API has been remote disabled.'),
           403,
           url.pathname,
         );
@@ -138,7 +139,7 @@ export class EpitechClient {
         this.opts.onActivityChange?.();
         if (this.opts.isEnabled?.() === false) {
           throw new ApiError(
-            'My API has been remote disabled.',
+            tr('My API has been remote disabled.'),
             403,
             url.pathname,
           );
@@ -170,10 +171,10 @@ export class EpitechClient {
       } catch (e) {
         if (e instanceof ApiError) throw e;
         if ((e as Error).name === 'AbortError') {
-          throw new ApiError('The request timed out.', 0, url.pathname);
+          throw new ApiError(tr('The request timed out.'), 0, url.pathname);
         }
         throw new ApiError(
-          `Network error: ${(e as Error).message}`,
+          tr('Network error: {p0}', { p0: (e as Error).message }),
           0,
           url.pathname,
         );
@@ -235,7 +236,7 @@ export class EpitechClient {
       || !res.refresh_token
     ) {
       throw new ApiError(
-        'The refresh response did not contain new tokens.',
+        tr('The refresh response did not contain new tokens.'),
         0,
         '/api/auth/refresh',
       );
@@ -496,7 +497,7 @@ export class EpitechClient {
     const target = new URL(urlOrPath, base);
     if (target.origin !== base.origin) {
       throw new ApiError(
-        'Refusing to send credentials to a foreign host.',
+        tr('Refusing to send credentials to a foreign host.'),
         0,
         target.pathname,
       );

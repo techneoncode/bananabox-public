@@ -28,6 +28,7 @@ import {
   openProject,
   pickSubject,
 } from './projects';
+import { tr } from '../util/text';
 
 const PANEL_TABS: PanelTab[] = [
   'overview',
@@ -520,7 +521,7 @@ export async function handleMessage(
     case 'copy':
       if (typeof m.text !== 'string') return;
       await vscode.env.clipboard.writeText(m.text);
-      c.toast('info', m.what ? `${m.what} copied` : 'Copied');
+      c.toast('info', m.what ? tr('{what} copied', { what: m.what }) : tr('Copied'));
       return;
   }
 }

@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { MS_REDIRECT_URI } from './microsoft';
+import { tr } from '../util/text';
 
 export type BrowserErrorCode = 'unavailable' | 'cancelled' | 'timeout';
 
@@ -196,7 +197,7 @@ export function captureChromium(o: CaptureOptions): Promise<string> {
     } catch (e) {
       return reject(new BrowserAuthError(
         'unavailable',
-        `Could not start the browser: ${(e as Error).message}`,
+        tr('Could not start the browser: {p0}', { p0: (e as Error).message }),
       ));
     }
 
@@ -206,7 +207,7 @@ export function captureChromium(o: CaptureOptions): Promise<string> {
       child.kill();
       return reject(new BrowserAuthError(
         'unavailable',
-        'The browser did not expose its DevTools pipe.',
+        tr('The browser did not expose its DevTools pipe.'),
       ));
     }
 
@@ -312,7 +313,7 @@ export function captureChromium(o: CaptureOptions): Promise<string> {
     child.on('error', (e) => finish({
       error: new BrowserAuthError(
         'unavailable',
-        `Could not start the browser: ${e.message}`,
+        tr('Could not start the browser: {p0}', { p0: e.message }),
       ),
     }));
     child.on('exit', () => {
@@ -323,14 +324,14 @@ export function captureChromium(o: CaptureOptions): Promise<string> {
         error: quick
           ? new BrowserAuthError(
               'unavailable',
-              'The browser exited immediately (is the same profile already in use?).',
+              tr('The browser exited immediately (is the same profile already in use?).'),
             )
-          : new BrowserAuthError('cancelled', 'The sign-in window was closed.'),
+          : new BrowserAuthError('cancelled', tr('The sign-in window was closed.')),
       });
     });
 
     const onAbort = (): void => finish({
-      error: new BrowserAuthError('cancelled', 'Sign-in cancelled.'),
+      error: new BrowserAuthError('cancelled', tr('Sign-in cancelled.')),
     });
     if (o.signal?.aborted) {
       onAbort();
@@ -342,7 +343,7 @@ export function captureChromium(o: CaptureOptions): Promise<string> {
       () => finish({
         error: new BrowserAuthError(
           'timeout',
-          'Timed out waiting for the Microsoft sign-in.',
+          tr('Timed out waiting for the Microsoft sign-in.'),
         ),
       }),
       o.timeoutMs,

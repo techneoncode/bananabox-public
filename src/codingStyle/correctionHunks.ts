@@ -1,3 +1,5 @@
+import { ui } from './messages';
+
 export type HunkKind =
     | 'header'
     | 'removeBlank'
@@ -124,11 +126,11 @@ function classify(
     atEnd: boolean,
 ): { kind: HunkKind; title: string } {
     const plural = (n: number, one: string, many: string) =>
-        (n === 1 ? one : many.replace('{n}', String(n)));
+        (n === 1 ? ui(one) : ui(many, { n }));
 
     if (oldLines.length === 0 && atStart
         && /EPITECH PROJECT/.test(newLines.join(''))) {
-        return { kind: 'header', title: 'Add the Epitech header (C-G1)' };
+        return { kind: 'header', title: ui('Add the Epitech header (C-G1)') };
     }
     if (newLines.length === 0 && oldLines.every(blank)) {
         return {
@@ -153,13 +155,13 @@ function classify(
     if (oldLines.length === newLines.length) {
         if (atEnd && oldLines.length === 1
             && body(oldLines[0]!) === body(newLines[0]!)) {
-            return { kind: 'finalNewline', title: 'Add the final newline' };
+            return { kind: 'finalNewline', title: ui('Add the final newline') };
         }
         const pairs = oldLines.map(
             (line, i) => [body(line), body(newLines[i]!)] as const,
         );
         if (pairs.every(([a, b]) => a.trimEnd() === b && a !== b)) {
-            return { kind: 'trailing', title: 'Remove trailing whitespace' };
+            return { kind: 'trailing', title: ui('Remove trailing whitespace') };
         }
         if (pairs.every(([a, b]) => a.trim() === b.trim())) {
             const trailing = pairs.some(
@@ -172,7 +174,7 @@ function classify(
                 return {
                     kind: 'indent',
                     title: trailing
-                        ? 'Fix indentation and trailing whitespace'
+                        ? ui('Fix indentation and trailing whitespace')
                         : plural(
                                 oldLines.length,
                                 'Fix indentation',
@@ -180,10 +182,10 @@ function classify(
                             ),
                 };
             }
-            return { kind: 'trailing', title: 'Remove trailing whitespace' };
+            return { kind: 'trailing', title: ui('Remove trailing whitespace') };
         }
         if (squash(oldLines) === squash(newLines)) {
-            return { kind: 'spacing', title: 'Fix spacing' };
+            return { kind: 'spacing', title: ui('Fix spacing') };
         }
     }
     if (squash(oldLines) === squash(newLines)) {
@@ -192,14 +194,14 @@ function classify(
         return {
             kind: 'layout',
             title: braces
-                ? 'Put the brace on its own line'
+                ? ui('Put the brace on its own line')
                 : newLines.length > oldLines.length
-                    ? 'Split into several lines'
-                    : 'Join these lines',
+                    ? ui('Split into several lines')
+                    : ui('Join these lines'),
         };
     }
 
-    return { kind: 'rewrite', title: 'Reformat this block' };
+    return { kind: 'rewrite', title: ui('Reformat this block') };
 }
 
 const HEADER = /^(?:\uFEFF)?\/\*\r?\n\*\* EPITECH PROJECT[\s\S]*?\*\/\r?\n(?:\r?\n)?/;
@@ -222,7 +224,7 @@ export function computeHunks(before: string, after: string): Hunk[] {
                 endOffset: 0,
                 newText: header.replace(/\r\n/g, '\n'),
                 kind: 'header',
-                title: 'Add the Epitech header (C-G1)',
+                title: ui('Add the Epitech header (C-G1)'),
             },
             ...computeHunks(before, after.slice(header.length)),
         ];

@@ -6,6 +6,7 @@ import type {
   ReproductionRecipe,
 } from '../shared/deliveryTypes';
 import { resolveInside } from '../domain/styleScan';
+import { tr } from '../util/text';
 
 export const CONFIG_FILE = '.bananabox.json';
 
@@ -49,7 +50,7 @@ function command(raw: unknown, label: string): LocalCommand {
 
 export function parseDeliveryConfig(raw: unknown): DeliveryConfig {
   if (!object(raw) || raw.version !== 1) {
-    throw new Error('Expected a Bananabox configuration with version: 1.');
+    throw new Error(tr('Expected a Bananabox configuration with version: 1.'));
   }
 
   const files = raw.requiredFiles ?? [];
@@ -70,7 +71,7 @@ export function parseDeliveryConfig(raw: unknown): DeliveryConfig {
   const recipes: Record<string, ReproductionRecipe> = Object.create(null);
   for (const [name, r] of Object.entries(raw.recipes ?? {})) {
     const c = command(r, name);
-    if (!object(r)) throw new Error('Invalid recipe.');
+    if (!object(r)) throw new Error(tr('Invalid recipe.'));
     if (r.stdin !== undefined && typeof r.stdin !== 'string') {
       throw new Error(`${name}: stdin must be a string.`);
     }

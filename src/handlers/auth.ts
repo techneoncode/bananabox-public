@@ -12,6 +12,7 @@ import type { AuthVM } from '../shared/types';
 import { config } from '../util/config';
 import { log } from '../util/log';
 import type { Controller } from '../controller';
+import { tr } from '../util/text';
 
 export function authChanged(c: Controller, a: AuthVM): void {
   if (a.status === 'signedIn' && a.login) {
@@ -94,14 +95,14 @@ export async function signIn(c: Controller): Promise<void> {
   if (!remoteFeatures.status.myApiActive) return;
 
   const token = await vscode.window.showInputBox({
-    title: 'Bananabox: Sign in',
-    prompt: 'Paste your access token (my.epitech.eu → DevTools → Network → any /api request → Authorization header). A Microsoft token is also accepted.',
+    title: tr('Bananabox: Sign in'),
+    prompt: tr('Paste your access token (my.epitech.eu → DevTools → Network → any /api request → Authorization header). A Microsoft token is also accepted.'),
     placeHolder: 'eyJhbGciOi…',
     password: true,
     ignoreFocusOut: true,
     validateInput: (v) =>
       v.trim().length > 0 && v.trim().length < 20
-        ? 'This does not look like a token.'
+        ? tr('This does not look like a token.')
         : undefined,
   });
   if (!token) return;
@@ -110,20 +111,20 @@ export async function signIn(c: Controller): Promise<void> {
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: 'Bananabox: signing in…',
+        title: tr('Bananabox: signing in…'),
       },
       () => c.auth.signIn(token),
     );
     if (!c.auth.isSignedIn) return;
     void vscode.window.showInformationMessage(
-      `Bananabox: signed in as ${c.auth.snapshot.firstname ?? c.auth.snapshot.login}.`,
+      tr('Bananabox: signed in as {name}.', { name: c.auth.snapshot.firstname ?? c.auth.snapshot.login ?? '' }),
     );
   } catch (e) {
     const choice = await vscode.window.showErrorMessage(
-      `Bananabox: sign-in failed · ${(e as Error).message}`,
-      'Try again',
+      tr('Bananabox: sign-in failed · {error}', { error: (e as Error).message }),
+      tr('Try again'),
     );
-    if (choice === 'Try again') return c.signIn();
+    if (choice === tr('Try again')) return c.signIn();
   }
 }
 
@@ -170,7 +171,7 @@ export async function submitRedirect(c: Controller, input: string) {
     await c.auth.signIn(tokens.idToken, { msRefresh: tokens.refreshToken });
     if (c.auth.isSignedIn) {
       void vscode.window.showInformationMessage(
-        `Bananabox: signed in as ${c.auth.snapshot.firstname ?? c.auth.snapshot.login}.`,
+        tr('Bananabox: signed in as {name}.', { name: c.auth.snapshot.firstname ?? c.auth.snapshot.login ?? '' }),
       );
     }
   } catch (e) {
@@ -241,7 +242,7 @@ export async function signInWithBrowser(
     });
     if (c.auth.isSignedIn) {
       void vscode.window.showInformationMessage(
-        `Bananabox: signed in as ${c.auth.snapshot.firstname ?? c.auth.snapshot.login}.`,
+        tr('Bananabox: signed in as {name}.', { name: c.auth.snapshot.firstname ?? c.auth.snapshot.login ?? '' }),
       );
     }
     return 'done';
@@ -277,9 +278,9 @@ export async function failSignIn(
   c.auth.reportError(message);
   const choice = await vscode.window.showErrorMessage(
     `Bananabox: ${message}`,
-    'Try again',
-    'Use an access token',
+    tr('Try again'),
+    tr('Use an access token'),
   );
-  if (choice === 'Try again') return c.signInMicrosoft();
-  if (choice === 'Use an access token') return c.signIn();
+  if (choice === tr('Try again')) return c.signInMicrosoft();
+  if (choice === tr('Use an access token')) return c.signIn();
 }

@@ -7,6 +7,7 @@ import {
   refreshMicrosoftTokens,
   type MicrosoftTokens,
 } from './microsoft';
+import { tr } from '../util/text';
 
 const TOKEN_KEY = 'epibox.accessToken';
 const REFRESH_KEY = 'epibox.refreshToken';
@@ -117,7 +118,7 @@ export class AuthManager implements vscode.Disposable {
    * while the controller redeems the Microsoft code.
    */
   async signIn(rawInput: string, opts: SignInOptions = {}): Promise<void> {
-    if (this.signingIn) throw new Error('Sign-in is already in progress.');
+    if (this.signingIn) throw new Error(tr('Sign-in is already in progress.'));
     this.signingIn = true;
     try {
       await this.doSignIn(rawInput, opts);
@@ -128,12 +129,12 @@ export class AuthManager implements vscode.Disposable {
 
   private async doSignIn(rawInput: string, opts: SignInOptions): Promise<void> {
     if (this.deps.isEnabled?.() === false) {
-      throw new Error('My API has been remote disabled.');
+      throw new Error(tr('My API has been remote disabled.'));
     }
 
     const gen = ++this.generation;
     const input = cleanToken(rawInput);
-    if (!input) throw new Error('The token is empty.');
+    if (!input) throw new Error(tr('The token is empty.'));
     this.set({ ...this.state, busy: true, error: null });
     try {
       let accessToken = input;
@@ -141,7 +142,7 @@ export class AuthManager implements vscode.Disposable {
       const info = inspectToken(input);
       if (info.expiresAt !== null && info.expiresAt <= Date.now()) {
         throw new Error(
-          'This token has already expired. Copy a fresh one from my.epitech.eu.',
+          tr('This token has already expired. Copy a fresh one from my.epitech.eu.'),
         );
       }
 
@@ -152,7 +153,7 @@ export class AuthManager implements vscode.Disposable {
       }
 
       if (!accessToken) {
-        throw new Error('The server did not return an access token.');
+        throw new Error(tr('The server did not return an access token.'));
       }
 
       const verified = await this.client.verify(accessToken);
