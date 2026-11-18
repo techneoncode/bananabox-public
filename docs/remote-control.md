@@ -8,8 +8,8 @@ Bananabox for VS Code reads this endpoint at startup, every minute, and when **R
 {
   "lens_active": true,
   "my_api_active": true,
-  "version": "1.3.2",
-  "latest": "https://github.com/techneoncode/bananabox-public/releases/download/v1.3.2/bananabox-1.3.2.vsix",
+  "version": "1.3.3",
+  "latest": "https://github.com/techneoncode/bananabox-public/releases/download/v1.3.3/bananabox-1.3.3.vsix",
   "authorizedUsers": ["niels"],
   "bannedUsers": [],
   "bannedFeatures": ["lens_active", "my_api_active"]
