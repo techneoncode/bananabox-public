@@ -10,7 +10,7 @@ Every response is JSON: `{ "ok": true, "data": ... }` or `{ "ok": false, "error"
 | --- | --- | --- |
 | `GET` | `/v1/config` | Policy read every minute: `lens_active`, `my_api_active`, `version`, `latest`, `authorized` (names) and `banned` (`[{ user, features }]`). |
 | `POST` | `/v1/nonce` | Returns a single-use nonce (valid 5 minutes). |
-| `POST` | `/v1/installs` | `{ installId, version, nonce }`: records a launch. Repeats within 60 s are not counted. |
+| `POST` | `/v1/installs` | `{ installId, version, account?, nonce }`: records a launch. `account` is the OS account name; it is stored if valid as a ban name, and listed in `users` by `GET /v1/stats`. Repeats within 60 s are not counted. |
 | `DELETE` | `/v1/installs` | `{ installId, nonce }`: deletes everything stored for this installation. |
 | `POST` | `/v1/updates` | `{ installId, from, to, nonce }`: records an installed update. Needs a registered installation; duplicates are ignored. |
 

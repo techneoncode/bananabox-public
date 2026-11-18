@@ -58,6 +58,11 @@ export function installId(value) {
   return value;
 }
 
+/** Optional: a name the ban list could not hold is dropped instead of failing the whole report. */
+export function account(value) {
+  return typeof value === 'string' && NAME.test(value) ? value : null;
+}
+
 export function nonce(value) {
   if (typeof value !== 'string' || !NONCE.test(value)) throw bad('nonce must be 32 lowercase hex characters.');
   return value;
