@@ -72,6 +72,9 @@ export async function handleMessage(
       'submitRedirect',
       'cancelSignIn',
       'signOut',
+      // The terms page is shown before sign-in.
+      'acceptTerms',
+      'openExternal',
     ].includes(m.type) &&
     !c.auth.isSignedIn
   ) {
