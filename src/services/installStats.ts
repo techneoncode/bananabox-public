@@ -1,26 +1,37 @@
 import { randomBytes } from 'node:crypto';
+import { userInfo } from 'node:os';
 import * as vscode from 'vscode';
 import { compareVersions } from '../domain/remotePolicy';
 import { createT } from '../shared/i18n';
 import { config } from '../util/config';
 import { log } from '../util/log';
 import { API_BASE_URL } from './remoteControl';
+import { termsUrl } from '../shared/terms';
+import { acceptTerms, termsAccepted } from './termsConsent';
 
 const ID_KEY = 'bananabox.installId.v1';
-const NOTICE_KEY = 'bananabox.statisticsNotice.v1';
 const VERSION_KEY = 'bananabox.reportedVersion.v1';
-const TERMS_URL = 'https://github.com/techneoncode/bananabox-public/blob/main/docs/terms.md';
+
+function osUsername(): string {
+  try {
+    return userInfo().username;
+  } catch {
+    return '';
+  }
+}
 
 /**
- * Anonymous installation statistics (see docs/terms.md): a random id, the
- * version and a launch count. Nothing is sent before the user has been shown
- * the notice once, and turning the setting off deletes the server-side data.
+ * Installation statistics (see docs/terms.md): a random id, the version, the
+ * OS account name (so maintainers can ban it) and a launch count. Nothing is
+ * sent before the user has accepted the terms, and turning the setting off
+ * deletes the server-side data.
  */
 export class InstallStats {
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly version: string,
     private readonly fetcher: typeof fetch = fetch,
+    private readonly account: string = osUsername(),
   ) {}
 
   /** One report per activation; never throws and never blocks the extension. */
@@ -28,9 +39,10 @@ export class InstallStats {
     try {
       const state = this.context.globalState;
       if (!config.statistics()) return await this.forget();
-      if (!state.get<boolean>(NOTICE_KEY)) {
-        await state.update(NOTICE_KEY, true);
-        this.showNotice();
+      if (!termsAccepted(state)) {
+        // New users accept the terms on the sign-in page; only installations
+        // that already reported are asked here.
+        if (state.get<string>(ID_KEY)) this.showNotice();
         return;
       }
 
@@ -39,7 +51,7 @@ export class InstallStats {
         id = randomBytes(16).toString('hex');
         await state.update(ID_KEY, id);
       }
-      await this.send('POST', '/v1/installs', { installId: id, version: this.version });
+      await this.send('POST', '/v1/installs', { installId: id, version: this.version, ...(this.account && { account: this.account }) });
 
       const previous = state.get<string>(VERSION_KEY);
       if (previous && compareVersions(previous, this.version) < 0) {
@@ -63,11 +75,14 @@ export class InstallStats {
   private showNotice(): void {
     const t = createT(config.language());
     const learn = t('statistics.learnMore');
-    const disable = t('statistics.disable');
-    void vscode.window.showInformationMessage(t('statistics.notice'), learn, disable)
-      .then((choice) => {
-        if (choice === learn) void vscode.env.openExternal(vscode.Uri.parse(TERMS_URL));
-        if (choice === disable) void config.disableStatistics();
+    const accept = t('statistics.accept');
+    void vscode.window.showInformationMessage(t('statistics.notice'), learn, accept)
+      .then(async (choice) => {
+        if (choice === learn) void vscode.env.openExternal(vscode.Uri.parse(termsUrl(config.language())));
+        if (choice === accept) {
+          await acceptTerms(this.context.globalState);
+          await this.report();
+        }
       });
   }
 

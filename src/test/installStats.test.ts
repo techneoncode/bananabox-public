@@ -5,8 +5,9 @@ import { InstallStats } from '../services/installStats';
 
 interface Call { method: string; path: string; body?: Record<string, string> }
 
-function setup(options: { statistics?: boolean; failOn?: string } = {}) {
+function setup(options: { statistics?: boolean; failOn?: string; terms?: boolean } = {}) {
   const store = new Map<string, unknown>();
+  if (options.terms !== false) store.set('bananabox.termsAccepted.v1', true);
   const calls: Call[] = [];
   const notices: string[] = [];
   let nonces = 0;
@@ -24,25 +25,34 @@ function setup(options: { statistics?: boolean; failOn?: string } = {}) {
     get: (key: string) => store.get(key),
     update: async (key: string, value: unknown) => { value === undefined ? store.delete(key) : store.set(key, value); },
   } } as unknown as vscode.ExtensionContext;
-  return { store, calls, notices, stats: (version: string) => new InstallStats(context, version, fetcher) };
+  return { store, calls, notices, stats: (version: string, account = 'alice') => new InstallStats(context, version, fetcher, account) };
 }
 
-test('nothing is sent until the notice has been shown once', async () => {
-  const { calls, notices, stats } = setup();
+test('nothing is sent until the terms are accepted; a new install is not nagged', async () => {
+  const { calls, notices, store, stats } = setup({ terms: false });
+  await stats('1.4.0').report();
+  assert.equal(calls.length, 0);
+  assert.equal(notices.length, 0);
+  store.set('bananabox.termsAccepted.v1', true);
+  await stats('1.4.0').report();
+  assert.deepEqual(calls.map(c => c.path), ['/v1/nonce', '/v1/installs']);
+});
+
+test('an install that already reported is asked to accept the terms and sends nothing meanwhile', async () => {
+  const { calls, notices, store, stats } = setup({ terms: false });
+  store.set('bananabox.installId.v1', 'a'.repeat(32));
   await stats('1.4.0').report();
   assert.equal(calls.length, 0);
   assert.equal(notices.length, 1);
-  await stats('1.4.0').report();
-  assert.deepEqual(calls.map(c => c.path), ['/v1/nonce', '/v1/installs']);
-  assert.equal(notices.length, 1, 'the notice is shown only once');
 });
 
-test('only a random install id, the version and a nonce are sent', async () => {
+test('only a random install id, the version, the account name and a nonce are sent', async () => {
   const { calls, stats } = setup();
   await stats('1.4.0').report();
   await stats('1.4.0').report();
   const body = calls.find(c => c.path === '/v1/installs')!.body!;
-  assert.deepEqual(Object.keys(body).sort(), ['installId', 'nonce', 'version']);
+  assert.deepEqual(Object.keys(body).sort(), ['account', 'installId', 'nonce', 'version']);
+  assert.equal(body.account, 'alice');
   assert.match(body.installId, /^[0-9a-f]{32}$/);
   assert.equal(body.version, '1.4.0');
   await stats('1.4.0').report();

@@ -20,19 +20,22 @@ export async function activate(
   const remote = new RemoteControl(context, remoteDependencies);
   context.subscriptions.push(remote);
   await remote.start();
+  let stats: InstallStats | undefined;
   // Skipped when offline or refused: no statistics from an account the policy blocks.
   if (
     !remoteFeatures.status.offline
     && !remoteFeatures.status.connectionRefused
   ) {
-    void new InstallStats(
+    stats = new InstallStats(
       context,
       context.extension.packageJSON.version,
       remoteDependencies?.fetch,
-    ).report();
+    );
+    void stats.report();
   }
 
   const controller = new Controller(context);
+  controller.onTermsAccepted = () => void stats?.report();
   controller.panels = new ProjectPanels(context.extensionUri, controller);
   controller.home = new HomePanel(context.extensionUri, controller);
   registerAvailabilityActions(context, remote);

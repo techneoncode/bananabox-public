@@ -50,6 +50,8 @@ export interface StateSnapshot {
     } | null
   >;
   auth: AuthVM;
+  /** The terms must be accepted before any sign-in. */
+  termsAccepted: boolean;
   projects: ProjectVM[] | null;
   loading: boolean;
   error: string | null;
@@ -161,6 +163,7 @@ export type WebviewMessage =
   | { type: 'signInPaste' }
   | { type: 'submitRedirect'; url: string }
   | { type: 'cancelSignIn' }
+  | { type: 'acceptTerms' }
   | { type: 'signOut' }
   | { type: 'refresh' }
   | { type: 'appeal' }

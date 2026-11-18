@@ -11,6 +11,7 @@ import { CommitExplorer } from './git/commitExplorer';
 import { GraderService } from './services/graderService';
 import { ProjectService } from './services/projectService';
 import { SubjectService } from './services/subjectService';
+import { acceptTerms, termsAccepted } from './services/termsConsent';
 import type {
   HostMessage,
   PanelTab,
@@ -385,6 +386,7 @@ export class Controller implements vscode.Disposable {
       availability: remoteFeatures.status,
       apiActivity: this.client.activity.snapshot(),
       auth: this.auth.snapshot,
+      termsAccepted: this.termsAccepted,
       projects: this.projects.projects,
       loading: this.projects.loading,
       error: this.projects.error,
@@ -465,11 +467,27 @@ export class Controller implements vscode.Disposable {
     return refreshRemoteCommit(this, id, force);
   }
 
+  /** Called once the terms have just been accepted, to start the usage reports. */
+  onTermsAccepted?: () => void;
+
+  get termsAccepted(): boolean {
+    return termsAccepted(this.context.globalState);
+  }
+
+  async acceptTerms(): Promise<void> {
+    await acceptTerms(this.context.globalState);
+    this.pushState();
+    this.onTermsAccepted?.();
+  }
+
+  // Both sign-in entry points (page and commands) are closed until the terms are accepted.
   signIn() {
+    if (!this.termsAccepted) return this.pushState();
     return signIn(this);
   }
 
   signInMicrosoft(opts: { paste?: boolean } = {}) {
+    if (!this.termsAccepted) return this.pushState();
     return signInMicrosoft(this, opts);
   }
 
