@@ -2,13 +2,13 @@
 
 Bananabox reads its remote policy from a Cloudflare Worker (`worker/`), deployed at `https://bananabox-api.niels-christophe.workers.dev`. Data lives in a Cloudflare D1 database (schema in `worker/migrations/`).
 
-Every response is JSON: `{ "ok": true, "data": ... }` or `{ "ok": false, "error": { "code", "message" } }`. Bodies are limited to 2 KB. Admin endpoints need `Authorization: Bearer <ADMIN_TOKEN>`.
+Every response is JSON: `{ "ok": true, "data": ... }` or `{ "ok": false, "error": { "code", "message" } }`. Bodies are limited to 2 KB. Protected endpoints need `Authorization: Bearer <token>`: either an admin session token (see below) or, for everything, the Cloudflare admin token (`ADMIN_TOKEN`, called *root* here).
 
 ## Public endpoints (used by the extension)
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/v1/config` | Policy read every minute: `lens_active`, `my_api_active`, `version`, `latest`, `authorizedUsers`, `bannedUsers`, `bannedFeatures`. |
+| `GET` | `/v1/config` | Policy read every minute: `lens_active`, `my_api_active`, `version`, `latest`, `authorized` (names) and `banned` (`[{ user, features }]`). |
 | `POST` | `/v1/nonce` | Returns a single-use nonce (valid 5 minutes). |
 | `POST` | `/v1/installs` | `{ installId, version, nonce }`: records a launch. Repeats within 60 s are not counted. |
 | `DELETE` | `/v1/installs` | `{ installId, nonce }`: deletes everything stored for this installation. |
@@ -16,23 +16,49 @@ Every response is JSON: `{ "ok": true, "data": ... }` or `{ "ok": false, "error"
 
 `installId` is 32 hex characters generated locally and never shared. Only its SHA-256 is stored. See [the terms](terms.md) for what is collected and why.
 
+## Admin accounts and audit log
+
+Admins authenticate with an `@epitech.eu` email and a password they own (it does not have to be their Epitech password; 12 to 128 characters). Passwords are stored as salted PBKDF2-SHA256 hashes (100 000 iterations), never in clear.
+
+```sh
+API=https://bananabox-api.niels-christophe.workers.dev
+read -rs -p "Password: " PW; echo
+TOKEN=$(curl -s -X POST "$API/v1/admin/login" -d "{\"email\":\"me@epitech.eu\",\"password\":\"$PW\"}" | jq -r .data.token)
+```
+
+A session lasts 12 hours. Five failed logins lock the account for 15 minutes. Every administrative change (and every login, logout and password change) is written to an append-only audit log, in the same transaction as the change. Reads are not logged.
+
+| Method | Path | Who | Purpose |
+| --- | --- | --- | --- |
+| `POST` | `/v1/admin/login` | public | `{ email, password }` returns `{ token, expires_at }`. |
+| `POST` | `/v1/admin/logout` | admin | Ends the current session. |
+| `GET` | `/v1/admin/me` | admin | Who am I. |
+| `PUT` | `/v1/admin/password` | admin | `{ current_password, new_password }`; other sessions are revoked. |
+| `GET` / `POST` | `/v1/admins` | root | List admin accounts / create `{ email, password }`. |
+| `DELETE` | `/v1/admins/:id` | root | Delete an account and its sessions. |
+| `PUT` | `/v1/admins/:id/password` | root | `{ password }`: reset, unlock and revoke sessions. |
+| `GET` | `/v1/logs` | root | Audit log, newest first. Filters: `actor` (email), `action`, `limit` (1 to 500), `before` (id, use `next_before` to page). |
+
+Logged actions: `login.success`, `login.failure`, `login.locked`, `logout`, `password.change`, `password.change_failed`, `admin.create`, `admin.delete`, `admin.password_reset`, `banned.add|update|delete`, `authorized.add|delete`, `policy.update`. Each entry has the time, the actor (`admin` with email, `root`, or `anonymous` for failed logins) and the details (previous and new values for updates). Logs are kept for 730 days.
+
 ## Admin endpoints
+
+Usable by any admin account and by root.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` / `POST` | `/v1/banned` | List / add `{ name, reason? }` (409 if already present). |
+| `GET` / `POST` | `/v1/banned` | List / add `{ name, reason?, features? }`. `features` is the non-empty subset of `lens_active`, `my_api_active` the account loses (default both). 409 if present. |
+| `PUT` | `/v1/banned/:id` | Change `features` and/or `reason`. |
 | `DELETE` | `/v1/banned/:id` | Remove an entry. |
-| `GET` / `POST` | `/v1/authorized` | Same, for accounts that bypass the activation switches. |
+| `GET` / `POST` | `/v1/authorized` | List / add `{ name, reason? }`: accounts that bypass the activation switches. |
 | `DELETE` | `/v1/authorized/:id` | Remove an entry. |
-| `GET` / `PUT` | `/v1/policy` | `{ lens_active, my_api_active, version, latest, banned_features? }`. `latest` must be the `bananabox-<version>.vsix` asset of release `v<version>`. |
+| `GET` / `PUT` | `/v1/policy` | `{ lens_active, my_api_active, version, latest }`. `latest` must be the `bananabox-<version>.vsix` asset of release `v<version>`. |
 | `GET` | `/v1/stats` | Installations, active (seen in the last 30 days), inactive, obsolete (older than the policy version), launches, per-version counts. |
 | `GET` | `/v1/versions` | Per-version counts with an `obsolete` flag. |
 | `GET` | `/v1/updates?limit=` | Update history, newest first (1 to 500, default 100). |
 
 ```sh
-API=https://bananabox-api.niels-christophe.workers.dev
-TOKEN=$(cat .admin_token)
-curl -X POST "$API/v1/banned" -H "Authorization: Bearer $TOKEN" -d '{"name":"someone","reason":"why"}'
+curl -X POST "$API/v1/banned" -H "Authorization: Bearer $TOKEN" -d '{"name":"someone","features":["lens_active"],"reason":"why"}'
 curl -X DELETE "$API/v1/banned/3" -H "Authorization: Bearer $TOKEN"
 curl "$API/v1/stats" -H "Authorization: Bearer $TOKEN"
 ```
@@ -40,8 +66,8 @@ curl "$API/v1/stats" -H "Authorization: Bearer $TOKEN"
 ## Policy semantics
 
 - `lens_active: false` stops coding style scans, diagnostics, lenses and corrections for everyone except authorized accounts. `my_api_active: false` blocks MyEpitech requests and authentication, cancelling in-flight calls.
-- `authorizedUsers` and `bannedUsers` contain case-sensitive substrings of OS account names, from Node's `os.userInfo().username` (same as `whoami` in the extension host). `"niels"` matches `niels`, `nielsLaptop` and `superniels`, but not `Niels`. Matching happens locally: the account name is never sent to the API. In SSH, containers or WSL, it is the account of the remote extension host.
-- A match in `bannedUsers` denies the features in `bannedFeatures`, even for an authorized account. `bannedFeatures` applies to every banned account and defaults to both features. Entries are validated: 1 to 64 characters among letters, digits, `_ . @ $ \ -`.
+- `authorized` and the `user` of each `banned` entry are case-sensitive substrings of OS account names, from Node's `os.userInfo().username` (same as `whoami` in the extension host). `"niels"` matches `niels`, `nielsLaptop` and `superniels`, but not `Niels`. Matching happens locally: the account name is never sent to the API. In SSH, containers or WSL, it is the account of the remote extension host.
+- A matching `banned` entry denies its own `features`, even for an authorized account. When several entries match, their features add up. Names are validated: 1 to 64 characters among letters, digits, `_ . @ $ \ -`.
 - A Lens-only restriction shows a notice and leaves the My interface usable. A My-only restriction shows a revoked-access page while Lens keeps working. With both restricted, the page explains that access was revoked: **Appeal** opens `https://teams.microsoft.com/`, **Uninstall** uninstalls Bananabox, and updates stop. A restricted account sends no statistics.
 - An installed version older than `version` disables both features and triggers the automatic update to `latest`.
 
