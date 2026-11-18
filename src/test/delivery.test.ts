@@ -97,7 +97,7 @@ test('readiness runs configured checks, reports failing output, detects missing 
   try {
     const first = await service.check(1, root);
     assert.equal(first?.status, 'done'); assert.equal(first?.stale, false);
-    assert.ok(first?.checks.filter(c => c.id !== 'git').every(c => c.status === 'pass'));
+    assert.ok(first?.checks.filter(c => c.id !== 'git' && c.id !== 'valgrind').every(c => c.status === 'pass'));
     const cfg = configuration(); cfg.tests = command('require("fs").writeSync(2, "assertion failed"); process.exit(2)'); cfg.requiredFiles.push('missing.h');
     await saveDeliveryConfig(root, cfg); await writeFile(join(root, 'main.c'), 'int f(void) { system("x"); }');
     const failed = await service.check(1, root);
@@ -178,11 +178,11 @@ test('guided delivery pauses on failure, rechecks when resumed and never reaches
   assert.deepEqual(calls, ['save', 'check', 'review']); assert.equal(service.get(1)?.status, 'paused'); service.dispose();
 });
 
-test('readiness adds a valgrind check only when the saved command ran', async () => {
+test('readiness reports valgrind as unknown unless the saved command ran', async () => {
   const root = await repository();
   const run = (leaks: number | null) => new ReadinessService(async id => style(id), t, async () => leaks === null ? null : ({ status: 'done', command: './a', leaks: Array(leaks).fill({}), lost: '', bytes: 0, heap: null, durationMs: 1, history: [], omitted: 0, unlocated: 0, signal: null, exitCode: 0, error: null, detail: null, at: 0 }) as never);
   try {
-    for (const [leaks, status] of [[null, undefined], [0, 'pass'], [2, 'fail']] as const) {
+    for (const [leaks, status] of [[null, 'unknown'], [0, 'pass'], [2, 'fail']] as const) {
       const service = run(leaks);
       assert.equal((await service.check(1, root))?.checks.find(c => c.id === 'valgrind')?.status, status);
       service.dispose();

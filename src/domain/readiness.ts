@@ -26,12 +26,9 @@ export function readinessChecks(
   now = Date.now(),
 ): DeliveryCheck[] {
   const checks: DeliveryCheck[] = [
-    'style', 'build', 'tests', 'files', 'functions',
+    'style', 'build', 'tests', 'files', 'functions', 'valgrind',
   ].map(id => vm?.checks.find(c => c.id === id)
     ?? { id: id as DeliveryCheck['id'], status: 'unknown', detail: '' });
-
-  const valgrind = vm?.checks.find(c => c.id === 'valgrind');
-  if (valgrind) checks.push(valgrind);
 
   checks.push({
     id: 'git',
@@ -73,7 +70,7 @@ export function readinessVerdict(
   if (vm?.status === 'running') return 'running';
   if (vm?.stale) return 'stale';
   if (checks.some(c => c.status === 'fail')) return 'blocked';
-  if (!vm || vm.status !== 'done' || checks.some(c => c.status !== 'pass')) {
+  if (!vm || vm.status !== 'done' || checks.some(c => c.status !== 'pass' && c.id !== 'valgrind')) {
     return 'unchecked';
   }
   return 'ready';

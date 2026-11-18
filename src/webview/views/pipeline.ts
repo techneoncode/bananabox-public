@@ -8,12 +8,12 @@ import { renderFunctionRules } from './functionRules';
 import { renderGraderCommand } from './graderCommand';
 import { chip, gut, notice, type Tone } from '../ui';
 
-const STAGES: DeliveryCheck['id'][] = ['style', 'build', 'tests', 'files', 'functions'];
+const STAGES: DeliveryCheck['id'][] = ['style', 'build', 'tests', 'files', 'functions', 'valgrind'];
 
 /** Every check the delivery depends on, local and remote, in the order a submission meets them. */
 export function deliveryChecks(ctx: Ctx, p: ProjectVM): DeliveryCheck[] {
   const { t } = ctx, vm = ctx.readiness.get(p.id), g = ctx.graders.get(p.id);
-  const checks: DeliveryCheck[] = [...STAGES, ...(vm?.checks.some(c => c.id === 'valgrind') ? ['valgrind' as const] : [])].map(id => vm?.checks.find(c => c.id === id) ?? { id, status: 'unknown', detail: t('delivery.notChecked') });
+  const checks: DeliveryCheck[] = STAGES.map(id => vm?.checks.find(c => c.id === id) ?? { id, status: 'unknown', detail: t('delivery.notChecked') });
   const git = ctx.state.commitStates?.[p.id];
   checks.push({ id: 'git', status: !git ? 'unknown' : git.dirty || git.ahead || !git.hasUpstream ? 'fail' : 'pass',
     detail: git ? gitReadinessDetail({ dirty: git.dirtyCount ?? (git.dirty ? 1 : 0), ahead: git.ahead ?? 0, hasUpstream: git.hasUpstream ?? false }, t) : t('delivery.noGit') });
@@ -37,7 +37,7 @@ export function renderPipeline(ctx: Ctx, p: ProjectVM, run?: HTMLElement | null)
   const checks = deliveryChecks(ctx, p);
   const verdict = readinessVerdict(vm, checks), passed = checks.filter(c => c.status === 'pass').length;
   const focusMap = ctx.ui.pipelineFocus ??= {};
-  const focus = p.id in focusMap ? focusMap[p.id] : checks.find(c => c.status === 'fail' && (STAGES.includes(c.id) || c.id === 'valgrind'))?.id ?? null;
+  const focus = p.id in focusMap ? focusMap[p.id] : checks.find(c => c.status === 'fail' && STAGES.includes(c.id))?.id ?? null;
 
   const root = h('section.section.readiness', { dataset: { detailId: 'readiness' }, 'aria-label': t('delivery.title'), title: t('delivery.scope') },
     h('div.section-head',
