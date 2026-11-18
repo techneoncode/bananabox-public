@@ -130,6 +130,12 @@ export class Controller implements vscode.Disposable {
   readonly readiness = new ReadinessService(
     (id, root, signal) => this.style.scan(id, root, 'preflight', { signal }),
     (key, params) => createT(config.language())(key, params),
+    async root => {
+      const api = this.style.api;
+      return api?.runValgrind && api.valgrindCommand?.(root)
+        ? api.runValgrind(root)
+        : null;
+    },
   );
   readonly functionRules: FunctionRules;
   readonly calendar: CalendarService;

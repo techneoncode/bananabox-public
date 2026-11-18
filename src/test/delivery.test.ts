@@ -177,3 +177,15 @@ test('guided delivery pauses on failure, rechecks when resumed and never reaches
   await service.start(1, { valid: () => true, execute: async step => { calls.push(step); if (step === 'review') service.pause(1); return true; } });
   assert.deepEqual(calls, ['save', 'check', 'review']); assert.equal(service.get(1)?.status, 'paused'); service.dispose();
 });
+
+test('readiness adds a valgrind check only when the saved command ran', async () => {
+  const root = await repository();
+  const run = (leaks: number | null) => new ReadinessService(async id => style(id), t, async () => leaks === null ? null : ({ status: 'done', command: './a', leaks: Array(leaks).fill({}), lost: '', bytes: 0, heap: null, durationMs: 1, history: [], omitted: 0, unlocated: 0, signal: null, exitCode: 0, error: null, detail: null, at: 0 }) as never);
+  try {
+    for (const [leaks, status] of [[null, undefined], [0, 'pass'], [2, 'fail']] as const) {
+      const service = run(leaks);
+      assert.equal((await service.check(1, root))?.checks.find(c => c.id === 'valgrind')?.status, status);
+      service.dispose();
+    }
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
