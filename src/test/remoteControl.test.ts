@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { deflateRawSync } from 'node:zlib';
 import { readFile } from 'node:fs/promises';
 import * as vscode from 'vscode';
-import { compareVersions, latestUrl, parseRemoteConfig, remoteStatus, type RemoteConfig } from '../domain/remotePolicy';
+import { compareVersions, latestUrl, parseRemoteConfig, remoteStatus, type RemoteConfig, type RemoteFeature } from '../domain/remotePolicy';
 import { RemoteControl, REMOTE_CONFIG_URL } from '../services/remoteControl';
 import { remoteFeatures } from '../services/remoteFeatures';
 import { downloadAndInstall, validateVsix, type ExtensionUpdateProgress } from '../services/extensionUpdate';
@@ -12,7 +12,8 @@ import { readSettings, setRemoteLensEnabled } from '../codingStyle/config';
 
 const release = (version: string) => `https://github.com/techneoncode/bananabox-public/releases/download/v${version}/bananabox-${version}.vsix`;
 const baseline: RemoteConfig = { lens_active: true, my_api_active: true, version: '0.5.1',
-  latest: release('0.5.1'), authorizedUsers: [] };
+  latest: release('0.5.1'), authorized: [], banned: [] };
+const ban = (user: string, features: RemoteFeature[] = ['lens_active', 'my_api_active']) => ({ user, features });
 const reset = () => remoteFeatures.set(remoteStatus(undefined, '0.5.1', 'niels'));
 const envelope = (data: unknown) => Response.json({ ok: true, data });
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -25,7 +26,7 @@ function context(store = new Map<string, unknown>()): vscode.ExtensionContext {
 }
 
 test('remote policy: independent switches, OS username substring override, and a mandatory minimum version', () => {
-  const disabled = { ...baseline, lens_active: false, my_api_active: false, authorizedUsers: ['niels'] };
+  const disabled = { ...baseline, lens_active: false, my_api_active: false, authorized: ['niels'] };
   assert.equal(remoteStatus(disabled, '0.5.1', 'niels').lensActive, true);
   assert.equal(remoteStatus(disabled, '0.5.1', 'niels').myApiActive, true);
   for (const username of ['nielsLaptop', 'superniels', 'supernielsLaptop']) {
@@ -46,7 +47,7 @@ test('remote policy: independent switches, OS username substring override, and a
   assert.equal(remoteStatus(undefined, '0.5.1', 'niels').lensActive, true);
   assert.equal(remoteStatus(disabled, '0.5.1', 'niels', true).lensActive, false);
   assert.equal(remoteStatus(disabled, '0.5.1', 'niels', true).myApiActive, false);
-  const refused = { ...disabled, bannedUsers: ['niels'] };
+  const refused = { ...disabled, banned: [ban('niels')] };
   assert.equal(remoteStatus(refused, '0.5.1', 'niels').connectionRefused, true);
   assert.equal(remoteStatus(refused, '0.5.1', 'niels').lensActive, false);
   assert.equal(remoteStatus(refused, '0.5.1', 'niels').myApiActive, false);
@@ -55,13 +56,13 @@ test('remote policy: independent switches, OS username substring override, and a
     assert.equal(remoteStatus(refused, '0.5.1', username).lensActive, false);
     assert.equal(remoteStatus(refused, '0.5.1', username).myApiActive, false);
   }
-  assert.equal(remoteStatus({ ...disabled, authorizedUsers: [''] }, '0.5.1', 'guest').myApiActive, false);
-  assert.equal(remoteStatus({ ...baseline, bannedUsers: [''] }, '0.5.1', 'guest').connectionRefused, false);
+  assert.equal(remoteStatus({ ...disabled, authorized: [''] }, '0.5.1', 'guest').myApiActive, false);
+  assert.equal(remoteStatus({ ...baseline, banned: [ban('')] }, '0.5.1', 'guest').connectionRefused, false);
   assert.equal(remoteStatus(refused, '0.5.1', 'Niels').connectionRefused, false);
-  assert.deepEqual(parseRemoteConfig(baseline).bannedUsers, []);
-  assert.throws(() => parseRemoteConfig({ ...baseline, bannedUsers: [1] }));
-  assert.throws(() => parseRemoteConfig({ ...baseline, bannedUsers: 'niels' }));
-  for (const invalid of [null, {}, { ...baseline, lens_active: 'false' }, { ...baseline, version: '../bad' }, { ...baseline, authorizedUsers: [1] }]) {
+  assert.deepEqual(parseRemoteConfig(baseline).banned, []);
+  assert.throws(() => parseRemoteConfig({ ...baseline, banned: [1] }));
+  assert.throws(() => parseRemoteConfig({ ...baseline, banned: 'niels' }));
+  for (const invalid of [null, {}, { ...baseline, lens_active: 'false' }, { ...baseline, version: '../bad' }, { ...baseline, authorized: [1] }]) {
     assert.throws(() => parseRemoteConfig(invalid));
   }
 });
@@ -90,9 +91,9 @@ test('semver compares numerically and orders prereleases before their release', 
   assert.throws(() => compareVersions('1.0', '1.0.0'), /Invalid version "1.0"/);
 });
 
-test('refused accounts override authorizedUsers, block updates and recover when removed from the list', async () => {
+test('refused accounts override authorized, block updates and recover when removed from the list', async () => {
   reset();
-  let value: RemoteConfig = { ...baseline, version: '0.5.2', latest: release('0.5.2'), authorizedUsers: ['niels'], bannedUsers: ['niels'] };
+  let value: RemoteConfig = { ...baseline, version: '0.5.2', latest: release('0.5.2'), authorized: ['niels'], banned: [ban('niels')] };
   let installs = 0;
   const service = new RemoteControl(context(), { username: 'nielsLaptop',
     fetch: async () => envelope(value), install: async () => { installs++; } });
@@ -102,7 +103,7 @@ test('refused accounts override authorizedUsers, block updates and recover when 
     assert.equal(remoteFeatures.status.lensActive, false);
     assert.equal(remoteFeatures.status.myApiActive, false);
     assert.equal(installs, 0);
-    value = { ...baseline, lens_active: false, my_api_active: false, authorizedUsers: ['niels'], bannedUsers: [] };
+    value = { ...baseline, lens_active: false, my_api_active: false, authorized: ['niels'], banned: [] };
     await service.refresh();
     assert.equal(remoteFeatures.status.connectionRefused, false);
     assert.equal(remoteFeatures.status.lensActive, true);
@@ -110,20 +111,19 @@ test('refused accounts override authorizedUsers, block updates and recover when 
   } finally { service.dispose(); reset(); }
 });
 
-test('bannedFeatures restricts only the listed features, including for an otherwise authorized user', () => {
-  const config = { ...baseline, bannedUsers: ['niels'], authorizedUsers: ['niels'] };
+test('a ban restricts only its own features, per account, including for an otherwise authorized user', () => {
   const matrix = [
-    { bannedFeatures: ['lens_active'] as const, lens: false, my: true },
-    { bannedFeatures: ['my_api_active'] as const, lens: true, my: false },
-    { bannedFeatures: ['lens_active', 'my_api_active'] as const, lens: false, my: false },
-    { bannedFeatures: [] as const, lens: true, my: true },
+    { features: ['lens_active'] as RemoteFeature[], lens: false, my: true },
+    { features: ['my_api_active'] as RemoteFeature[], lens: true, my: false },
+    { features: ['lens_active', 'my_api_active'] as RemoteFeature[], lens: false, my: false },
+    { features: [] as RemoteFeature[], lens: true, my: true },
   ];
   for (const row of matrix) {
-    const value = { ...config, bannedFeatures: [...row.bannedFeatures] };
+    const value = { ...baseline, authorized: ['niels'], banned: row.features.length ? [ban('niels', row.features)] : [] };
     const status = remoteStatus(parseRemoteConfig(value), '0.5.1', 'nielsLaptop');
     assert.equal(status.lensActive, row.lens);
     assert.equal(status.myApiActive, row.my);
-    assert.deepEqual(status.restrictedFeatures, row.bannedFeatures);
+    assert.deepEqual(status.restrictedFeatures, row.features);
     const other = remoteStatus(value, '0.5.1', 'guest');
     assert.equal(other.lensActive, true);
     assert.equal(other.myApiActive, true);
@@ -133,28 +133,34 @@ test('bannedFeatures restricts only the listed features, including for an otherw
       assert.equal(blocked.myApiActive, false);
     }
   }
-  assert.deepEqual(parseRemoteConfig(baseline).bannedFeatures, ['lens_active', 'my_api_active']);
-  assert.throws(() => parseRemoteConfig({ ...config, bannedFeatures: ['unknown'] }));
-  assert.throws(() => parseRemoteConfig({ ...config, bannedFeatures: 'lens_active' }));
+  const mixed = { ...baseline, banned: [ban('alice', ['lens_active']), ban('bob', ['my_api_active']), ban('alicia', ['my_api_active'])] };
+  assert.deepEqual(remoteStatus(mixed, '0.5.1', 'alice').restrictedFeatures, ['lens_active']);
+  assert.deepEqual(remoteStatus(mixed, '0.5.1', 'bob').restrictedFeatures, ['my_api_active']);
+  assert.deepEqual(remoteStatus(mixed, '0.5.1', 'alicia').restrictedFeatures, ['my_api_active']);
+  assert.deepEqual(remoteStatus({ ...mixed, banned: [ban('al', ['lens_active']), ban('ice', ['my_api_active'])] }, '0.5.1', 'alice').restrictedFeatures, ['lens_active', 'my_api_active'], 'matching entries add up');
+  assert.deepEqual(parseRemoteConfig({ ...baseline, banned: [ban('niels', ['lens_active', 'lens_active'])] }).banned, [ban('niels', ['lens_active'])]);
+  for (const invalid of [[ban('niels', ['unknown' as RemoteFeature])], [ban('niels', [])], [{ user: 'niels', features: 'lens_active' }], [{ features: ['lens_active'] }], ['niels']]) {
+    assert.throws(() => parseRemoteConfig({ ...baseline, banned: invalid }));
+  }
 });
 
 test('remote refresh switches a restricted account between Lens-only, My-only and no restriction', async () => {
   reset();
-  let bannedFeatures: RemoteConfig['bannedFeatures'] = ['lens_active'];
+  let features: RemoteFeature[] = ['lens_active'];
   const service = new RemoteControl(context(), { username: 'nielsLaptop',
-    fetch: async () => envelope({ ...baseline, bannedUsers: ['niels'], bannedFeatures }) });
+    fetch: async () => envelope({ ...baseline, banned: features.length ? [ban('niels', features)] : [] }) });
   try {
     await service.refresh();
     assert.equal(remoteFeatures.status.lensActive, false);
     assert.equal(remoteFeatures.status.myApiActive, true);
     assert.equal(remoteFeatures.apiSignal.aborted, false);
     const signal = remoteFeatures.apiSignal;
-    bannedFeatures = ['my_api_active'];
+    features = ['my_api_active'];
     await service.refresh();
     assert.equal(remoteFeatures.status.lensActive, true);
     assert.equal(remoteFeatures.status.myApiActive, false);
     assert.equal(signal.aborted, true);
-    bannedFeatures = [];
+    features = [];
     await service.refresh();
     assert.equal(remoteFeatures.status.connectionRefused, false);
     assert.equal(remoteFeatures.status.lensActive, true);
@@ -164,11 +170,11 @@ test('remote refresh switches a restricted account between Lens-only, My-only an
 });
 
 test('partially restricted users still receive version updates for their remaining features', async () => {
-  for (const bannedFeatures of [['lens_active'], ['my_api_active']]) {
+  for (const features of [['lens_active'], ['my_api_active']] as RemoteFeature[][]) {
     reset();
     let installs = 0;
     const service = new RemoteControl(context(), { username: 'nielsLaptop',
-      fetch: async () => envelope({ ...baseline, version: '0.5.2', latest: release('0.5.2'), bannedUsers: ['niels'], bannedFeatures }),
+      fetch: async () => envelope({ ...baseline, version: '0.5.2', latest: release('0.5.2'), banned: [ban('niels', features)] }),
       install: async () => { installs++; } });
     try {
       await service.refresh(); await flush();
@@ -206,7 +212,7 @@ test('remote refresh applies flags, blocks offline even with cached permissions 
     assert.equal(remoteFeatures.status.lensActive, false);
     restored.dispose();
     fail = false;
-    value = { ...baseline, lens_active: false, my_api_active: false, authorizedUsers: ['guest'] };
+    value = { ...baseline, lens_active: false, my_api_active: false, authorized: ['guest'] };
     await service.refresh();
     assert.equal(remoteFeatures.status.lensActive, true);
     assert.equal(remoteFeatures.status.myApiActive, true);
@@ -225,7 +231,7 @@ test('version mismatch disables both features while installing, avoids duplicate
   let complete!: () => void;
   let report!: (progress: ExtensionUpdateProgress) => void;
   let installs = 0;
-  const value = { ...baseline, version: '0.5.2', latest: release('0.5.2'), authorizedUsers: ['niels'] };
+  const value = { ...baseline, version: '0.5.2', latest: release('0.5.2'), authorized: ['niels'] };
   const deps = { username: 'niels', fetch: (async () => envelope(value)) as typeof fetch,
     install: async (_url: string, version: string, id: string, _signal: AbortSignal, onProgress?: (progress: ExtensionUpdateProgress) => void) => {
       assert.equal(version, '0.5.2'); assert.equal(id, 'techneoncode.bananabox');

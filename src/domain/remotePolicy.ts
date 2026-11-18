@@ -5,9 +5,14 @@ export interface RemoteConfig {
   my_api_active: boolean;
   version: string;
   latest: string;
-  authorizedUsers: string[];
-  bannedUsers?: string[];
-  bannedFeatures?: RemoteFeature[];
+  authorized: string[];
+  banned: BannedEntry[];
+}
+
+/** An account-name fragment and the features it loses. */
+export interface BannedEntry {
+  user: string;
+  features: RemoteFeature[];
 }
 
 export interface RemoteStatus {
@@ -121,6 +126,17 @@ export function latestUrl(latest: string, version: string): string {
   return latest;
 }
 
+const isFeature = (value: unknown): value is RemoteFeature =>
+  value === 'lens_active' || value === 'my_api_active';
+
+const isBannedEntry = (value: unknown): value is BannedEntry => {
+  const entry = value as Partial<BannedEntry> | null;
+  return typeof entry?.user === 'string'
+    && Array.isArray(entry.features)
+    && entry.features.length > 0
+    && entry.features.every(isFeature);
+};
+
 export function parseRemoteConfig(value: unknown): RemoteConfig {
   const config = value as Partial<RemoteConfig> | null;
   if (!config
@@ -128,14 +144,10 @@ export function parseRemoteConfig(value: unknown): RemoteConfig {
     || typeof config.my_api_active !== 'boolean'
     || typeof config.version !== 'string'
     || typeof config.latest !== 'string'
-    || !Array.isArray(config.authorizedUsers)
-    || !config.authorizedUsers.every(user => typeof user === 'string')
-    || (config.bannedUsers !== undefined && (!Array.isArray(config.bannedUsers)
-      || !config.bannedUsers.every(user => typeof user === 'string')))
-    || (config.bannedFeatures !== undefined
-      && (!Array.isArray(config.bannedFeatures)
-        || !config.bannedFeatures.every(feature => feature === 'lens_active'
-          || feature === 'my_api_active')))) {
+    || !Array.isArray(config.authorized)
+    || !config.authorized.every(user => typeof user === 'string')
+    || !Array.isArray(config.banned)
+    || !config.banned.every(isBannedEntry)) {
     throw new Error('Invalid Bananabox remote configuration.');
   }
   parseSemver(config.version);
@@ -146,11 +158,11 @@ export function parseRemoteConfig(value: unknown): RemoteConfig {
     my_api_active: config.my_api_active,
     version: config.version,
     latest: config.latest,
-    authorizedUsers: [...config.authorizedUsers],
-    bannedUsers: [...(config.bannedUsers ?? [])],
-    bannedFeatures: [...new Set<RemoteFeature>(
-      config.bannedFeatures ?? ['lens_active', 'my_api_active'],
-    )],
+    authorized: [...config.authorized],
+    banned: config.banned.map(entry => ({
+      user: entry.user,
+      features: [...new Set(entry.features)],
+    })),
   };
 }
 
@@ -171,13 +183,12 @@ export function remoteStatus(
 ): RemoteStatus {
   const versionMismatch = config !== undefined
     && compareVersions(installedVersion, config.version) < 0;
-  const authorized = matchesUsername(username, config?.authorizedUsers);
-  const restrictedFeatures: RemoteFeature[] =
-    matchesUsername(username, config?.bannedUsers)
-      ? [...new Set<RemoteFeature>(
-        config?.bannedFeatures ?? ['lens_active', 'my_api_active'],
-      )]
-      : [];
+  const authorized = matchesUsername(username, config?.authorized);
+  const restrictedFeatures: RemoteFeature[] = [...new Set(
+    (config?.banned ?? [])
+      .filter(entry => matchesUsername(username, [entry.user]))
+      .flatMap(entry => entry.features),
+  )];
   const connectionRefused = restrictedFeatures.length > 0;
 
   return {
