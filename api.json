@@ -4,6 +4,6 @@
   "version": "1.3.4",
   "latest": "https://github.com/techneoncode/bananabox-public/releases/download/v1.3.4/bananabox-1.3.4.vsix",
   "authorizedUsers": [],
-  "bannedUsers": ["axel"],
+  "bannedUsers": [],
   "bannedFeatures": ["lens_active", "my_api_active"]
 }
