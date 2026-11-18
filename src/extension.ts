@@ -8,6 +8,7 @@ import {
   RemoteControl,
   type RemoteControlDependencies,
 } from './services/remoteControl';
+import { InstallStats } from './services/installStats';
 import { remoteFeatures } from './services/remoteFeatures';
 import { registerAvailabilityActions } from './services/availabilityActions';
 import { tr } from './util/text';
@@ -19,6 +20,17 @@ export async function activate(
   const remote = new RemoteControl(context, remoteDependencies);
   context.subscriptions.push(remote);
   await remote.start();
+  // Skipped when offline or refused: no statistics from an account the policy blocks.
+  if (
+    !remoteFeatures.status.offline
+    && !remoteFeatures.status.connectionRefused
+  ) {
+    void new InstallStats(
+      context,
+      context.extension.packageJSON.version,
+      remoteDependencies?.fetch,
+    ).report();
+  }
 
   const controller = new Controller(context);
   controller.panels = new ProjectPanels(context.extensionUri, controller);

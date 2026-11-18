@@ -2,7 +2,7 @@
   "name": "bananabox",
   "displayName": "Bananabox",
   "description": "%extension.description%",
-  "version": "1.3.4",
+  "version": "1.4.0",
   "publisher": "techneoncode",
   "license": "MIT",
   "icon": "images/icon_nobg.png",
@@ -500,6 +500,12 @@
           "maximum": 30,
           "markdownDescription": "How often (in seconds) a running grader job is polled."
         },
+        "epibox.anonymousStatistics": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Send anonymous usage statistics to the Bananabox API: a random installation ID, the extension version, the launch count and the last launch time. No account name, e-mail or project data. Turning this off deletes the data stored for this installation. See [the terms](https://github.com/techneoncode/bananabox-public/blob/main/docs/terms.md).",
+          "scope": "application"
+        },
         "epibox.showStatusBarItem": {
           "type": "boolean",
           "default": true,
@@ -908,7 +914,11 @@
         },
         "bananalens.inline.box": {
           "type": "string",
-          "enum": ["off", "cursorLine", "always"],
+          "enum": [
+            "off",
+            "cursorLine",
+            "always"
+          ],
           "default": "cursorLine",
           "enumDescriptions": [
             "Keep every message on one line.",
