@@ -7,7 +7,7 @@ import { renderHome } from '../../src/webview/views/home';
 import { renderProject } from '../../src/webview/views/detail';
 import { renderLogin } from '../../src/webview/views/login';
 import { renderAvailability, renderLensRestriction } from '../../src/webview/views/availability';
-import { remoteStatus, type RemoteConfig } from '../../src/domain/remotePolicy';
+import { remoteStatus, type RemoteConfig, type RemoteFeature } from '../../src/domain/remotePolicy';
 import { h } from '../../src/webview/dom';
 import { markFresh } from '../../src/webview/motion';
 import { renderAppearance } from '../../src/webview/views/appearance';
@@ -137,11 +137,12 @@ function fakeAvatars(): Map<string, string | null> {
 }
 
 function availability(kind: string): void {
-  const policy: RemoteConfig = { lens_active: true, my_api_active: true, version: '0.6.1', latest: '', authorizedUsers: [], bannedUsers: ['preview'], bannedFeatures: [] };
-  if (kind === 'revoked') policy.bannedFeatures = ['lens_active', 'my_api_active'];
-  if (kind === 'my_revoked') policy.bannedFeatures = ['my_api_active'];
-  if (kind === 'lens_revoked') policy.bannedFeatures = ['lens_active'];
-  if (kind === 'my_disabled') { policy.my_api_active = false; policy.bannedUsers = []; }
+  const policy: RemoteConfig = { lens_active: true, my_api_active: true, version: '0.6.1', latest: '', authorized: [], banned: [] };
+  const ban = (...features: RemoteFeature[]) => { policy.banned = [{ user: 'preview', features }]; };
+  if (kind === 'revoked') ban('lens_active', 'my_api_active');
+  if (kind === 'my_revoked') ban('my_api_active');
+  if (kind === 'lens_revoked') ban('lens_active');
+  if (kind === 'my_disabled') { policy.my_api_active = false; }
   const updating = kind.startsWith('update_');
   const status = remoteStatus(policy, updating ? '0.6.0' : '0.6.1', 'preview', kind === 'offline');
   if (updating) {
