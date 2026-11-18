@@ -11,6 +11,7 @@ const INSTALL_RETENTION_MS = 180 * DAY;
 const UPDATE_RETENTION_MS = 365 * DAY;
 const AUDIT_RETENTION_MS = 730 * DAY;
 const MAX_BODY = 2048;
+const TIMELINE_DAYS = 30;
 
 const JSON_HEADERS = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 
@@ -31,9 +32,9 @@ async function authenticate(request, env) {
   if (await isRoot(header, env)) return { type: 'root' };
   const match = /^Bearer ([0-9a-f]{64})$/.exec(header);
   if (!match) return null;
-  const row = await env.DB.prepare('SELECT a.id, a.email FROM sessions s JOIN admins a ON a.id = s.admin_id WHERE s.token_hash = ? AND s.expires_at > ?')
+  const row = await env.DB.prepare('SELECT a.id, a.email, a.whoami FROM sessions s JOIN admins a ON a.id = s.admin_id WHERE s.token_hash = ? AND s.expires_at > ?')
     .bind(await sha256(match[1]), Date.now()).first();
-  return row ? { type: 'admin', id: row.id, email: row.email } : null;
+  return row ? { type: 'admin', id: row.id, email: row.email, whoami: row.whoami } : null;
 }
 
 async function readBody(request) {
@@ -62,16 +63,19 @@ const publicPolicy = row => ({
   latest: row.latest,
 });
 
-// Public configuration read by the extension.
+// Public configuration read by the extension. `admins` only decides whether the extension shows the
+// admin dashboard; every admin endpoint still needs a session.
 async function config(env) {
-  const [policy, users] = await Promise.all([
+  const [policy, users, admins] = await Promise.all([
     readPolicy(env),
     env.DB.prepare('SELECT kind, name, features FROM users ORDER BY id').all(),
+    env.DB.prepare('SELECT DISTINCT whoami FROM admins WHERE whoami IS NOT NULL ORDER BY whoami').all(),
   ]);
   return {
     ...publicPolicy(policy),
     authorized: users.results.filter(u => u.kind === 'authorized').map(u => u.name),
     banned: users.results.filter(u => u.kind === 'banned').map(u => ({ user: u.name, features: JSON.parse(u.features) })),
+    admins: admins.results.map(r => r.whoami),
   };
 }
 
@@ -126,13 +130,28 @@ function userRoutes(kind) {
   return { list, add, remove, update };
 }
 
+/** Installations per UTC day over the last TIMELINE_DAYS days, oldest first, zeros included. */
+async function timeline(env, now) {
+  const today = Math.floor(now / DAY);
+  const from = (today - TIMELINE_DAYS + 1) * DAY;
+  const perDay = async column => new Map((await env.DB.prepare(
+    `SELECT CAST(${column} / ?1 AS INTEGER) AS day, COUNT(*) AS n FROM installs WHERE ${column} >= ?2 GROUP BY day`,
+  ).bind(DAY, from).all()).results.map(r => [r.day, r.n]));
+  const [created, seen] = await Promise.all([perDay('first_seen'), perDay('last_seen')]);
+  return Array.from({ length: TIMELINE_DAYS }, (_, i) => {
+    const day = today - TIMELINE_DAYS + 1 + i;
+    return { day: new Date(day * DAY).toISOString().slice(0, 10), new: created.get(day) ?? 0, last_seen: seen.get(day) ?? 0 };
+  });
+}
+
 async function stats(env) {
   const now = Date.now();
-  const [policy, rows, totals, accounts] = await Promise.all([
+  const [policy, rows, totals, accounts, days] = await Promise.all([
     readPolicy(env),
     env.DB.prepare('SELECT version, COUNT(*) AS installs, SUM(last_seen >= ?) AS active FROM installs GROUP BY version').bind(now - ACTIVE_MS).all(),
     env.DB.prepare('SELECT COUNT(*) AS installs, COALESCE(SUM(launches), 0) AS launches FROM installs').first(),
     env.DB.prepare('SELECT DISTINCT account FROM installs WHERE account IS NOT NULL ORDER BY account').all(),
+    timeline(env, now),
   ]);
   const versions = rows.results
     .map(r => ({ version: r.version, installs: r.installs, active: r.active ?? 0, obsolete: v.compareVersions(r.version, policy.version) < 0 }))
@@ -148,6 +167,7 @@ async function stats(env) {
     launches: totals.launches,
     users: accounts.results.map(r => r.account),
     versions,
+    timeline: days,
   };
 }
 
@@ -247,14 +267,14 @@ async function login(request, env) {
     throw new HttpError(401, 'invalid_credentials', 'Invalid email or password.');
   }
   const token = randomHex(32);
-  const actor = { type: 'admin', id: admin.id, email };
+  const actor = { type: 'admin', id: admin.id, email, whoami: admin.whoami };
   await env.DB.batch([
     env.DB.prepare('UPDATE admins SET failed_attempts = 0, locked_until = 0, last_login = ? WHERE id = ?').bind(now, admin.id),
     env.DB.prepare('DELETE FROM sessions WHERE expires_at <= ?').bind(now),
     env.DB.prepare('INSERT INTO sessions (token_hash, admin_id, expires_at) VALUES (?, ?, ?)').bind(await sha256(token), admin.id, now + SESSION_MS),
     audit(env, actor, 'login.success', email),
   ]);
-  return ok({ token, expires_at: now + SESSION_MS, email });
+  return ok({ token, expires_at: now + SESSION_MS, email, whoami: admin.whoami });
 }
 
 async function logout(request, env, _id, actor) {
@@ -266,7 +286,7 @@ async function logout(request, env, _id, actor) {
 }
 
 async function me(_request, env, _id, actor) {
-  return ok(actor.type === 'root' ? { type: 'root' } : { type: 'admin', id: actor.id, email: actor.email });
+  return ok(actor.type === 'root' ? { type: 'root' } : { type: 'admin', id: actor.id, email: actor.email, whoami: actor.whoami });
 }
 
 async function changeOwnPassword(request, env, _id, actor) {
@@ -287,15 +307,16 @@ async function changeOwnPassword(request, env, _id, actor) {
   return ok({ changed: true });
 }
 
-const adminRow = 'id, email, created_at, last_login';
+const adminRow = 'id, email, whoami, created_at, last_login';
 
 async function createAdmin(request, env, _id, actor) {
   const body = await readBody(request);
   const email = v.email(body.email);
+  const whoami = v.whoami(body.whoami);
   const hash = await hashPassword(v.password(body.password));
   const [inserted] = await env.DB.batch([
-    env.DB.prepare(`INSERT INTO admins (email, password_hash, created_at) VALUES (?, ?, ?) ON CONFLICT DO NOTHING RETURNING ${adminRow}`).bind(email, hash, Date.now()),
-    audit(env, actor, 'admin.create', email, null, true),
+    env.DB.prepare(`INSERT INTO admins (email, whoami, password_hash, created_at) VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING RETURNING ${adminRow}`).bind(email, whoami, hash, Date.now()),
+    audit(env, actor, 'admin.create', email, { whoami }, true),
   ]);
   if (!inserted.results.length) throw new HttpError(409, 'conflict', `An admin with email ${email} already exists.`);
   return ok(inserted.results[0], 201);
@@ -305,6 +326,17 @@ async function findAdmin(env, id) {
   const row = await env.DB.prepare(`SELECT ${adminRow} FROM admins WHERE id = ?`).bind(Number(id)).first();
   if (!row) throw new HttpError(404, 'not_found', `No admin with id ${id}.`);
   return row;
+}
+
+// Sets the OS account of an admin, for accounts created before whoami existed or whose machine changed.
+async function updateAdmin(request, env, id, actor) {
+  const row = await findAdmin(env, id);
+  const whoami = v.whoami((await readBody(request)).whoami);
+  await env.DB.batch([
+    env.DB.prepare('UPDATE admins SET whoami = ? WHERE id = ?').bind(whoami, row.id),
+    audit(env, actor, 'admin.update', row.email, { from: { whoami: row.whoami }, to: { whoami } }, true),
+  ]);
+  return ok(await findAdmin(env, id));
 }
 
 async function deleteAdmin(_request, env, id, actor) {
@@ -368,6 +400,7 @@ const ROUTES = [
   ['GET', '/v1/updates', 'admin', updateHistory],
   ['GET', '/v1/admins', 'root', (_r, env) => env.DB.prepare(`SELECT ${adminRow} FROM admins ORDER BY id`).all().then(r => ok({ items: r.results }))],
   ['POST', '/v1/admins', 'root', createAdmin],
+  ['PUT', '/v1/admins/:id', 'root', updateAdmin],
   ['DELETE', '/v1/admins/:id', 'root', deleteAdmin],
   ['PUT', '/v1/admins/:id/password', 'root', resetAdminPassword],
   ['GET', '/v1/logs', 'root', logs],

@@ -1,4 +1,4 @@
-import { test, before, after } from 'node:test';
+import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
@@ -25,14 +25,23 @@ before(async () => {
   server = spawn(WRANGLER, ['dev', '--local', '--port', String(PORT), '--persist-to', persist, '--var', `ADMIN_TOKEN:${TOKEN}`], { stdio: ['ignore', 'ignore', 'pipe'], detached: true });
   let stderr = '';
   server.stderr.on('data', chunk => { stderr += chunk; });
-  for (let i = 0; i < 120; i++) {
-    try { if ((await fetch(BASE + '/v1/config')).ok) return; } catch {}
-    await new Promise(r => setTimeout(r, 500));
+  // Do not keep node alive: the exit handler below kills the server once the tests are done.
+  server.unref();
+  server.stderr.unref();
+  let up = false;
+  for (let i = 0; i < 120 && !up; i++) {
+    try { up = (await fetch(BASE + '/v1/config')).ok; } catch {}
+    if (!up) await new Promise(r => setTimeout(r, 500));
   }
-  throw new Error(`wrangler dev did not start:\n${stderr.slice(-1500)}`);
+  if (!up) throw new Error(`wrangler dev did not start:\n${stderr.slice(-1500)}`);
+  // One hook for the whole setup: Node 24 does not run several top-level hooks in order.
+  const created = await root('POST', '/v1/admins', { email: 'Admin.One@Epitech.eu', password: PASSWORD, whoami: 'adminone' });
+  adminId = created.json.data.id;
+  session = (await login('admin.one@epitech.eu', PASSWORD)).json.data.token;
 });
 // Kill the whole process group: wrangler spawns workerd, which would keep node:test alive.
-after(() => { if (server) { server.stderr.destroy(); process.kill(-server.pid, 'SIGKILL'); } });
+// 'exit' rather than after(): Node 24 runs a top-level after() as soon as the first test ends.
+process.on('exit', () => { if (server) process.kill(-server.pid, 'SIGKILL'); });
 
 const ROOT = TOKEN;
 const PASSWORD = 'correct horse battery';
@@ -44,17 +53,11 @@ const root = as(ROOT);
 const login = (email, password) => call('POST', '/v1/admin/login', { email, password });
 const logs = async (query = '') => (await root('GET', `/v1/logs?limit=500${query}`)).json.data.items;
 
-before(async () => {
-  const created = await root('POST', '/v1/admins', { email: 'Admin.One@Epitech.eu', password: PASSWORD });
-  adminId = created.json.data.id;
-  session = (await login('admin.one@epitech.eu', PASSWORD)).json.data.token;
-});
-
 test('responses are uniform JSON and unknown routes or methods are rejected cleanly', async () => {
   const res = await call('GET', '/v1/config');
   assert.equal(res.json.ok, true);
   assert.equal(res.headers.get('cache-control'), 'no-store');
-  assert.deepEqual(Object.keys(res.json.data).sort(), ['authorized', 'banned', 'latest', 'lens_active', 'my_api_active', 'version']);
+  assert.deepEqual(Object.keys(res.json.data).sort(), ['admins', 'authorized', 'banned', 'latest', 'lens_active', 'my_api_active', 'version']);
   const missing = await call('GET', '/nope');
   assert.deepEqual([missing.status, missing.json.ok, missing.json.error.code], [404, false, 'not_found']);
   const method = await call('DELETE', '/v1/config');
@@ -124,16 +127,41 @@ test('policy: validated like the extension and reflected in the public config', 
 
 test('admin accounts: @epitech.eu only, strong password, unique, never exposes secrets', async () => {
   for (const email of ['x@gmail.com', 'x@epitech.eu.evil.com', '@epitech.eu', 'a b@epitech.eu', undefined, 5]) {
-    assert.equal((await root('POST', '/v1/admins', { email, password: PASSWORD })).status, 400, `email ${email}`);
+    assert.equal((await root('POST', '/v1/admins', { email, password: PASSWORD, whoami: 'someone' })).status, 400, `email ${email}`);
   }
   for (const password of ['short', 'x'.repeat(129), undefined, 12]) {
-    assert.equal((await root('POST', '/v1/admins', { email: 'two@epitech.eu', password })).status, 400, `password ${password}`);
+    assert.equal((await root('POST', '/v1/admins', { email: 'two@epitech.eu', password, whoami: 'someone' })).status, 400, `password ${password}`);
   }
-  assert.equal((await root('POST', '/v1/admins', { email: 'ADMIN.one@epitech.eu', password: PASSWORD })).status, 409, 'case-insensitive duplicates');
+  assert.equal((await root('POST', '/v1/admins', { email: 'ADMIN.one@epitech.eu', password: PASSWORD, whoami: 'someone' })).status, 409, 'case-insensitive duplicates');
   const list = await root('GET', '/v1/admins');
   assert.deepEqual(list.json.data.items.map(a => a.email), ['admin.one@epitech.eu']);
   assert.ok(!JSON.stringify(list.json).includes('pbkdf2'));
   assert.ok(!JSON.stringify(await logs()).includes('pbkdf2') && !JSON.stringify(await logs()).includes(PASSWORD));
+});
+
+test('admin whoami: required, validated, settable by root, public in the config, returned at login', async () => {
+  for (const whoami of [undefined, '', 'a b', 'x'.repeat(65), 5]) {
+    assert.equal((await root('POST', '/v1/admins', { email: 'who@epitech.eu', password: PASSWORD, whoami })).status, 400, `whoami ${whoami}`);
+  }
+  assert.equal((await root('GET', '/v1/admins')).json.data.items[0].whoami, 'adminone');
+  assert.ok((await call('GET', '/v1/config')).json.data.admins.includes('adminone'));
+  assert.equal((await login('admin.one@epitech.eu', PASSWORD)).json.data.whoami, 'adminone');
+  assert.equal((await asAdmin('GET', '/v1/admin/me')).json.data.whoami, 'adminone');
+
+  // Only root can change a whoami; the previous one leaves the public config.
+  const created = await root('POST', '/v1/admins', { email: 'later@epitech.eu', password: PASSWORD, whoami: 'first' });
+  const laterId = created.json.data.id;
+  assert.equal((await asAdmin('PUT', `/v1/admins/${laterId}`, { whoami: 'x' })).status, 403, 'admin accounts cannot change a whoami');
+  assert.equal((await root('PUT', `/v1/admins/${laterId}`, { whoami: 'bad name' })).status, 400);
+  assert.equal((await root('PUT', '/v1/admins/999999', { whoami: 'second' })).status, 404);
+  const updated = await root('PUT', `/v1/admins/${laterId}`, { whoami: 'second' });
+  assert.equal(updated.status, 200);
+  assert.equal(updated.json.data.whoami, 'second');
+  const admins = (await call('GET', '/v1/config')).json.data.admins;
+  assert.ok(admins.includes('second') && !admins.includes('first'));
+  assert.ok((await logs('&action=admin.update')).some(l => l.target === 'later@epitech.eu' && l.detail.to.whoami === 'second'));
+  await root('DELETE', `/v1/admins/${laterId}`);
+  assert.ok(!(await call('GET', '/v1/config')).json.data.admins.includes('second'), 'a deleted admin disappears from the config');
 });
 
 test('login: wrong credentials are indistinguishable, repeated failures lock the account', async () => {
@@ -142,7 +170,7 @@ test('login: wrong credentials are indistinguishable, repeated failures lock the
   assert.deepEqual([unknown.status, wrong.status], [401, 401]);
   assert.deepEqual(unknown.json, wrong.json);
   assert.equal((await login('admin.one@gmail.com', PASSWORD)).status, 400);
-  await root('POST', '/v1/admins', { email: 'lock.me@epitech.eu', password: PASSWORD });
+  await root('POST', '/v1/admins', { email: 'lock.me@epitech.eu', password: PASSWORD, whoami: 'lockme' });
   for (let i = 0; i < 5; i++) assert.equal((await login('lock.me@epitech.eu', 'bad password 12345')).status, 401);
   const locked = await login('lock.me@epitech.eu', PASSWORD);
   assert.deepEqual([locked.status, locked.json.error.code], [429, 'locked'], 'even the right password is refused while locked');
@@ -153,7 +181,7 @@ test('login: wrong credentials are indistinguishable, repeated failures lock the
 });
 
 test('sessions: logout invalidates the token, password change keeps only the current session', async () => {
-  await root('POST', '/v1/admins', { email: 'sess@epitech.eu', password: PASSWORD });
+  await root('POST', '/v1/admins', { email: 'sess@epitech.eu', password: PASSWORD, whoami: 'sess' });
   const [a, b] = await Promise.all([login('sess@epitech.eu', PASSWORD), login('sess@epitech.eu', PASSWORD)]);
   const [ta, tb] = [a.json.data.token, b.json.data.token];
   assert.match(ta, /^[0-9a-f]{64}$/);
@@ -172,7 +200,7 @@ test('sessions: logout invalidates the token, password change keeps only the cur
 });
 
 test('deleting an admin account revokes its sessions immediately', async () => {
-  await root('POST', '/v1/admins', { email: 'gone@epitech.eu', password: PASSWORD });
+  await root('POST', '/v1/admins', { email: 'gone@epitech.eu', password: PASSWORD, whoami: 'gone' });
   const token = (await login('gone@epitech.eu', PASSWORD)).json.data.token;
   const id = (await root('GET', '/v1/admins')).json.data.items.find(a => a.email === 'gone@epitech.eu').id;
   assert.equal((await as(token)('GET', '/v1/admin/me')).status, 200);
@@ -256,6 +284,10 @@ test('installs: launches deduplicate within a minute, versions and stats are tra
   assert.equal(stats.versions.find(r => r.version === '1.3.4').obsolete, false);
   assert.deepEqual(stats.versions.map(r => r.version), [...stats.versions.map(r => r.version)].sort((x, y) => y.localeCompare(x, undefined, { numeric: true })));
   assert.ok(!JSON.stringify(stats).includes(a));
+  assert.equal(stats.timeline.length, 30);
+  assert.equal(stats.timeline.at(-1).day, new Date().toISOString().slice(0, 10), 'the timeline ends today (UTC)');
+  assert.equal(stats.timeline.at(-1).new - base.timeline.at(-1).new, 2, 'both installs were created today');
+  assert.equal(stats.timeline.reduce((n, d) => n + d.new, 0), stats.installs, 'every install of the last 30 days is counted once');
   assert.equal((await asAdmin('GET', '/v1/versions')).json.data.versions.length, stats.versions.length);
 });
 

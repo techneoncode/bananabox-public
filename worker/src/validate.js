@@ -47,6 +47,14 @@ export function name(value) {
   return value;
 }
 
+/** An OS account name, matched exactly by the extension: same alphabet as a ban name. */
+export function whoami(value) {
+  if (typeof value !== 'string' || !NAME.test(value)) {
+    throw bad('whoami must be 1-64 characters among letters, digits, _ . @ $ \\ -.');
+  }
+  return value;
+}
+
 export function reason(value) {
   if (value === undefined || value === null) return null;
   if (typeof value !== 'string' || value.length > 200) throw bad('reason must be a string of at most 200 characters.');
