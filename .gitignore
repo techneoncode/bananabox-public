@@ -6,3 +6,5 @@ dist-tsc/
 *.zip
 *.har
 .epibox-inspect/
+.wrangler/
+.admin_token

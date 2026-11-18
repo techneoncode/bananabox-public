@@ -1,0 +1,13 @@
+name = "bananabox-api"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bananabox"
+database_id = "6ac223db-8f05-4560-9767-8a2626d823d9"
+migrations_dir = "migrations"
+
+# Daily retention purge (see scheduled() in src/index.js).
+[triggers]
+crons = ["17 3 * * *"]
