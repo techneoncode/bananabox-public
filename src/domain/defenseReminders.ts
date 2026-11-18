@@ -26,7 +26,7 @@ export function defenseEvents(
   activities: ActivityVM[],
 ): DefenseEvent[] {
   return activities
-    .filter(a => a.kind === 'midterm' || a.kind === 'defense')
+    .filter(a => a.kind === 'midterm' || a.kind === 'defense' || a.kind === 'susie')
     .flatMap(a => (a.slots ?? []).filter(s => s.mine).map(s => ({
       key: `${project.id}:${a.eventId}:${s.id}:${s.startDate}`,
       projectId: project.id,
