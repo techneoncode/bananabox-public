@@ -185,3 +185,8 @@ test('common compiler messages are translated to French', async () => {
   assert.equal(tr("unused variable 'i'", 'fr'), "variable 'i' inutilisée");
   assert.equal(tr("expected expression", 'fr'), 'expression attendue');
 });
+
+test('unauthorized function messages are translated', async () => {
+  const { translateMessage: tr } = await import('../codingStyle/messages');
+  assert.equal(tr("printf() is not in the subject's allowed functions.", 'fr'), "printf() n'est pas dans les fonctions autorisées du sujet.");
+});

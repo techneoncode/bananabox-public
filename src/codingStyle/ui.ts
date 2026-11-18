@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { styleMessage, ui } from './messages';
+import { styleLevel, styleMessage, ui } from './messages';
 import {
     BananaDiagnostic,
     DEFAULT_SETTINGS,
@@ -682,7 +682,7 @@ function richHover(
     hover.supportHtml = true;
     const blocks = diagnostics.map(item => {
         const color = hoverColor(inlineBucket(item), settings);
-        const level = String(item.level ?? item.rawSeverity)
+        const level = styleLevel(String(item.level ?? item.rawSeverity))
             .replace(/[<>&"']/g, '');
         const rule = item.ruleId
             ? ` &nbsp;\`${item.ruleId.replace(/[`<>&]/g, '')}\``
@@ -791,7 +791,7 @@ export function inlineText(
     const visible = (value: 'auto' | 'always' | 'never') =>
         value === 'always' || value === 'auto' && mode === 'full';
     const prefix = [
-        options.showLevel ? `[${item.level ?? item.rawSeverity}]` : '',
+        options.showLevel ? `[${styleLevel(String(item.level ?? item.rawSeverity))}]` : '',
         visible(options.showRuleId) ? item.ruleId : '',
     ].filter(Boolean).join(' ');
     const message = visible(options.showMessage)

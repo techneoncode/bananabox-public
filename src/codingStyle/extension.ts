@@ -61,7 +61,7 @@ import {
     valgrindInstalled,
 } from './valgrind';
 import type { ValgrindVM } from '../shared/types';
-import { styleMessage, ui } from './messages';
+import { styleLevel, styleMessage, ui } from './messages';
 import {
     Decorations,
     ERROR_LENS_ID,
@@ -1168,7 +1168,7 @@ class BananaLens implements vscode.Disposable {
                     ? vscode.DiagnosticSeverity.Information
                     : vscode.DiagnosticSeverity.Hint;
         const text = styleMessage(item.message);
-        const label = item.level ? `[${item.level}] ${text}` : text;
+        const label = item.level ? `[${styleLevel(item.level)}] ${text}` : text;
         const d = new vscode.Diagnostic(
             new vscode.Range(lineIndex, start, lineIndex, end),
             label,

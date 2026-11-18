@@ -61,6 +61,7 @@ const EXACT_FR: Record<string, string> = {
 };
 
 const PATTERNS_FR: Array<[RegExp, string]> = [
+    [/^(.+)\(\) is not in the subject's allowed functions\.$/, "$1() n'est pas dans les fonctions autorisées du sujet."],
     // clang
     [/^use of undeclared identifier '(.+)'$/, "utilisation de l'identifiant non déclaré '$1'"],
     [/^implicit declaration of function '(.+)' is invalid in C99$/, "déclaration implicite de la fonction '$1' (invalide en C99)"],
@@ -154,6 +155,11 @@ export function styleLanguage(): 'en' | 'fr' {
     } catch {
         return 'en';
     }
+}
+
+/** The level tag (`[Unauthorized]`) in the language of the extension. */
+export function styleLevel(level: string): string {
+    return level === 'Unauthorized' && styleLanguage() === 'fr' ? 'Non autorisée' : level;
 }
 
 export function styleMessage(message: string): string {
