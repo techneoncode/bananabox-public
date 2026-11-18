@@ -5,6 +5,7 @@ const RELEASE_URL = /^https:\/\/github\.com\/techneoncode\/bananabox-public\/rel
 const NAME = /^[\w.@$\\-]{1,64}$/;
 const INSTALL_ID = /^[0-9a-f]{32}$/;
 const NONCE = /^[0-9a-f]{32}$/;
+const EMAIL = /^[a-z0-9][a-z0-9._%+-]{0,63}@epitech\.eu$/;
 
 export class HttpError extends Error {
   constructor(status, code, message) {
@@ -72,15 +73,32 @@ export function policy(body) {
   if (!match || match[1] !== `v${version}` || match[2] !== `bananabox-${version}.vsix`) {
     throw bad('latest must be https://github.com/techneoncode/bananabox-public/releases/download/v<version>/bananabox-<version>.vsix.');
   }
-  const features = body.banned_features ?? FEATURES;
-  if (!Array.isArray(features) || !features.every(f => FEATURES.includes(f))) {
-    throw bad(`banned_features must be an array among ${FEATURES.join(', ')}.`);
-  }
   return {
     lens_active: body.lens_active,
     my_api_active: body.my_api_active,
     version,
     latest: body.latest,
-    banned_features: [...new Set(features)],
   };
+}
+
+export function email(value) {
+  const lower = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  if (!EMAIL.test(lower)) throw bad('email must be an @epitech.eu address.');
+  return lower;
+}
+
+export function password(value) {
+  if (typeof value !== 'string' || value.length < 12 || value.length > 128) {
+    throw bad('password must be 12 to 128 characters.');
+  }
+  return value;
+}
+
+/** Features a banned account loses; defaults to every feature. */
+export function features(value) {
+  if (value === undefined) return [...FEATURES];
+  if (!Array.isArray(value) || value.length === 0 || !value.every(f => FEATURES.includes(f))) {
+    throw bad(`features must be a non-empty array among ${FEATURES.join(', ')}.`);
+  }
+  return [...new Set(value)];
 }
