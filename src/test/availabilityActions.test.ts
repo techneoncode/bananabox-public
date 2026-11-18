@@ -30,7 +30,7 @@ test('blocked users can appeal in Teams, uninstall only Bananabox and fetch vers
   const context = { extension: { id: 'techneoncode.bananabox' }, subscriptions: [] } as unknown as vscode.ExtensionContext;
   const controller = Object.assign(Object.create(Controller.prototype), { auth: { isSignedIn: false }, pushState: () => blocked++ });
   try {
-    remoteFeatures.set(remoteStatus({ lens_active: true, my_api_active: false, version: '0.5.3', latest: '', authorizedUsers: [] }, '0.5.3', 'guest'));
+    remoteFeatures.set(remoteStatus({ lens_active: true, my_api_active: false, version: '0.5.3', latest: '', authorized: [], banned: [] }, '0.5.3', 'guest'));
     registerAvailabilityActions(context, { refresh: async () => { refreshes++; }, dispose: () => { disposed++; } });
     for (const update of ['idle', 'downloading', 'verifying', 'installing', 'error'] as const) {
       remoteFeatures.set({ ...remoteFeatures.status, update });
