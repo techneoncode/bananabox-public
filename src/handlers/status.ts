@@ -7,6 +7,7 @@ import type { ProjectVM } from '../shared/types';
 import { config } from '../util/config';
 import { remoteFeatures } from '../services/remoteFeatures';
 import type { Controller, Surface } from '../controller';
+import { tr } from '../util/text';
 
 export function pushActivities(
   c: Controller,
@@ -140,13 +141,13 @@ export function updateStatusBar(c: Controller): void {
     ? formatCountdown(remaining)
     : '';
   c.statusItem.text = g?.running
-    ? '$(sync~spin) Bananabox: grading…'
+    ? tr('$(sync~spin) Bananabox: grading…')
     : `$(beaker) ${tokens} · ${score}${countdown ? ` · $(clock) ${countdown}` : ''}`;
   c.statusItem.backgroundColor = countdown && isUrgent(remaining)
     ? new vscode.ThemeColor('statusBarItem.warningBackground')
     : undefined;
   c.statusItem.tooltip = new vscode.MarkdownString(
-    `**${current.name}**\n\nGrader tokens left: ${tokens}\n\nLatest score: ${score}${countdown ? `\n\nCloses in ${countdown}` : ''}\n\n_Click to open the project page_`,
+    `**${current.name}**\n\n${tr('Grader tokens left: {n}', { n: tokens })}\n\n${tr('Latest score: {score}', { score })}${countdown ? `\n\n${tr('Closes in {time}', { time: countdown })}` : ''}\n\n_${tr('Click to open the project page')}_`,
   );
   c.statusItem.show();
 }

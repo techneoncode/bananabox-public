@@ -8,6 +8,7 @@ import type {
 } from '../shared/types';
 import { createT } from '../shared/i18n';
 import { log } from '../util/log';
+import { tr } from '../util/text';
 
 const REFRESH_COOLDOWN = 30_000;
 const CHANGE_COOLDOWN = 15_000;
@@ -117,7 +118,7 @@ export class ActivityService implements vscode.Disposable {
       for (const eventId of eventIds) {
         const raw = await this.client.eventSlots(eventId);
         if (!Array.isArray(raw)) {
-          throw new Error('Invalid event slots response');
+          throw new Error(tr('Invalid event slots response'));
         }
         out.push(...normalizeSlots(raw, login, registrationId).map(s => ({
           ...s,

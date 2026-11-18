@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
 import { parseRemote } from '../domain/git';
+import { tr } from '../util/text';
 
 export function validCommit(sha: unknown): sha is string {
   return typeof sha === 'string'
@@ -85,7 +86,7 @@ export async function fetchCommit(
   sha: string,
   shallow = false,
 ): Promise<void> {
-  if (!validCommit(sha)) throw new Error('Invalid commit revision');
+  if (!validCommit(sha)) throw new Error(tr('Invalid commit revision'));
 
   const env: NodeJS.ProcessEnv = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
   if (!env.GIT_SSH_COMMAND && !env.GIT_SSH) {

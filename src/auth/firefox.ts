@@ -8,6 +8,7 @@ import {
   isRedirectUrl,
   type CaptureOptions,
 } from './browser';
+import { tr } from '../util/text';
 
 export interface FirefoxCaptureOptions extends CaptureOptions {
   /** Test seam: skip the free-port lookup. */
@@ -96,7 +97,7 @@ export async function captureFirefox(
   } catch (e) {
     throw new BrowserAuthError(
       'unavailable',
-      `Could not prepare the Firefox profile: ${(e as Error).message}`,
+      tr('Could not prepare the Firefox profile: {p0}', { p0: (e as Error).message }),
     );
   }
 
@@ -113,7 +114,7 @@ export async function captureFirefox(
     } catch (e) {
       return reject(new BrowserAuthError(
         'unavailable',
-        `Could not start Firefox: ${(e as Error).message}`,
+        tr('Could not start Firefox: {p0}', { p0: (e as Error).message }),
       ));
     }
 
@@ -224,7 +225,7 @@ export async function captureFirefox(
         return finish({
           error: new BrowserAuthError(
             'unavailable',
-            'Firefox did not open its WebDriver BiDi port.',
+            tr('Firefox did not open its WebDriver BiDi port.'),
           ),
         });
       }
@@ -238,7 +239,7 @@ export async function captureFirefox(
         begin().catch((e: Error) => finish({
           error: new BrowserAuthError(
             'unavailable',
-            `Firefox BiDi session failed: ${e.message}`,
+            tr('Firefox BiDi session failed: {p0}', { p0: e.message }),
           ),
         }));
       });
@@ -253,7 +254,7 @@ export async function captureFirefox(
     child.on('error', (e) => finish({
       error: new BrowserAuthError(
         'unavailable',
-        `Could not start Firefox: ${e.message}`,
+        tr('Could not start Firefox: {p0}', { p0: e.message }),
       ),
     }));
     child.on('exit', () => {
@@ -263,17 +264,17 @@ export async function captureFirefox(
         error: connected
           ? new BrowserAuthError(
               'cancelled',
-              'The sign-in window was closed.',
+              tr('The sign-in window was closed.'),
             )
           : new BrowserAuthError(
               'unavailable',
-              'Firefox exited before it could be driven.',
+              tr('Firefox exited before it could be driven.'),
             ),
       });
     });
 
     const onAbort = (): void => finish({
-      error: new BrowserAuthError('cancelled', 'Sign-in cancelled.'),
+      error: new BrowserAuthError('cancelled', tr('Sign-in cancelled.')),
     });
     if (o.signal?.aborted) return onAbort();
     o.signal?.addEventListener('abort', onAbort, { once: true });
@@ -281,7 +282,7 @@ export async function captureFirefox(
       () => finish({
         error: new BrowserAuthError(
           'timeout',
-          'Timed out waiting for the Microsoft sign-in.',
+          tr('Timed out waiting for the Microsoft sign-in.'),
         ),
       }),
       o.timeoutMs,

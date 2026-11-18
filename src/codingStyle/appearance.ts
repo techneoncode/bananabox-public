@@ -1,6 +1,7 @@
 import * as crypto from 'node:crypto';
 import * as vscode from 'vscode';
 import { validColor } from './config';
+import { localizeHtml, ui } from './messages';
 
 type Field = { key: string; label: string } & (
     | { type: 'checkbox' | 'color' }
@@ -113,7 +114,7 @@ export function showAppearance(context: vscode.ExtensionContext): void {
     const folder = uri && vscode.workspace.getWorkspaceFolder(uri);
     const current = vscode.window.createWebviewPanel(
         'bananalens.appearance',
-        'Bananabox Coding Style · Appearance',
+        ui('Bananabox Coding Style · Appearance'),
         vscode.ViewColumn.Active,
         { enableScripts: true, localResourceRoots: [] },
     );
@@ -163,7 +164,7 @@ export function showAppearance(context: vscode.ExtensionContext): void {
             )) {
             void current.webview.postMessage({
                 type: 'error',
-                text: 'Check the values. Colours accept #RRGGBB or #RRGGBBAA, or an empty value for the theme.',
+                text: ui('Check the values. Colours accept #RRGGBB or #RRGGBBAA, or an empty value for the theme.'),
             });
             return;
         }
@@ -184,7 +185,7 @@ export function showAppearance(context: vscode.ExtensionContext): void {
         } catch (error) {
             void current.webview.postMessage({
                 type: 'error',
-                text: `Settings could not be saved: ${String(error)}`,
+                text: ui('Settings could not be saved: {error}', { error: String(error) }),
             });
         } finally {
             saving = false;
@@ -224,14 +225,15 @@ function appearanceValues(
 
 function fieldHtml(field: Field) {
     const id = field.key;
+    const label = ui(field.label);
     if (field.type === 'color') {
         return `<div class="field colour">
-    <label for="${id}">${field.label}</label>
+    <label for="${id}">${label}</label>
     <div class="colour-inputs">
-        <input type="color" data-picker="${id}" aria-label="Pick ${field.label}">
+        <input type="color" data-picker="${id}" aria-label="Pick ${label}">
         <input id="${id}" data-key="${id}" type="text" placeholder="Theme default"
             maxlength="9" spellcheck="false" pattern="(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?"
-            aria-label="${field.label} hexadecimal value">
+            aria-label="${label} hexadecimal value">
         <button type="button" data-theme="${id}">Theme</button>
     </div>
 </div>`;
@@ -249,10 +251,12 @@ function fieldHtml(field: Field) {
         input =
             `<input id="${id}" data-key="${id}" type="${field.type}" ${bounds}>`;
     }
-    return `<div class="field"><label for="${id}">${field.label}</label>${input}</div>`;
+    return `<div class="field"><label for="${id}">${label}</label>${input}</div>`;
 }
 
-function html(nonce: string) {
+const html = (nonce: string) => localizeHtml(pageHtml(nonce));
+
+function pageHtml(nonce: string) {
     const fields = APPEARANCE_FIELDS.map(fieldHtml);
     const split = APPEARANCE_FIELDS.findIndex(field => field.type === 'color');
     return `<!DOCTYPE html>

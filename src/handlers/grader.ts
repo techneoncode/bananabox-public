@@ -7,6 +7,7 @@ import { createT } from '../shared/i18n';
 import * as prompts from '../ui/prompts';
 import { config } from '../util/config';
 import type { Controller, Surface } from '../controller';
+import { tr } from '../util/text';
 
 /**
  * Runs the grader on a project, after pre-flight checks and confirmation.
@@ -30,7 +31,7 @@ export async function runGrader(
         description: p.unitName,
         project: p,
       })),
-      { title: 'Run the grader on…', placeHolder: 'Choose a project' },
+      { title: tr('Run the grader on…'), placeHolder: tr('Choose a project') },
     );
     project = pick?.project;
   }

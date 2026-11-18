@@ -1,5 +1,6 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
+import { ui } from './messages';
 import { readSettings } from './config';
 import { hasMakefileHeader, makefileHeader } from './makefile';
 
@@ -26,7 +27,7 @@ export class BananaCodeActions implements vscode.CodeActionProvider {
                 && codeOf(d) === 'C-G1');
         if (header && !hasMakefileHeader(document.getText())) {
             const action = new vscode.CodeAction(
-                'Insert the Epitech Makefile header',
+                ui('Insert the Epitech Makefile header'),
                 vscode.CodeActionKind.QuickFix,
             );
             action.diagnostics = [header];
@@ -50,7 +51,7 @@ export class BananaCodeActions implements vscode.CodeActionProvider {
             if (!range) continue;
 
             const action = new vscode.CodeAction(
-                'Remove trailing whitespace',
+                ui('Remove trailing whitespace'),
                 vscode.CodeActionKind.QuickFix,
             );
             action.diagnostics = [diagnostic];
@@ -62,7 +63,7 @@ export class BananaCodeActions implements vscode.CodeActionProvider {
 
         if (diagnostics.length > 0) {
             const action = new vscode.CodeAction(
-                'Remove all trailing whitespace in this file',
+                ui('Remove all trailing whitespace in this file'),
                 vscode.CodeActionKind.QuickFix,
             );
             action.diagnostics = diagnostics;

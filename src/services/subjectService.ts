@@ -16,6 +16,7 @@ import {
   type SubjectDocument,
 } from '../domain/resources';
 import { pickSubjectForFunctions } from '../domain/allowedFunctions';
+import { tr } from '../util/text';
 
 export { findSubjectUrl } from '../domain/resources';
 
@@ -103,7 +104,7 @@ export class SubjectService {
           return listingFailedTransiently(listingError)
             ? {
                 status: 'error',
-                message: 'Unable to reach the intranet. Check your connection and try again.',
+                message: tr('Unable to reach the intranet. Check your connection and try again.'),
               }
             : { status: 'unavailable', reason: 'no_link' };
         }
@@ -130,7 +131,7 @@ export class SubjectService {
       log().warn(`subject download failed for project ${project.id}`, e);
       return {
         status: 'error',
-        message: 'Unable to download the PDF. Open it in your browser or try again.',
+        message: tr('Unable to download the PDF. Open it in your browser or try again.'),
       };
     }
   }
@@ -232,7 +233,7 @@ export class SubjectService {
         await this.client.resourceLink(resourceRoute(projectId, doc)),
       );
       if (!link) {
-        throw new DownloadError('The intranet did not return a download link.');
+        throw new DownloadError(tr('The intranet did not return a download link.'));
       }
       if (gen === this.generation) {
         this.sources.set(projectId, { url: link, docId: doc.id });
@@ -261,7 +262,7 @@ export class SubjectService {
       bytes = await this.client.download(target.pathname + target.search);
     } else {
       if (target.protocol !== 'https:') {
-        throw new DownloadError('The subject URL must use HTTPS.');
+        throw new DownloadError(tr('The subject URL must use HTTPS.'));
       }
       const res = await fetch(target, { signal: AbortSignal.timeout(30_000) });
       if (!res.ok) {
@@ -271,10 +272,10 @@ export class SubjectService {
     }
     if (raw) return bytes;
     if (bytes.length > MAX_BYTES) {
-      throw new DownloadError('The PDF is too large to display.');
+      throw new DownloadError(tr('The PDF is too large to display.'));
     }
     if (bytes.subarray(0, 5).toString('latin1') !== '%PDF-') {
-      throw new DownloadError('The downloaded file is not a PDF.');
+      throw new DownloadError(tr('The downloaded file is not a PDF.'));
     }
     return bytes;
   }
@@ -285,7 +286,7 @@ export class SubjectService {
     const picked = await vscode.window.showOpenDialog({
       canSelectMany: false,
       filters: { PDF: ['pdf'] },
-      openLabel: 'Open subject',
+      openLabel: tr('Open subject'),
     });
     if (!picked?.[0]) return undefined;
 
@@ -296,7 +297,7 @@ export class SubjectService {
     ) {
       return {
         status: 'error',
-        message: 'That file is not a valid PDF (or is too large).',
+        message: tr('That file is not a valid PDF (or is too large).'),
       };
     }
     const state: SubjectState = {
@@ -350,13 +351,13 @@ export class SubjectService {
     if (gen !== this.generation) return;
     if (state.status !== 'ready') {
       throw new Error(
-        'Open or load a PDF first. You can find the subject using “Open online”.',
+        tr('Open or load a PDF first. You can find the subject using “Open online”.'),
       );
     }
     const filename = state.name.replace(/[\\/:*?"<>|]/g, '_');
     const target = await vscode.window.showSaveDialog({
-      title: 'Bananabox · Save and open the subject',
-      saveLabel: 'Save and open',
+      title: tr('Bananabox · Save and open the subject'),
+      saveLabel: tr('Save and open'),
       defaultUri: vscode.Uri.file(join(homedir(), filename)),
       filters: { PDF: ['pdf'] },
     });

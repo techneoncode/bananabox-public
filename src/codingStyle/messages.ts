@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 
 /**
  * French wording for the messages of the Banana plugin and of the Makefile
@@ -141,11 +140,239 @@ export function translateMessage(message: string, language: 'en' | 'fr'): string
 }
 
 /** The message in the language of the extension (`epibox.language`, else the editor's). */
-export function styleMessage(message: string): string {
-    const setting = vscode.workspace.getConfiguration?.('epibox')
-        .get<string>('language') ?? 'auto';
-    const fr = setting === 'fr'
-        || (setting !== 'en'
-            && (vscode.env?.language ?? '').toLowerCase().startsWith('fr'));
-    return translateMessage(message, fr ? 'fr' : 'en');
+export function styleLanguage(): 'en' | 'fr' {
+    try {
+        // Loaded on demand so pure helpers stay usable without the editor.
+        const vscode = require('vscode') as typeof import('vscode');
+        const setting = vscode.workspace.getConfiguration?.('epibox')
+            ?.get?.<string>('language') ?? 'auto';
+        return setting === 'fr'
+            || (setting !== 'en'
+                && (vscode.env?.language ?? '').toLowerCase().startsWith('fr'))
+            ? 'fr'
+            : 'en';
+    } catch {
+        return 'en';
+    }
 }
+
+export function styleMessage(message: string): string {
+    return translateMessage(message, styleLanguage());
+}
+
+/**
+ * UI text of the coding style module. `text` is the English template with
+ * `{name}` placeholders; `UI_FR` (keyed by that template) holds the French one.
+ */
+export function ui(text: string, params?: Record<string, string | number>): string {
+    const template = styleLanguage() === 'fr' ? UI_FR[text] ?? text : text;
+    return params
+        ? template.replace(/\{(\w+)\}/g, (_, k: string) => String(params[k] ?? `{${k}}`))
+        : template;
+}
+
+/** Phrases of the appearance page's HTML and script, replaced as they are written there. */
+const PAGE_FR: Array<[string, string]> = [
+    ['Bananabox Coding Style appearance', 'Apparence de Coding Style Bananabox'],
+    ['Choose what stays visible while you code. Preview changes here, then apply them to your editor.', 'Choisissez ce qui reste visible pendant que vous codez. Prévisualisez les changements ici, puis appliquez-les à votre éditeur.'],
+    ['Save settings for ', 'Enregistrer les réglages pour '],
+    ['Settings scope', 'Portée des réglages'],
+    ['Content &amp; layout', 'Contenu &amp; mise en page'],
+    ['Auto follows Compact / Full mode. Hidden details remain available on hover.', 'Auto suit le mode Compact / Complet. Les détails masqués restent disponibles au survol.'],
+    ['Colours by severity', 'Couleurs par gravité'],
+    ['Pick a colour or enter a hex value. Add two hex digits for opacity (#RRGGBBAA). Theme keeps your theme’s adaptive colours. Colours also apply to the file summary.', 'Choisissez une couleur ou saisissez une valeur hexadécimale. Ajoutez deux chiffres hexadécimaux pour l’opacité (#RRGGBBAA). Thème conserve les couleurs adaptatives de votre thème. Les couleurs s’appliquent aussi au résumé du fichier.'],
+    ['<h2>Preview</h2>', '<h2>Aperçu</h2>'],
+    ['Lens preview', 'Aperçu de la lentille'],
+    ['>Apply changes<', '>Appliquer les changements<'],
+    ['>Reset appearance<', '>Réinitialiser l’apparence<'],
+    ['>Theme<', '>Thème<'],
+    ['placeholder="Theme default"', 'placeholder="Thème par défaut"'],
+    ['Example coding-style diagnostic', 'Exemple de diagnostic de coding style'],
+    ["'Fatal', 'C-F1'", "'Fatale', 'C-F1'"],
+    ["'Major', 'C-L1'", "'Majeure', 'C-L1'"],
+    ["'Minor', 'C-L3'", "'Mineure', 'C-L3'"],
+    ["'Info', 'C-G1'", "'Info', 'C-G1'"],
+    ["'Unauthorized', ''", "'Non autorisée', ''"],
+    ['printf() is not in the subject\'s allowed functions.', 'printf() n’est pas dans les fonctions autorisées du sujet.'],
+    ['Unsaved changes', 'Modifications non enregistrées'],
+    ['Saving…', 'Enregistrement…'],
+    ['Restoring inherited settings…', 'Restauration des réglages hérités…'],
+    ["user: 'User', workspace: 'Workspace', folder: 'Workspace folder'", "user: 'Utilisateur', workspace: 'Espace de travail', folder: 'Dossier de l’espace de travail'"],
+    ['Appearance saved', 'Apparence enregistrée'],
+    ['aria-label="Pick ', 'aria-label="Choisir '],
+    ['hexadecimal value', 'valeur hexadécimale'],
+];
+
+/** The appearance page in the language of the extension. */
+export function localizeHtml(html: string): string {
+    if (styleLanguage() !== 'fr') return html;
+    return PAGE_FR.reduce((out, [en, fr]) => out.split(en).join(fr), html);
+}
+
+export const UI_FR: Record<string, string> = {
+    'Display mode': 'Mode d’affichage',
+    'Show severity': 'Afficher la gravité',
+    'Rule ID': 'Identifiant de règle',
+    'Message': 'Message',
+    'Show severity square': 'Afficher le carré de gravité',
+    'Include compiler warnings': 'Inclure les avertissements du compilateur',
+    'Space after code (characters)': 'Espace après le code (caractères)',
+    'Messages per line (0 = all)': 'Messages par ligne (0 = tous)',
+    'Stacked box for several messages': 'Boîte empilée pour plusieurs messages',
+    'Maximum message length': 'Longueur maximale du message',
+    'Bold text': 'Texte en gras',
+    'Italic text': 'Texte en italique',
+    'Message background': 'Arrière-plan du message',
+    'Code underline': 'Soulignement du code',
+    'Fatal foreground': 'Fatale : texte',
+    'Fatal background': 'Fatale : arrière-plan',
+    'Fatal underline': 'Fatale : soulignement',
+    'Major foreground': 'Majeure : texte',
+    'Major background': 'Majeure : arrière-plan',
+    'Major underline': 'Majeure : soulignement',
+    'Minor foreground': 'Mineure : texte',
+    'Minor background': 'Mineure : arrière-plan',
+    'Minor underline': 'Mineure : soulignement',
+    'Info foreground': 'Info : texte',
+    'Info background': 'Info : arrière-plan',
+    'Info underline': 'Info : soulignement',
+    'Unauthorized function foreground': 'Fonction non autorisée : texte',
+    'Unauthorized function background': 'Fonction non autorisée : arrière-plan',
+    'Unauthorized function underline': 'Fonction non autorisée : soulignement',
+    'Bananabox Coding Style · Appearance': 'Coding Style Bananabox · Apparence',
+    'Check the values. Colours accept #RRGGBB or #RRGGBBAA, or an empty value for the theme.':
+        'Vérifiez les valeurs. Les couleurs acceptent #RRGGBB ou #RRGGBBAA, ou une valeur vide pour le thème.',
+    'Settings could not be saved: {error}': 'Les réglages n’ont pas pu être enregistrés : {error}',
+    'No issues': 'Aucune violation',
+    '{n} fatal': '{n} fatale',
+    '{n} major': '{n} majeure',
+    '{n} majors': '{n} majeures',
+    '{n} minor': '{n} mineure',
+    '{n} minors': '{n} mineures',
+    '{n} info': '{n} info',
+    '{n} infos': '{n} infos',
+    '{n} unauthorized function': '{n} fonction non autorisée',
+    '{n} unauthorized functions': '{n} fonctions non autorisées',
+    '{n} issue': '{n} violation',
+    '{n} issues': '{n} violations',
+    '{n} compiler': '{n} compilateur',
+    'Not checked': 'Non vérifié',
+    'Checking…': 'Vérification…',
+    'Check unavailable': 'Vérification indisponible',
+    'Pending check': 'Vérification en attente',
+    'Bananabox Style': 'Style Bananabox',
+    'Bananabox Coding Style': 'Coding Style Bananabox',
+    'Off': 'Désactivées',
+    'Suggestion': 'Suggestion',
+    'Automatic': 'Automatiques',
+    '{count} in this file': '{count} dans ce fichier',
+    'Fatal: {fatal} · Major: {major} · Minor: {minor} · Info: {info} · Compiler: {other} · Unauthorized functions: {functions}':
+        'Fatales : {fatal} · Majeures : {major} · Mineures : {minor} · Infos : {info} · Compilateur : {other} · Fonctions non autorisées : {functions}',
+    'The displayed results precede the latest edit. Recheck to refresh them.':
+        'Les résultats affichés précèdent la dernière modification. Revérifiez pour les actualiser.',
+    'Last check: {error}. Open Bananabox Coding Style output for details.':
+        'Dernière vérification : {error}. Ouvrez la sortie Coding Style Bananabox pour les détails.',
+    'Corrections: {mode}': 'Corrections : {mode}',
+    'Last check took {ms} ms': 'La dernière vérification a pris {ms} ms',
+    'Review {count}': 'Examiner : {count}',
+    'Browse this file’s diagnostics, grouped by severity and rule':
+        'Parcourir les diagnostics de ce fichier, groupés par gravité et par règle',
+    '$(refresh) Recheck': '$(refresh) Revérifier',
+    '$(play) Check file': '$(play) Vérifier le fichier',
+    'Check this file': 'Vérifier ce fichier',
+    'Choose Off, Suggestion or Automatic corrections for this workspace':
+        'Choisir des corrections désactivées, en suggestion ou automatiques pour cet espace de travail',
+    "Bananabox Coding Style formatter": "Formateur Coding Style Bananabox",
+    "$(sync~spin) Bananabox Coding Style: preparing corrections": "$(sync~spin) Coding Style Bananabox : préparation des corrections",
+    "Preparing the formatter automatically. Editing and saving remain available.": "Préparation automatique du formateur. L’édition et l’enregistrement restent disponibles.",
+    "$(warning) Bananabox Coding Style: corrections unavailable": "$(warning) Coding Style Bananabox : corrections indisponibles",
+    "Click for details. Preparation retries on the next save after a one-minute cooldown.": "Cliquez pour les détails. La préparation est retentée au prochain enregistrement, après une minute d’attente.",
+    "$(circle-slash) Off": "$(circle-slash) Désactivées",
+    "Default": "Par défaut",
+    "Keep Banana scans without automatic corrections.": "Garder les analyses Banana sans corrections automatiques.",
+    "$(lightbulb) Suggestion": "$(lightbulb) Suggestion",
+    "Review before applying": "À relire avant application",
+    "Each fix appears inline after saving: Tab accepts it, Alt+] goes to the next one, Esc dismisses.": "Chaque correction s’affiche en ligne après l’enregistrement : Tab l’accepte, Alt+] passe à la suivante, Échap la rejette.",
+    "$(check) Automatic": "$(check) Automatiques",
+    "Apply safe layout corrections while saving.": "Appliquer les corrections de mise en page sûres à l’enregistrement.",
+    "Bananabox Coding Style · correction mode": "Coding Style Bananabox · mode de correction",
+    "Choose how corrections should work": "Choisissez le fonctionnement des corrections",
+    "Adding the Epitech file header (C-G1)": "Ajout de l’en-tête Epitech du fichier (C-G1)",
+    "Corrections skipped: verification was incomplete or introduced a diagnostic.": "Corrections ignorées : la vérification était incomplète ou a introduit un diagnostic.",
+    "Corrections skipped: {error}. See the Bananabox Coding Style output for formatter preparation details.": "Corrections ignorées : {error}. Voir la sortie Coding Style Bananabox pour les détails de préparation du formateur.",
+    "fixes {rules}": "corrige {rules}",
+    "Accept this correction": "Accepter cette correction",
+    "Accept (Tab)": "Accepter (Tab)",
+    "Accept all {count} ({key} + Alt + Enter)": "Tout accepter ({count}) ({key} + Alt + Entrée)",
+    "Next correction (Alt+]) · previous (Alt+[)": "Correction suivante (Alt+]) · précédente (Alt+[)",
+    "View diff": "Voir le diff",
+    "Compare the whole file with every correction applied": "Comparer le fichier entier avec toutes les corrections appliquées",
+    "Dismiss (Esc)": "Ignorer (Échap)",
+    "Hide these suggestions until the next save": "Masquer ces suggestions jusqu’au prochain enregistrement",
+    "Bananabox Coding Style · suggested corrections": "Coding Style Bananabox · corrections suggérées",
+    "Tab to accept, Alt+] for the next one, Esc to dismiss": "Tab pour accepter, Alt+] pour la suivante, Échap pour ignorer",
+    "Epitech header ({n} lines)": "en-tête Epitech ({n} lignes)",
+    "blank line": "ligne vide",
+    "Add the Epitech header (C-G1)": "Ajouter l’en-tête Epitech (C-G1)",
+    "Add the final newline": "Ajouter le retour à la ligne final",
+    "Remove trailing whitespace": "Supprimer les espaces en fin de ligne",
+    "Fix spacing": "Corriger l’espacement",
+    "Fix indentation and trailing whitespace": "Corriger l’indentation et les espaces en fin de ligne",
+    "Fix indentation": "Corriger l’indentation",
+    "Fix indentation of {n} lines": "Corriger l’indentation de {n} lignes",
+    "Put the brace on its own line": "Mettre l’accolade sur sa propre ligne",
+    "Split into several lines": "Séparer en plusieurs lignes",
+    "Join these lines": "Regrouper ces lignes",
+    "Reformat this block": "Reformater ce bloc",
+    "Remove this blank line": "Supprimer cette ligne vide",
+    "Remove {n} blank lines": "Supprimer {n} lignes vides",
+    "Add a blank line": "Ajouter une ligne vide",
+    "Add {n} blank lines": "Ajouter {n} lignes vides",
+    "Removing the blank line": "Suppression de la ligne vide",
+    "Removing {n} blank lines": "Suppression de {n} lignes vides",
+    "Removing trailing whitespace": "Suppression des espaces en fin de ligne",
+    "Using Unix line endings": "Utilisation des fins de ligne Unix",
+    "Adding the final newline": "Ajout du retour à la ligne final",
+    "Correcting indentation": "Correction de l’indentation",
+    "Correcting spacing": "Correction de l’espacement",
+    "Adjusting braces and line breaks": "Ajustement des accolades et des retours à la ligne",
+    "Adding a separating blank line": "Ajout d’une ligne vide de séparation",
+    "Correcting code layout": "Correction de la mise en page du code",
+    "Bananabox Coding Style: {error}": "Coding Style Bananabox : {error}",
+    "Bananabox Coding Style: epiclang returned {code} but no diagnostic could be parsed. See the Bananabox Coding Style output.": "Coding Style Bananabox : epiclang a retourné {code} mais aucun diagnostic n’a pu être lu. Voir la sortie Coding Style Bananabox.",
+    "Locate epiclang…": "Localiser epiclang…",
+    "Open settings": "Ouvrir les réglages",
+    "Select the epiclang executable": "Sélectionner l’exécutable epiclang",
+    "Use this executable": "Utiliser cet exécutable",
+    "Coding style is disabled or the workspace is not trusted.": "Le coding style est désactivé ou l’espace de travail n’est pas approuvé.",
+    "Bananabox Coding Style: checking {name}": "Coding Style Bananabox : vérification de {name}",
+    "Bananabox Coding Style: no C source or header found in this project.": "Coding Style Bananabox : aucun source ou en-tête C trouvé dans ce projet.",
+    "Bananabox Coding Style: {counts} in {files} files ({seconds} s)": "Coding Style Bananabox : {counts} dans {files} fichiers ({seconds} s)",
+    "Bananabox Coding Style: no infractions in {files} files 🎉": "Coding Style Bananabox : aucune infraction dans {files} fichiers 🎉",
+    "Show problems": "Afficher les problèmes",
+    "No Makefile in the project folder.": "Aucun Makefile dans le dossier du projet.",
+    "The Makefile could not be saved.": "Le Makefile n’a pas pu être enregistré.",
+    "make re (with -g)": "make re (avec -g)",
+    "make re exited with {code}": "make re s’est terminé avec le code {code}",
+    "Valgrind command": "Commande Valgrind",
+    "Program and arguments to run from the project folder. Leave empty to run ./NAME from the Makefile.": "Programme et arguments à lancer depuis le dossier du projet. Laissez vide pour lancer ./NAME du Makefile.",
+    "Valgrind: {command}": "Valgrind : {command}",
+    "Open a file of the project to check with valgrind.": "Ouvrez un fichier du projet pour vérifier avec valgrind.",
+    "Edit command": "Modifier la commande",
+    "Show output": "Afficher la sortie",
+    "Valgrind is not installed on this machine (e.g. sudo apt install valgrind).": "Valgrind n’est pas installé sur cette machine (ex. sudo apt install valgrind).",
+    "No program to run: the Makefile has no NAME. Set the command valgrind runs.": "Aucun programme à lancer : le Makefile n’a pas de NAME. Définissez la commande lancée par valgrind.",
+    "Valgrind could not run \"{command}\"{detail}": "Valgrind n’a pas pu lancer \"{command}\"{detail}",
+    "\"{command}\" crashed ({signal}). Check its arguments. {leaks} leak(s), {lost} lost.": "\"{command}\" a planté ({signal}). Vérifiez ses arguments. {leaks} fuite(s), {lost} perdus.",
+    "Valgrind: {lost} lost{errors}{unlocated}.": "Valgrind : {lost} perdus{errors}{unlocated}.",
+    ", {n} memory error(s)": ", {n} erreur(s) mémoire",
+    "({n} without a line: build with -g)": "({n} sans ligne : compilez avec -g)",
+    "Valgrind: no leak, no memory error.": "Valgrind : aucune fuite, aucune erreur mémoire.",
+    "Bananabox Coding Style: no infractions found in this file.": "Coding Style Bananabox : aucune infraction dans ce fichier.",
+    "Line {n}": "Ligne {n}",
+    "Insert the Epitech Makefile header": "Insérer l’en-tête Epitech du Makefile",
+    "Remove all trailing whitespace in this file": "Supprimer tous les espaces en fin de ligne de ce fichier",
+    'Cannot find "{name}". Install epiclang or set "bananalens.compiler" to its full path.': 'Impossible de trouver "{name}". Installez epiclang ou définissez "bananalens.compiler" avec son chemin complet.',
+    "Banana · {n} finding": "Banana · {n} résultat",
+    "Banana · {n} findings": "Banana · {n} résultats",
+};
