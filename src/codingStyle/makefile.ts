@@ -33,7 +33,12 @@ export interface MakefileLintOptions {
      * C files of the Makefile's directory (relative, `/`-separated) that SRC
      * should list (M-S1, info).
      */
-    sources?: { files: readonly string[]; ignore: readonly string[] };
+    sources?: {
+        files: readonly string[];
+        ignore: readonly string[];
+        /** Whether a path relative to the Makefile's directory is a file. */
+        isFile?: (relative: string) => boolean;
+    };
 }
 
 export const DEFAULT_MAKEFILE_RULES = ['all', 'clean', 'fclean', 're'];
@@ -574,10 +579,48 @@ export function lintMakefile(
         }
     }
 
+    if (options.sources?.isFile) {
+        items.push(...notFileSources(file, lines, parsed, options.sources.isFile));
+    }
+
     return items;
 }
 
 const SOURCE_VARIABLES = ['SRC', 'SRCS', 'SOURCES'];
+
+/** Literal `.c` entries of SRC that are not files (M-S2). */
+function notFileSources(
+    file: string,
+    lines: readonly string[],
+    parsed: ParsedMakefile,
+    isFile: (relative: string) => boolean,
+): BananaDiagnostic[] {
+    const src = SOURCE_VARIABLES
+        .map(name => parsed.variables.get(name))
+        .find(Boolean);
+    if (!src) return [];
+    const items: BananaDiagnostic[] = [];
+    const seen = new Set<string>();
+    for (const token of src.value.split(/\s+/)) {
+        const entry = token.replace(/^\.\//, '');
+        if (!entry.endsWith('.c') || /[$%*?()]/.test(entry) || seen.has(entry)) continue;
+        seen.add(entry);
+        if (isFile(entry)) continue;
+        const index = lines.findIndex(line => stripComment(line).split(/[\s=\\]+/).includes(token));
+        const text = index >= 0 ? lines[index] : '';
+        const column = text.indexOf(token);
+        items.push(finding(
+            file,
+            index >= 0 ? index + 1 : src.end,
+            'major',
+            'M-S2',
+            'SRC entry is not a file.',
+            column >= 0 ? column + 1 : 1,
+            token.length,
+        ));
+    }
+    return items;
+}
 
 /**
  * Project C files no variable or prerequisite of the Makefile mentions,

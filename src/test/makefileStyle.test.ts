@@ -162,3 +162,9 @@ test('-g is detected anywhere and added to CFLAGS, or after the header when ther
   assert.equal(addDebugFlag('##\n## EPITECH PROJECT, 2026\n##\n\nNAME = a\n'), '##\n## EPITECH PROJECT, 2026\n##\n\nCFLAGS += -g\n\nNAME = a\n');
   assert.ok(makefileHasDebug(addDebugFlag('CFLAGS = -Wall\r\nall:\r\n')));
 });
+
+test('M-S2: literal SRC entries that are not files are flagged', () => {
+  const text = `${HEADER}SRC = src/main.c \\\n\tsrc/gone.c \\\n\t$(addprefix lib/, x.c)\nall:\n`;
+  const found = lintMakefile('/p/Makefile', text, { ...BASE, sources: { files: [], ignore: [], isFile: f => f === 'src/main.c' } }).filter(i => i.ruleId === 'M-S2');
+  assert.deepEqual(found.map(i => [i.line, i.bucket, i.message]), [[9, 'major', 'SRC entry is not a file.']]);
+});
