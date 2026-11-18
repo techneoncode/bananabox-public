@@ -128,10 +128,11 @@ function userRoutes(kind) {
 
 async function stats(env) {
   const now = Date.now();
-  const [policy, rows, totals] = await Promise.all([
+  const [policy, rows, totals, accounts] = await Promise.all([
     readPolicy(env),
     env.DB.prepare('SELECT version, COUNT(*) AS installs, SUM(last_seen >= ?) AS active FROM installs GROUP BY version').bind(now - ACTIVE_MS).all(),
     env.DB.prepare('SELECT COUNT(*) AS installs, COALESCE(SUM(launches), 0) AS launches FROM installs').first(),
+    env.DB.prepare('SELECT DISTINCT account FROM installs WHERE account IS NOT NULL ORDER BY account').all(),
   ]);
   const versions = rows.results
     .map(r => ({ version: r.version, installs: r.installs, active: r.active ?? 0, obsolete: v.compareVersions(r.version, policy.version) < 0 }))
@@ -145,6 +146,7 @@ async function stats(env) {
     inactive: totals.installs - active,
     obsolete_active: versions.filter(r => r.obsolete).reduce((n, r) => n + r.active, 0),
     launches: totals.launches,
+    users: accounts.results.map(r => r.account),
     versions,
   };
 }
@@ -156,12 +158,13 @@ async function heartbeat(request, env) {
   await consumeNonce(env, body.nonce);
   const now = Date.now();
   // SET expressions read the pre-update row: launches only grows after a gap.
-  await env.DB.prepare(`INSERT INTO installs (id_hash, first_seen, last_seen, launches, version) VALUES (?1, ?2, ?2, 1, ?3)
+  await env.DB.prepare(`INSERT INTO installs (id_hash, first_seen, last_seen, launches, version, account) VALUES (?1, ?2, ?2, 1, ?3, ?5)
     ON CONFLICT (id_hash) DO UPDATE SET
       launches = launches + (excluded.last_seen - last_seen >= ?4),
       last_seen = excluded.last_seen,
-      version = excluded.version`)
-    .bind(await sha256(id), now, version, MIN_LAUNCH_GAP_MS).run();
+      version = excluded.version,
+      account = excluded.account`)
+    .bind(await sha256(id), now, version, MIN_LAUNCH_GAP_MS, v.account(body.account)).run();
   return ok({ recorded: true });
 }
 

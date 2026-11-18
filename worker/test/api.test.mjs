@@ -239,12 +239,14 @@ test('nonces are single-use, validated, and tied to a well-formed install id', a
 
 test('installs: launches deduplicate within a minute, versions and stats are tracked, no raw id is exposed', async () => {
   const [a, b] = [id(), id()];
-  const beat = async (installId, version) => (await call('POST', '/v1/installs', { installId, nonce: await nonce(), version })).status;
+  const beat = async (installId, version, account) => (await call('POST', '/v1/installs', { installId, nonce: await nonce(), version, account })).status;
   const base = (await asAdmin('GET', '/v1/stats')).json.data;
-  assert.equal(await beat(a, '1.3.0'), 200);
-  assert.equal(await beat(a, '1.3.0'), 200);
-  assert.equal(await beat(b, '1.3.4'), 200);
+  assert.equal(await beat(a, '1.3.0', 'stats-alice'), 200);
+  assert.equal(await beat(a, '1.3.0', 'stats-alice'), 200);
+  assert.equal(await beat(b, '1.3.4', 'not a valid name!'), 200, 'an unusable account name does not fail the report');
   const stats = (await asAdmin('GET', '/v1/stats')).json.data;
+  assert.ok(stats.users.includes('stats-alice'));
+  assert.ok(!stats.users.includes('not a valid name!'));
   assert.equal(stats.installs - base.installs, 2);
   assert.equal(stats.active - base.active, 2);
   assert.equal(stats.launches - base.launches, 2, 'a repeat within 60 s is not a new launch');
