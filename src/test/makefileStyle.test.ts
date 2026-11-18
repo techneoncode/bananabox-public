@@ -178,3 +178,10 @@ test('style messages are translated to French and unknown ones are left alone', 
   assert.equal(tr('something new', 'fr'), 'something new');
   assert.equal(tr('trailing space', 'en'), 'trailing space');
 });
+
+test('common compiler messages are translated to French', async () => {
+  const { translateMessage: tr } = await import('../codingStyle/messages');
+  assert.equal(tr("use of undeclared identifier 'x'", 'fr'), "utilisation de l'identifiant non déclaré 'x'");
+  assert.equal(tr("unused variable 'i'", 'fr'), "variable 'i' inutilisée");
+  assert.equal(tr("expected expression", 'fr'), 'expression attendue');
+});
