@@ -424,7 +424,11 @@ export class Decorations implements vscode.Disposable {
                 );
             for (const row of rows) {
                 const bucket = grouped.get(row.severity) ?? [];
-                bucket.push(row.options);
+                // Published diagnostics already bring VS Code's own hover
+                // over the same range; a second card would repeat them.
+                bucket.push(settings.problems
+                    ? { ...row.options, hoverMessage: undefined }
+                    : row.options);
                 grouped.set(row.severity, bucket);
             }
         }
@@ -727,7 +731,6 @@ function inlineBox(
             : text}`;
     });
     const width = Math.max(...rows.map(row => row.length)) + 2;
-    const hover = richHover(diagnostics, settings);
     const { whole, end } = lineRanges(document, line);
 
     const boxed = rows.map((row, index): InlineRow => {
@@ -744,7 +747,9 @@ function inlineBox(
             severity,
             options: {
                 range: end,
-                hoverMessage: hover,
+                // Every row shares the same range and VS Code merges their
+                // hovers, so each row carries only its own message.
+                hoverMessage: richHover([diagnostics[index]], settings),
                 renderOptions: {
                     after: {
                         contentText: row,
