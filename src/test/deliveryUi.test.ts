@@ -222,7 +222,7 @@ test('readiness renders clear next actions, handles stale evidence and resumes a
   const root = renderReadiness(ctx, project) as unknown as DomElement;
   assert.equal(root.tagName, 'section');
   assert.equal(root.dataset.detailId, 'readiness');
-  assert.equal(root.all('button').filter(b => b.className.includes('readiness-check')).length, 8);
+  assert.equal(root.all('button').filter(b => b.className.includes('readiness-check')).length, 9);
   assert.match(root.textContent, /Prêt pour le grader/); assert.match(root.textContent, /Commandes détectées automatiquement/);
   root.all('button').find(b => b.textContent.includes('Préparer le rendu'))!.click();
   assert.deepEqual(messages[0], { type: 'guidedDelivery', projectId: 1 });

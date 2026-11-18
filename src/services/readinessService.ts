@@ -319,8 +319,11 @@ export class ReadinessService implements vscode.Disposable {
         throw new Error(this.t('delivery.cancelled'));
       }
       if (!memory || memory.status !== 'done' || memory.error) {
-        vm.checks = vm.checks.filter((c) => c.id !== 'valgrind');
-        publish();
+        add({
+          id: 'valgrind',
+          status: 'unknown',
+          detail: memory?.detail ?? this.t('delivery.valgrindSkipped'),
+        });
       } else {
         const memoryErrors = memory.errors?.length ?? 0;
         const found = memory.leaks.length || memoryErrors;
