@@ -108,7 +108,10 @@ const isPdf = (name: string, mime: unknown): boolean =>
  * Flattens the folder tree returned by the intranet into its PDFs, best subject
  * candidate first.
  */
-export function listSubjectDocuments(tree: unknown): SubjectDocument[] {
+export function listSubjectDocuments(
+  tree: unknown,
+  pdf = true,
+): SubjectDocument[] {
   const docs: SubjectDocument[] = [];
   const walk = (
     nodes: unknown,
@@ -132,7 +135,7 @@ export function listSubjectDocuments(tree: unknown): SubjectDocument[] {
         );
       } else if (node.kind === 'file' || node.blob) {
         const blob = object(node.blob);
-        if (!isPdf(node.name, blob?.mimeType)) continue;
+        if (isPdf(node.name, blob?.mimeType) !== pdf) continue;
         const folder = folders.join('/');
         docs.push({
           id: [...folders, node.name].join('/'),

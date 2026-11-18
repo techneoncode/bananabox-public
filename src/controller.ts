@@ -211,7 +211,7 @@ export class Controller implements vscode.Disposable {
     );
     this.projects.onResults = (project, raw) =>
       this.grader.adoptResults(project, raw);
-    this.subject = new SubjectService(this.client);
+    this.subject = new SubjectService(this.client, (key, params) => createT(config.language())(key, params));
     this.subjectFunctions = new SubjectFunctions(
       context.globalState,
       project => this.subject.functionsDocument(project),
