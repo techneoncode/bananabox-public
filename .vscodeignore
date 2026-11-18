@@ -23,3 +23,6 @@ dist/preview/**
 media/fonts/*.woff2
 images/readme/**
 api.json
+worker/**
+.admin_token
+*.vsix
