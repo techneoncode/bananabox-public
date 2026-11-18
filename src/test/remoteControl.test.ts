@@ -14,6 +14,7 @@ const release = (version: string) => `https://github.com/techneoncode/bananabox-
 const baseline: RemoteConfig = { lens_active: true, my_api_active: true, version: '0.5.1',
   latest: release('0.5.1'), authorizedUsers: [] };
 const reset = () => remoteFeatures.set(remoteStatus(undefined, '0.5.1', 'niels'));
+const envelope = (data: unknown) => Response.json({ ok: true, data });
 const flush = () => new Promise(resolve => setImmediate(resolve));
 Object.assign(vscode.window, { showErrorMessage: async () => undefined, showInformationMessage: async () => undefined });
 
@@ -94,7 +95,7 @@ test('refused accounts override authorizedUsers, block updates and recover when 
   let value: RemoteConfig = { ...baseline, version: '0.5.2', latest: release('0.5.2'), authorizedUsers: ['niels'], bannedUsers: ['niels'] };
   let installs = 0;
   const service = new RemoteControl(context(), { username: 'nielsLaptop',
-    fetch: async () => Response.json(value), install: async () => { installs++; } });
+    fetch: async () => envelope(value), install: async () => { installs++; } });
   try {
     await service.refresh(); await flush();
     assert.equal(remoteFeatures.status.connectionRefused, true);
@@ -141,7 +142,7 @@ test('remote refresh switches a restricted account between Lens-only, My-only an
   reset();
   let bannedFeatures: RemoteConfig['bannedFeatures'] = ['lens_active'];
   const service = new RemoteControl(context(), { username: 'nielsLaptop',
-    fetch: async () => Response.json({ ...baseline, bannedUsers: ['niels'], bannedFeatures }) });
+    fetch: async () => envelope({ ...baseline, bannedUsers: ['niels'], bannedFeatures }) });
   try {
     await service.refresh();
     assert.equal(remoteFeatures.status.lensActive, false);
@@ -167,7 +168,7 @@ test('partially restricted users still receive version updates for their remaini
     reset();
     let installs = 0;
     const service = new RemoteControl(context(), { username: 'nielsLaptop',
-      fetch: async () => Response.json({ ...baseline, version: '0.5.2', latest: release('0.5.2'), bannedUsers: ['niels'], bannedFeatures }),
+      fetch: async () => envelope({ ...baseline, version: '0.5.2', latest: release('0.5.2'), bannedUsers: ['niels'], bannedFeatures }),
       install: async () => { installs++; } });
     try {
       await service.refresh(); await flush();
@@ -188,7 +189,7 @@ test('remote refresh applies flags, blocks offline even with cached permissions 
     assert.equal(String(url), REMOTE_CONFIG_URL);
     assert.equal(init?.cache, 'no-store');
     if (fail) throw new Error('offline');
-    return Response.json(value);
+    return envelope(value);
   };
   const service = new RemoteControl(context(store), { fetch: fetcher, username: 'guest' });
   try {
@@ -225,7 +226,7 @@ test('version mismatch disables both features while installing, avoids duplicate
   let report!: (progress: ExtensionUpdateProgress) => void;
   let installs = 0;
   const value = { ...baseline, version: '0.5.2', latest: release('0.5.2'), authorizedUsers: ['niels'] };
-  const deps = { username: 'niels', fetch: (async () => Response.json(value)) as typeof fetch,
+  const deps = { username: 'niels', fetch: (async () => envelope(value)) as typeof fetch,
     install: async (_url: string, version: string, id: string, _signal: AbortSignal, onProgress?: (progress: ExtensionUpdateProgress) => void) => {
       assert.equal(version, '0.5.2'); assert.equal(id, 'techneoncode.bananabox');
       installs++;
@@ -262,7 +263,7 @@ test('an invalid latest URL invalidates the policy, so nothing is downloaded', a
   reset();
   let attempts = 0;
   const service = new RemoteControl(context(), { username: 'niels',
-    fetch: async () => Response.json({ ...baseline, version: '0.5.2', latest: 'https://github.com/https://github.com/techneoncode/bananabox-public' }),
+    fetch: async () => envelope({ ...baseline, version: '0.5.2', latest: 'https://github.com/https://github.com/techneoncode/bananabox-public' }),
     install: async () => { attempts++; } });
   try {
     await service.refresh(); await flush();
@@ -277,7 +278,7 @@ test('update failure remains visible and is retried on the next check', async ()
   reset();
   let attempts = 0;
   const service = new RemoteControl(context(), { username: 'niels',
-    fetch: async () => Response.json({ ...baseline, version: '0.5.2', latest: release('0.5.2') }),
+    fetch: async () => envelope({ ...baseline, version: '0.5.2', latest: release('0.5.2') }),
     install: async () => { attempts++; throw new Error('network down'); } });
   try {
     await service.refresh(); await flush();
@@ -364,7 +365,7 @@ test('an installed build at or ahead of the required version is never asked to d
   reset();
   let installs = 0;
   const service = new RemoteControl(context(), { username: 'niels',
-    fetch: async () => Response.json(baseline),
+    fetch: async () => envelope(baseline),
     install: async () => { installs++; } });
   try {
     await service.refresh(); await flush();

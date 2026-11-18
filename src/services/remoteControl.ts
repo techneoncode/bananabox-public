@@ -12,7 +12,8 @@ import { downloadAndInstall } from './extensionUpdate';
 import { remoteFeatures } from './remoteFeatures';
 import { tr } from '../util/text';
 
-export const REMOTE_CONFIG_URL = 'https://raw.githubusercontent.com/techneoncode/bananabox-public/refs/heads/main/api.json';
+export const API_BASE_URL = 'https://bananabox-api.niels-christophe.workers.dev';
+export const REMOTE_CONFIG_URL = `${API_BASE_URL}/v1/config`;
 const CACHE_KEY = 'bananabox.remoteConfig.v1';
 const UPDATE_KEY = 'bananabox.installedUpdate.v1';
 const POLL_MS = 60_000;
@@ -113,7 +114,9 @@ export class RemoteControl implements vscode.Disposable {
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      const remote = parseRemoteConfig(await response.json());
+      const envelope = (await response.json()) as { ok?: boolean; data?: unknown };
+      if (envelope?.ok !== true) throw new Error('Unexpected API response');
+      const remote = parseRemoteConfig(envelope.data);
       if (this.lifetime.signal.aborted) return;
 
       const targetChanged = remote.latest !== this.remote?.latest;
