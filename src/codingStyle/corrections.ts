@@ -16,6 +16,7 @@ import { matchesAny } from './glob';
 import { detectProjectRoot, loadProjectConfigFile } from './project';
 import { CorrectionValidator } from './validation';
 import { Limiter } from './limiter';
+import { ui } from './messages';
 
 /**
  * A verified correction of a whole file, split into hunks. In Suggestion mode
@@ -215,20 +216,20 @@ export class Corrections
             || this.toolchain.peek(this.executable(document))) {
             return;
         }
-        this.setupStatus.name = 'Bananabox Coding Style formatter';
+        this.setupStatus.name = ui('Bananabox Coding Style formatter');
         this.setupStatus.text =
-            '$(sync~spin) Bananabox Coding Style: preparing corrections';
+            ui('$(sync~spin) Bananabox Coding Style: preparing corrections');
         this.setupStatus.tooltip =
-            'Preparing the formatter automatically. Editing and saving remain available.';
+            ui('Preparing the formatter automatically. Editing and saving remain available.');
         this.setupStatus.command = 'epibox.codingStyle.showOutput';
         this.setupStatus.show();
         void this.toolchain
             .prepare(this.executable(document))
             .then(() => this.setupStatus.hide(), () => {
                 this.setupStatus.text =
-                    '$(warning) Bananabox Coding Style: corrections unavailable';
+                    ui('$(warning) Bananabox Coding Style: corrections unavailable');
                 this.setupStatus.tooltip =
-                    'Click for details. Preparation retries on the next save after a one-minute cooldown.';
+                    ui('Click for details. Preparation retries on the next save after a one-minute cooldown.');
             });
     }
 
@@ -237,27 +238,27 @@ export class Corrections
         const selected = await vscode.window.showQuickPick(
             [
                 {
-                    label: '$(circle-slash) Off',
-                    description: 'Default',
-                    detail: 'Keep Banana scans without automatic corrections.',
+                    label: ui('$(circle-slash) Off'),
+                    description: ui('Default'),
+                    detail: ui('Keep Banana scans without automatic corrections.'),
                     mode: 'off',
                 },
                 {
-                    label: '$(lightbulb) Suggestion',
-                    description: 'Review before applying',
-                    detail: 'Each fix appears inline after saving: Tab accepts it, Alt+] goes to the next one, Esc dismisses.',
+                    label: ui('$(lightbulb) Suggestion'),
+                    description: ui('Review before applying'),
+                    detail: ui('Each fix appears inline after saving: Tab accepts it, Alt+] goes to the next one, Esc dismisses.'),
                     mode: 'suggest',
                 },
                 {
-                    label: '$(check) Automatic',
-                    description: 'Automatic',
-                    detail: 'Apply safe layout corrections while saving.',
+                    label: ui('$(check) Automatic'),
+                    description: ui('Automatic'),
+                    detail: ui('Apply safe layout corrections while saving.'),
                     mode: 'onSave',
                 },
             ],
             {
-                title: 'Bananabox Coding Style · correction mode',
-                placeHolder: 'Choose how corrections should work',
+                title: ui('Bananabox Coding Style · correction mode'),
+                placeHolder: ui('Choose how corrections should work'),
             },
         );
         if (!selected) return;
@@ -358,7 +359,7 @@ export class Corrections
                 ? describeCorrections(before, formatted)
                 : [];
             if (after !== body) {
-                descriptions.unshift('Adding the Epitech file header (C-G1)');
+                descriptions.unshift(ui('Adding the Epitech file header (C-G1)'));
             }
             if (after !== before) {
                 const validation = this.validator.validate(
@@ -380,7 +381,7 @@ export class Corrections
                     || !this.isCurrent(document, version)) {
                     if (!controller.signal.aborted) {
                         this.log(
-                            'Corrections skipped: verification was incomplete or introduced a diagnostic.',
+                            ui('Corrections skipped: verification was incomplete or introduced a diagnostic.'),
                         );
                     }
                     return undefined;
@@ -408,7 +409,7 @@ export class Corrections
         } catch (error) {
             if (!controller.signal.aborted) {
                 const message =
-                    `Corrections skipped: ${String(error)}. See the Bananabox Coding Style output for formatter preparation details.`;
+                    ui('Corrections skipped: {error}. See the Bananabox Coding Style output for formatter preparation details.', { error: String(error) });
                 if (message !== this.lastError) {
                     this.lastError = message;
                     this.log(message);
@@ -483,40 +484,40 @@ export class Corrections
             });
         return [
             lens(
-                `$(sparkle) ${hunk.title}${rules.length ? ` · fixes ${rules.join(', ')}` : ''}`,
+                `$(sparkle) ${hunk.title}${rules.length ? ` · ${ui('fixes {rules}', { rules: rules.join(', ') })}` : ''}`,
                 'acceptCorrection',
-                'Accept this correction',
+                ui('Accept this correction'),
                 proposal.active,
             ),
             lens(
-                'Accept (Tab)',
+                ui('Accept (Tab)'),
                 'acceptCorrection',
-                'Accept this correction',
+                ui('Accept this correction'),
                 proposal.active,
             ),
             ...(count > 1
                 ? [
                         lens(
-                            `Accept all ${count} (${MOD} + Alt + Enter)`,
+                            ui('Accept all {count} ({key} + Alt + Enter)', { count, key: MOD }),
                             'acceptCorrections',
                             proposal.descriptions.join(' · '),
                         ),
                         lens(
                             `‹ ${proposal.active + 1}/${count} ›`,
                             'nextCorrection',
-                            'Next correction (Alt+]) · previous (Alt+[)',
+                            ui('Next correction (Alt+]) · previous (Alt+[)'),
                         ),
                     ]
                 : []),
             lens(
-                'View diff',
+                ui('View diff'),
                 'previewCorrections',
-                'Compare the whole file with every correction applied',
+                ui('Compare the whole file with every correction applied'),
             ),
             lens(
-                'Dismiss (Esc)',
+                ui('Dismiss (Esc)'),
                 'dismissCorrections',
-                'Hide these suggestions until the next save',
+                ui('Hide these suggestions until the next save'),
             ),
         ];
     }
@@ -570,7 +571,7 @@ export class Corrections
             'vscode.diff',
             before,
             after,
-            'Bananabox Coding Style · suggested corrections',
+            ui('Bananabox Coding Style · suggested corrections'),
         );
     }
 
@@ -747,7 +748,7 @@ export class Corrections
                 }
                 const hover = new vscode.MarkdownString();
                 hover.appendMarkdown(
-                    `**${hunk.title}** — Tab to accept, Alt+] for the next one, Esc to dismiss\n\n`,
+                    `**${hunk.title}** — ${ui('Tab to accept, Alt+] for the next one, Esc to dismiss')}\n\n`,
                 );
                 hover.appendCodeblock(hunkDiff(hunk), 'diff');
                 if (hunk.inline && hunk.kind !== 'header') {
@@ -803,9 +804,9 @@ export class Corrections
                 if (hunk.newLines.length) {
                     const anchor = Math.min(hunkEndLine(hunk), last);
                     const shown = hunk.kind === 'header'
-                        ? `＋ Epitech header (${hunk.newLines.filter(l => l.trim()).length} lines)`
+                        ? `＋ ${ui('Epitech header ({n} lines)', { n: hunk.newLines.filter(l => l.trim()).length })}`
                         : hunk.newLines.every(line => !line.trim())
-                            ? '＋ blank line'
+                            ? `＋ ${ui('blank line')}`
                             : `⟶ ${clip(hunk.newLines.map(line => line.trim()).filter(Boolean).join(' ⏎ '))}`;
                     const column = document.lineAt(anchor).text.length;
                     inserted.push({

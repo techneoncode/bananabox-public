@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { tr } from '../util/text';
 
 /**
  * Cached answers are copied in and out, so a caller that edits its answer never
@@ -129,7 +130,7 @@ export interface GuardSnapshot {
 
 export class GuardPausedError extends Error {
   constructor(readonly until: number) {
-    super('Requests to MyEpitech are paused to protect your account after a rate-limit response.');
+    super(tr('Requests to MyEpitech are paused to protect your account after a rate-limit response.'));
     this.name = 'GuardPausedError';
   }
 }

@@ -22,6 +22,7 @@ import type {
   ProjectVM,
 } from '../shared/types';
 import { log } from '../util/log';
+import { tr } from '../util/text';
 
 const WRITE_GAP = 8_000;
 const AUTO_EVERY = 10 * 60_000;
@@ -85,7 +86,7 @@ export class CalendarService implements vscode.Disposable {
 
   async setPrefs(raw: unknown): Promise<void> {
     const prefs = validatePrefs(raw);
-    if (!prefs) throw new Error('Invalid calendar preferences');
+    if (!prefs) throw new Error(tr('Invalid calendar preferences'));
     await this.storage.update(this.key(), prefs);
     this.emitter.fire();
     if (prefs.autoRegister || prefs.preferences.length) void this.autoRun();
@@ -351,7 +352,7 @@ export class CalendarService implements vscode.Disposable {
   private write<T>(eventId: number, run: () => Promise<T>): Promise<T> {
     const next = this.writing.then(async () => {
       if (this.rateLimited) {
-        throw new Error('MyEpitech asked to slow down; registrations are paused for this session.');
+        throw new Error(tr('MyEpitech asked to slow down; registrations are paused for this session.'));
       }
       const wait = this.lastWrite + WRITE_GAP - Date.now();
       if (wait > 0) await new Promise(r => setTimeout(r, wait));
@@ -377,11 +378,11 @@ export class CalendarService implements vscode.Disposable {
   async register(eventId: number, slotId?: number): Promise<void> {
     const event = this.events?.find(e => e.id === eventId);
     if (!event || !canRegister(event)) {
-      throw new Error('Registration is closed for this session.');
+      throw new Error(tr('Registration is closed for this session.'));
     }
     if (event.slots !== (slotId !== undefined)
       || (slotId !== undefined && !Number.isSafeInteger(slotId))) {
-      throw new Error('Pick a time slot for this session.');
+      throw new Error(tr('Pick a time slot for this session.'));
     }
 
     try {
@@ -400,14 +401,14 @@ export class CalendarService implements vscode.Disposable {
   async unregister(eventId: number): Promise<void> {
     const event = this.events?.find(e => e.id === eventId);
     if (!event?.registered || Date.parse(event.start) <= Date.now()) {
-      throw new Error('This session can no longer be left.');
+      throw new Error(tr('This session can no longer be left.'));
     }
     try {
       await this.write(eventId, async () => {
         if (!event.slots) return this.client.unregisterEvent(eventId);
         const mine = (await this.slots(event)).find(s => s.mine);
         if (!mine) {
-          throw new Error('Your slot was not found; refresh and try again.');
+          throw new Error(tr('Your slot was not found; refresh and try again.'));
         }
         return this.client.unregisterSlot(eventId, mine.id);
       });
@@ -427,7 +428,7 @@ export class CalendarService implements vscode.Disposable {
     const places = slots.filter(s => s.available
       && s.startDate === at
       && Date.parse(s.startDate) > Date.now());
-    if (!at || !places.length) throw new Error('This time is no longer free.');
+    if (!at || !places.length) throw new Error(tr('This time is no longer free.'));
     for (const [i, place] of places.entries()) {
       try {
         await this.client.registerSlot(event.id, place.id);
@@ -487,19 +488,19 @@ export class CalendarService implements vscode.Disposable {
               event.id,
               () => this.client.registerEvent(event.id),
             );
-            this.note(`Registered to ${event.title}`, true);
+            this.note(tr('Registered to {p0}', { p0: event.title }), true);
             changed = true;
           } else if (prefs.preferences.some(p =>
             p.type.toLowerCase() === event.type.toLowerCase())) {
             const slot = pickSlot(event.type, await this.slots(event), prefs);
             if (!slot) continue;
             await this.write(event.id, () => this.bookAt(event, slot.id));
-            this.note(`Booked ${event.title} at ${new Date(slot.startDate).toLocaleString()}`, true);
+            this.note(tr('Booked {p0} at {p1}', { p0: event.title, p1: new Date(slot.startDate).toLocaleString() }), true);
             changed = true;
           }
         } catch (e) {
           this.skipped.add(event.id);
-          this.note(`Could not register to ${event.title}: ${e instanceof Error ? e.message : String(e)}`, false);
+          this.note(tr('Could not register to {p0}: {p1}', { p0: event.title, p1: e instanceof Error ? e.message : String(e) }), false);
           log().warn(`automatic registration failed for event ${event.id}`, e);
           changed = true;
         }

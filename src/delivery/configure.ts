@@ -6,6 +6,7 @@ import { shellSplit } from '../codingStyle/shell';
 import { CONFIG_FILE, loadDeliveryConfig, saveDeliveryConfig } from './config';
 import { commandLabel } from './process';
 import type { DeliveryConfig } from '../shared/deliveryTypes';
+import { tr } from '../util/text';
 
 export type Translate = (
   key: string,
@@ -24,7 +25,7 @@ const validate = (v: string): string | undefined => {
 
   const args = shellSplit(v);
   return args.some((a) => ['&&', '|', '||', ';', '>', '<', '>>'].includes(a))
-    ? 'Use a command with arguments, without pipes or redirections.'
+    ? tr('Use a command with arguments, without pipes or redirections.')
     : undefined;
 };
 

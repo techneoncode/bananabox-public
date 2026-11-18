@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { tr } from '../util/text';
 
 function nonce(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -62,6 +63,6 @@ export function buildReminderHtml(
     .replace('main.js', 'reminder.js')
     .replace(
       'aria-label="Bananabox"',
-      'aria-label="Bananabox defense reminder"',
+      `aria-label="${tr('Bananabox defense reminder')}"`,
     );
 }

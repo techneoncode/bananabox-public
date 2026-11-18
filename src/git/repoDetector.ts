@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import * as vscode from 'vscode';
 import { parseGitStatus, type GitWorktreeState } from '../domain/git';
+import { tr } from '../util/text';
 
 function run(
   cmd: string,
@@ -76,7 +77,7 @@ export async function gitClone(
       }
     });
     child.on('error', (e) =>
-      reject(new Error(`Could not start git: ${e.message}`)),
+      reject(new Error(tr('Could not start git: {p0}', { p0: e.message }))),
     );
     child.on('close', (code) =>
       code === 0
@@ -91,10 +92,10 @@ function friendlyGitError(stderr: string): string {
     return 'Git could not authenticate. Make sure your SSH key is added to your GitHub account (or switch "epibox.cloneProtocol" to https).';
   }
   if (/already exists and is not an empty directory/i.test(stderr)) {
-    return 'The destination folder already exists and is not empty.';
+    return tr('The destination folder already exists and is not empty.');
   }
   if (/repository not found|not found/i.test(stderr)) {
-    return 'Repository not found. It may not be created yet, or you may not have access to it.';
+    return tr('Repository not found. It may not be created yet, or you may not have access to it.');
   }
   return stderr.trim().split('\n').slice(-3).join('\n') || 'git clone failed.';
 }
@@ -115,7 +116,7 @@ export async function readGitState(
 /** Push the current branch to its configured upstream without forcing. */
 export async function gitPush(folder: string): Promise<void> {
   if (!vscode.workspace.isTrusted) {
-    throw new Error('Git push requires a trusted workspace.');
+    throw new Error(tr('Git push requires a trusted workspace.'));
   }
   await run('git', ['-C', folder, 'push'], undefined, 120_000);
 }

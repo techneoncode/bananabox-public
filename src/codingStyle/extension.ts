@@ -61,7 +61,7 @@ import {
     valgrindInstalled,
 } from './valgrind';
 import type { ValgrindVM } from '../shared/types';
-import { styleMessage } from './messages';
+import { styleMessage, ui } from './messages';
 import {
     Decorations,
     ERROR_LENS_ID,
@@ -756,7 +756,7 @@ class BananaLens implements vscode.Disposable {
             this.lastConfigError = result.configError;
             this.output.appendLine(`[config] ${result.configError}`);
             void vscode.window.showWarningMessage(
-                `Bananabox Coding Style: ${result.configError}`,
+                ui('Bananabox Coding Style: {error}', { error: result.configError }),
             );
         }
         if (result.timedOut) {
@@ -794,7 +794,7 @@ class BananaLens implements vscode.Disposable {
         if (result.unparsed) {
             this.output.appendLine(`  epiclang exited with ${result.exitCode} and no parsable diagnostic:\n${result.unparsed}`);
             if (manual) {
-                void vscode.window.showWarningMessage(`Bananabox Coding Style: epiclang returned ${result.exitCode} but no diagnostic could be parsed. See the Bananabox Coding Style output.`);
+                void vscode.window.showWarningMessage(ui('Bananabox Coding Style: epiclang returned {code} but no diagnostic could be parsed. See the Bananabox Coding Style output.', { code: String(result.exitCode) }));
             }
         }
         this.scheduleUiRefresh();
@@ -815,14 +815,14 @@ class BananaLens implements vscode.Disposable {
                 this.notFoundShown = true;
                 void vscode.window
                     .showErrorMessage(
-                        error.message,
-                        'Locate epiclang…',
-                        'Open settings',
+                        ui('Cannot find "{name}". Install epiclang or set "bananalens.compiler" to its full path.', { name: error.name }),
+                        ui('Locate epiclang…'),
+                        ui('Open settings'),
                     )
                     .then((choice) => {
-                        if (choice === 'Locate epiclang…') {
+                        if (choice === ui('Locate epiclang…')) {
                             void this.locateCompiler();
-                        } else if (choice === 'Open settings') {
+                        } else if (choice === ui('Open settings')) {
                             void vscode.commands.executeCommand(
                                 'workbench.action.openSettings',
                                 'bananalens.compiler',
@@ -832,7 +832,7 @@ class BananaLens implements vscode.Disposable {
             }
         } else if (manual) {
             void vscode.window.showErrorMessage(
-                `Bananabox Coding Style: ${String(error)}`,
+                ui('Bananabox Coding Style: {error}', { error: String(error) }),
             );
         }
     }
@@ -840,8 +840,8 @@ class BananaLens implements vscode.Disposable {
     private async locateCompiler(): Promise<void> {
         const picked = await vscode.window.showOpenDialog({
             canSelectMany: false,
-            title: 'Select the epiclang executable',
-            openLabel: 'Use this executable',
+            title: ui('Select the epiclang executable'),
+            openLabel: ui('Use this executable'),
         });
         if (!picked?.[0]) return;
         await vscode.workspace
@@ -913,7 +913,7 @@ class BananaLens implements vscode.Disposable {
                 durationMs: 0,
                 cancelled: false,
                 error: {
-                    message: 'Coding style is disabled or the workspace is not trusted.',
+                    message: ui('Coding style is disabled or the workspace is not trusted.'),
                     notFound: false,
                 },
             };
@@ -1029,7 +1029,7 @@ class BananaLens implements vscode.Disposable {
         const holder: { result?: StyleScanResult } = {};
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: `Bananabox Coding Style: checking ${path.basename(root)}`,
+            title: ui('Bananabox Coding Style: checking {name}', { name: path.basename(root) }),
             cancellable: true,
         }, async (progress, token) => {
             const controller = new AbortController();
@@ -1054,17 +1054,23 @@ class BananaLens implements vscode.Disposable {
         if (!result || result.error || result.cancelled) return;
         if (result.files === 0) {
             void vscode.window.showInformationMessage(
-                'Bananabox Coding Style: no C source or header found in this project.',
+                ui('Bananabox Coding Style: no C source or header found in this project.'),
             );
             return;
         }
         const counts = formatCounts(result.summary);
         const message = counts
-            ? `Bananabox Coding Style: ${counts} in ${result.files} files (${(result.durationMs / 1000).toFixed(1)} s)`
-            : `Bananabox Coding Style: no infractions in ${result.files} files 🎉`;
+            ? ui('Bananabox Coding Style: {counts} in {files} files ({seconds} s)', {
+                counts,
+                files: result.files,
+                seconds: (result.durationMs / 1000).toFixed(1),
+            })
+            : ui('Bananabox Coding Style: no infractions in {files} files 🎉', {
+                files: result.files,
+            });
         const choice = await vscode.window.showInformationMessage(
             message,
-            ...(counts ? ['Show problems'] : []),
+            ...(counts ? [ui('Show problems')] : []),
         );
         if (choice) {
             void vscode.commands.executeCommand(
@@ -1432,7 +1438,7 @@ class BananaLens implements vscode.Disposable {
     ): Promise<{ ok: boolean; detail: string | null }> {
         const makefile = this.makefileOf(root);
         if (!makefile) {
-            return { ok: false, detail: 'No Makefile in the project folder.' };
+            return { ok: false, detail: ui('No Makefile in the project folder.') };
         }
         if (!makefileHasDebug(makefile.text)) {
             const doc = await vscode.workspace.openTextDocument(makefile.file);
@@ -1449,14 +1455,14 @@ class BananaLens implements vscode.Disposable {
                 || !await doc.save()) {
                 return {
                     ok: false,
-                    detail: 'The Makefile could not be saved.',
+                    detail: ui('The Makefile could not be saved.'),
                 };
             }
         }
         this.output.appendLine(`\n$ make re    (in ${root})`);
         return vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: 'make re (with -g)',
+            title: ui('make re (with -g)'),
             cancellable: true,
         }, (_progress, token) =>
             new Promise(resolve => {
@@ -1485,7 +1491,7 @@ class BananaLens implements vscode.Disposable {
                         : tail.split('\n')
                             .map(line => line.trim())
                             .filter(Boolean)
-                            .at(-1) ?? `make re exited with ${code}`,
+                            .at(-1) ?? ui('make re exited with {code}', { code: String(code) }),
                 }));
             }));
     }
@@ -1506,8 +1512,8 @@ class BananaLens implements vscode.Disposable {
 
     async editValgrindCommand(root: string): Promise<string | undefined> {
         const value = await vscode.window.showInputBox({
-            title: 'Valgrind command',
-            prompt: 'Program and arguments to run from the project folder. Leave empty to run ./NAME from the Makefile.',
+            title: ui('Valgrind command'),
+            prompt: ui('Program and arguments to run from the project folder. Leave empty to run ./NAME from the Makefile.'),
             placeHolder: './my_program arg1 arg2',
             value: this.valgrindCommand(root),
         });
@@ -1622,7 +1628,7 @@ class BananaLens implements vscode.Disposable {
         try {
             const outcome = await vscode.window.withProgress({
                 location: vscode.ProgressLocation.Window,
-                title: `Valgrind: ${command}`,
+                title: ui('Valgrind: {command}', { command }),
             }, async () => {
                 const result = await spawnValgrind(
                     argv,
@@ -1777,7 +1783,7 @@ class BananaLens implements vscode.Disposable {
             : folder?.uri.fsPath;
         if (!root) {
             void vscode.window.showWarningMessage(
-                'Open a file of the project to check with valgrind.',
+                ui('Open a file of the project to check with valgrind.'),
             );
             return;
         }
@@ -1786,34 +1792,50 @@ class BananaLens implements vscode.Disposable {
 
     /** Toasts for runs started from the editor (the project page shows its own). */
     private async reportValgrind(root: string, run: ValgrindVM): Promise<void> {
-        const edit = 'Edit command', output = 'Show output';
+        const edit = ui('Edit command'), output = ui('Show output');
         const errors = run.errors?.reduce((n, e) => n + e.count, 0) ?? 0;
         const choice = run.error === 'not_installed'
             ? await vscode.window.showErrorMessage(
-                'Valgrind is not installed on this machine (e.g. sudo apt install valgrind).',
+                ui('Valgrind is not installed on this machine (e.g. sudo apt install valgrind).'),
             )
             : run.error === 'no_command'
                 ? await vscode.window.showWarningMessage(
-                    'No program to run: the Makefile has no NAME. Set the command valgrind runs.',
+                    ui('No program to run: the Makefile has no NAME. Set the command valgrind runs.'),
                     edit,
                 )
                 : run.error === 'not_started'
                     ? await vscode.window.showErrorMessage(
-                        `Valgrind could not run "${run.command}"${run.detail ? `: ${run.detail}` : ''}`,
+                        ui('Valgrind could not run "{command}"{detail}', {
+                            command: run.command,
+                            detail: run.detail ? `: ${run.detail}` : '',
+                        }),
                         edit,
                         output,
                     )
                     : run.error ? undefined
                         : run.signal
                             ? await vscode.window.showWarningMessage(
-                                `"${run.command}" crashed (${run.signal}). Check its arguments. ${run.leaks.length} leak(s), ${run.lost} lost.`,
+                                ui('"{command}" crashed ({signal}). Check its arguments. {leaks} leak(s), {lost} lost.', {
+                                    command: run.command,
+                                    signal: run.signal,
+                                    leaks: run.leaks.length,
+                                    lost: run.lost,
+                                }),
                                 edit,
                                 output,
                             )
                             : await vscode.window.showInformationMessage(
                                 run.bytes || errors
-                                    ? `Valgrind: ${run.lost} lost${errors ? `, ${errors} memory error(s)` : ''}${run.unlocated ? ` (${run.unlocated} without a line: build with -g)` : ''}.`
-                                    : 'Valgrind: no leak, no memory error.',
+                                    ? ui('Valgrind: {lost} lost{errors}{unlocated}.', {
+                                        lost: run.lost,
+                                        errors: errors
+                                            ? ui(', {n} memory error(s)', { n: errors })
+                                            : '',
+                                        unlocated: run.unlocated
+                                            ? ` ${ui('({n} without a line: build with -g)', { n: run.unlocated })}`
+                                            : '',
+                                    })
+                                    : ui('Valgrind: no leak, no memory error.'),
                                 output,
                             );
         if (choice === edit) await this.editValgrindCommand(root);
@@ -1853,7 +1875,7 @@ class BananaLens implements vscode.Disposable {
         );
         if (diagnostics.length === 0) {
             void vscode.window.showInformationMessage(
-                'Bananabox Coding Style: no infractions found in this file.',
+                ui('Bananabox Coding Style: no infractions found in this file.'),
             );
             return;
         }
@@ -1870,12 +1892,12 @@ class BananaLens implements vscode.Disposable {
                 return {
                     label: `${icon(d.severity)} ${d.message}`,
                     description: rule,
-                    detail: `Line ${d.range.start.line + 1}${ruleFamily(rule) ? ` · ${ruleFamily(rule)}` : ''}`,
+                    detail: `${ui('Line {n}', { n: d.range.start.line + 1 })}${ruleFamily(rule) ? ` · ${ruleFamily(rule)}` : ''}`,
                     range: d.range,
                 };
             }),
             {
-                title: `Banana · ${diagnostics.length} finding${diagnostics.length > 1 ? 's' : ''}`,
+                title: ui(diagnostics.length > 1 ? 'Banana · {n} findings' : 'Banana · {n} finding', { n: diagnostics.length }),
                 matchOnDescription: true,
                 matchOnDetail: true,
             },

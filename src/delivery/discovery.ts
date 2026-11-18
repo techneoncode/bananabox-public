@@ -12,6 +12,7 @@ import type { TestResultDetail, TestTask } from '../shared/types';
 import { analyzeGraderTrace } from '../domain/graderTrace';
 import { resultTrace } from '../domain/graderEvidence';
 import { parseGraderCommand } from '../services/graderCommand';
+import { tr } from '../util/text';
 
 export interface MakeProject {
   directory: string;
@@ -166,7 +167,7 @@ export async function discoverPlan(
 
   if (graderCommand.trim()) {
     const chain = parseGraderCommand(graderCommand);
-    if (!chain?.length) throw new Error('Invalid grader command');
+    if (!chain?.length) throw new Error(tr('Invalid grader command'));
     builds = chain.map((command) => ({ command, timeoutSeconds: 120 }));
     commandSource = 'manual';
   } else if (!explicit?.build && report) {

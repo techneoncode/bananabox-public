@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { styleMessage } from './messages';
+import { styleMessage, ui } from './messages';
 import {
     BananaDiagnostic,
     DEFAULT_SETTINGS,
@@ -27,20 +27,24 @@ export const ERROR_LENS_ID = 'usernamehw.errorlens';
 
 export function formatCounts(summary: Summary): string {
     const parts: string[] = [];
-    if (summary.fatal) parts.push(`${summary.fatal} fatal`);
+    const plural = (n: number, one: string, many: string) =>
+        ui(n > 1 ? many : one, { n });
+    if (summary.fatal) parts.push(ui('{n} fatal', { n: summary.fatal }));
     if (summary.major) {
-        parts.push(`${summary.major} major${summary.major > 1 ? 's' : ''}`);
+        parts.push(plural(summary.major, '{n} major', '{n} majors'));
     }
     if (summary.minor) {
-        parts.push(`${summary.minor} minor${summary.minor > 1 ? 's' : ''}`);
+        parts.push(plural(summary.minor, '{n} minor', '{n} minors'));
     }
     if (summary.info) {
-        parts.push(`${summary.info} info${summary.info > 1 ? 's' : ''}`);
+        parts.push(plural(summary.info, '{n} info', '{n} infos'));
     }
     if (summary.functions) {
-        parts.push(
-            `${summary.functions} unauthorized function${summary.functions > 1 ? 's' : ''}`,
-        );
+        parts.push(plural(
+            summary.functions,
+            '{n} unauthorized function',
+            '{n} unauthorized functions',
+        ));
     }
     return parts.join(' · ');
 }
@@ -62,18 +66,20 @@ export function issueCount(summary: Summary): number {
 }
 
 function issueLabel(count: number): string {
-    return `${count} issue${count === 1 ? '' : 's'}`;
+    return ui(count === 1 ? '{n} issue' : '{n} issues', { n: count });
 }
 
 export function summaryText(view: FileView | undefined): string {
-    if (!view) return 'Not checked';
-    if (view.running) return 'Checking…';
-    if (view.error) return 'Check unavailable';
+    if (!view) return ui('Not checked');
+    if (view.running) return ui('Checking…');
+    if (view.error) return ui('Check unavailable');
     const counts = formatCounts(view.summary);
-    const compiler = view.summary.other ? `${view.summary.other} compiler` : '';
+    const compiler = view.summary.other
+        ? ui('{n} compiler', { n: view.summary.other })
+        : '';
     const result = [counts, compiler].filter(Boolean).join(' · ')
-        || 'No issues';
-    return `${result}${view.stale ? ' · Pending check' : ''}`;
+        || ui('No issues');
+    return `${result}${view.stale ? ` · ${ui('Pending check')}` : ''}`;
 }
 
 export function statusText(
@@ -86,14 +92,11 @@ export function statusText(
         : view.stale ? 'clock'
         : issueCount(view.summary) ? 'list-unordered'
         : 'check';
-    return `${withIcons ? `$(${icon}) ` : ''}Bananabox Style · ${summaryText(view)}`;
+    return `${withIcons ? `$(${icon}) ` : ''}${ui('Bananabox Style')} · ${summaryText(view)}`;
 }
 
-const CORRECTION_LABELS: Record<Settings['corrections']['mode'], string> = {
-    off: 'Off',
-    suggest: 'Suggestion',
-    onSave: 'Automatic',
-};
+const correctionLabel = (mode: Settings['corrections']['mode']): string =>
+    ui({ off: 'Off', suggest: 'Suggestion', onSave: 'Automatic' }[mode]);
 
 function summaryDetails(
     view: FileView | undefined,
@@ -101,21 +104,32 @@ function summaryDetails(
 ): string {
     const details = [summaryText(view)];
     if (view && !view.running && !view.error) {
-        details.push(`${issueLabel(issueCount(view.summary))} in this file`);
+        details.push(ui('{count} in this file', {
+            count: issueLabel(issueCount(view.summary)),
+        }));
         details.push(
-            `Fatal: ${view.summary.fatal} · Major: ${view.summary.major} · Minor: ${view.summary.minor} · Info: ${view.summary.info} · Compiler: ${view.summary.other} · Unauthorized functions: ${view.summary.functions}`,
+            ui('Fatal: {fatal} · Major: {major} · Minor: {minor} · Info: {info} · Compiler: {other} · Unauthorized functions: {functions}', {
+                fatal: view.summary.fatal,
+                major: view.summary.major,
+                minor: view.summary.minor,
+                info: view.summary.info,
+                other: view.summary.other,
+                functions: view.summary.functions,
+            }),
         );
     }
     if (view?.stale) {
         details.push(
-            'The displayed results precede the latest edit. Recheck to refresh them.',
+            ui('The displayed results precede the latest edit. Recheck to refresh them.'),
         );
     }
     if (view?.error) {
-        details.push(`Last check: ${view.error}. Open Bananabox Coding Style output for details.`);
+        details.push(ui('Last check: {error}. Open Bananabox Coding Style output for details.', { error: view.error }));
     }
-    details.push(`Corrections: ${CORRECTION_LABELS[settings.corrections.mode]}`);
-    if (view?.durationMs) details.push(`Last check took ${view.durationMs} ms`);
+    details.push(ui('Corrections: {mode}', {
+        mode: correctionLabel(settings.corrections.mode),
+    }));
+    if (view?.durationMs) details.push(ui('Last check took {ms} ms', { ms: view.durationMs }));
     if (view?.detail) details.push(view.detail);
     return details.join('\n\n');
 }
@@ -164,7 +178,7 @@ export class SummaryLensProvider implements vscode.CodeLensProvider {
             && hasSummarySpace(document, settings);
         const lenses = [
             new vscode.CodeLens(range, {
-                title: banner ? 'Bananabox Coding Style' : statusText(view),
+                title: banner ? ui('Bananabox Coding Style') : statusText(view),
                 tooltip: summaryDetails(view, settings),
                 command: view?.error || view?.running
                     ? 'epibox.codingStyle.showOutput'
@@ -176,24 +190,30 @@ export class SummaryLensProvider implements vscode.CodeLensProvider {
         ];
         if (hasIssues && banner) {
             lenses.push(new vscode.CodeLens(range, {
-                title: `Review ${issueLabel(issueCount(view!.summary))}`,
-                tooltip: 'Browse this file’s diagnostics, grouped by severity and rule',
+                title: ui('Review {count}', {
+                    count: issueLabel(issueCount(view!.summary)),
+                }),
+                tooltip: ui('Browse this file’s diagnostics, grouped by severity and rule'),
                 command: 'epibox.codingStyle.showIssues',
                 arguments: [document.uri],
             }));
         }
         if (!view?.running) {
             lenses.push(new vscode.CodeLens(range, {
-                title: view ? '$(refresh) Recheck' : '$(play) Check file',
-                tooltip: 'Check this file',
+                title: view
+                    ? ui('$(refresh) Recheck')
+                    : ui('$(play) Check file'),
+                tooltip: ui('Check this file'),
                 command: 'epibox.codingStyle.run',
                 arguments: [document.uri],
             }));
         }
         if (document.languageId !== 'makefile') {
             lenses.push(new vscode.CodeLens(range, {
-                title: `Corrections: ${CORRECTION_LABELS[settings.corrections.mode]}`,
-                tooltip: 'Choose Off, Suggestion or Automatic corrections for this workspace',
+                title: ui('Corrections: {mode}', {
+                    mode: correctionLabel(settings.corrections.mode),
+                }),
+                tooltip: ui('Choose Off, Suggestion or Automatic corrections for this workspace'),
                 command: 'epibox.codingStyle.configureCorrections',
                 arguments: [document.uri],
             }));
@@ -788,7 +808,7 @@ export class StatusBar implements vscode.Disposable {
     );
 
     constructor() {
-        this.item.name = 'Bananabox Coding Style';
+        this.item.name = ui('Bananabox Coding Style');
         this.item.command = 'epibox.codingStyle.showIssues';
     }
 
@@ -812,7 +832,7 @@ export class StatusBar implements vscode.Disposable {
         );
         const tip = new vscode.MarkdownString();
         tip.appendText(
-            `Bananabox Coding Style\n\n${summaryDetails(view, settings)}`,
+            `${ui('Bananabox Coding Style')}\n\n${summaryDetails(view, settings)}`,
         );
         this.item.tooltip = tip;
         this.item.show();

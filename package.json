@@ -87,177 +87,177 @@
     "commands": [
       {
         "command": "epibox.signInMicrosoft",
-        "title": "Sign In with Microsoft",
+        "title": "%pkg.sign.in.with.microsoft%",
         "category": "Bananabox",
         "icon": "$(account)"
       },
       {
         "command": "epibox.signIn",
-        "title": "Sign In with Access Token",
+        "title": "%pkg.sign.in.with.access.token%",
         "category": "Bananabox",
         "icon": "$(key)"
       },
       {
         "command": "epibox.signOut",
-        "title": "Sign Out",
+        "title": "%pkg.sign.out%",
         "category": "Bananabox",
         "icon": "$(sign-out)"
       },
       {
         "command": "epibox.refresh",
-        "title": "Refresh",
+        "title": "%pkg.refresh%",
         "category": "Bananabox",
         "icon": "$(refresh)"
       },
       {
         "command": "epibox.openProject",
-        "title": "Open Project Details…",
+        "title": "%pkg.open.project.details%",
         "category": "Bananabox",
         "icon": "$(link-external)"
       },
       {
         "command": "epibox.openHome",
-        "title": "Open Home",
+        "title": "%pkg.open.home%",
         "category": "Bananabox",
         "icon": "$(home)"
       },
       {
         "command": "epibox.openCurrentProject",
-        "title": "Open Current Project in Editor",
+        "title": "%pkg.open.current.project.in.editor%",
         "category": "Bananabox",
         "icon": "$(layout-panel-center)"
       },
       {
         "command": "epibox.runGrader",
-        "title": "Run Grader on Current Project",
+        "title": "%pkg.run.grader.on.current.project%",
         "category": "Bananabox",
         "icon": "$(play)"
       },
       {
         "command": "epibox.cloneProject",
-        "title": "Clone Project Repository…",
+        "title": "%pkg.clone.project.repository%",
         "category": "Bananabox",
         "icon": "$(repo-clone)"
       },
       {
         "command": "epibox.openSubject",
-        "title": "Open Project Subject (PDF)",
+        "title": "%pkg.open.project.subject.pdf%",
         "category": "Bananabox",
         "icon": "$(file-pdf)"
       },
       {
         "command": "epibox.openOnIntranet",
-        "title": "Open Project on my.epitech.eu",
+        "title": "%pkg.open.project.on.my.epitech.eu%",
         "category": "Bananabox",
         "icon": "$(globe)"
       },
       {
         "command": "epibox.codingStyle.run",
-        "title": "Bananabox Coding Style: Run epiclang on the current file"
+        "title": "%pkg.bananabox.coding.style.run.epiclang.on.the.current.file%"
       },
       {
         "command": "epibox.codingStyle.valgrind",
-        "title": "Bananabox: Check memory leaks with valgrind",
+        "title": "%pkg.bananabox.check.memory.leaks.with.valgrind%",
         "icon": "$(debug-alt)"
       },
       {
         "command": "epibox.codingStyle.configureValgrind",
-        "title": "Bananabox: Set the command valgrind runs"
+        "title": "%pkg.bananabox.set.the.command.valgrind.runs%"
       },
       {
         "command": "epibox.codingStyle.runWorkspace",
-        "title": "Bananabox Coding Style: Check the whole project"
+        "title": "%pkg.bananabox.coding.style.check.the.whole.project%"
       },
       {
         "command": "epibox.codingStyle.showIssues",
-        "title": "Bananabox Coding Style: Show the violations of this file"
+        "title": "%pkg.bananabox.coding.style.show.the.violations.of.this.file%"
       },
       {
         "command": "epibox.codingStyle.nextIssue",
-        "title": "Bananabox Coding Style: Go to next violation"
+        "title": "%pkg.bananabox.coding.style.go.to.next.violation%"
       },
       {
         "command": "epibox.codingStyle.previousIssue",
-        "title": "Bananabox Coding Style: Go to previous violation"
+        "title": "%pkg.bananabox.coding.style.go.to.previous.violation%"
       },
       {
         "command": "epibox.codingStyle.fixTrailingWhitespace",
-        "title": "Bananabox Coding Style: Remove trailing whitespace in this file"
+        "title": "%pkg.bananabox.coding.style.remove.trailing.whitespace.in.this.fi%"
       },
       {
         "command": "epibox.codingStyle.refreshBuildConfiguration",
-        "title": "Bananabox Coding Style: Refresh build configuration"
+        "title": "%pkg.bananabox.coding.style.refresh.build.configuration%"
       },
       {
         "command": "epibox.codingStyle.clear",
-        "title": "Bananabox Coding Style: Clear all diagnostics"
+        "title": "%pkg.bananabox.coding.style.clear.all.diagnostics%"
       },
       {
         "command": "epibox.codingStyle.toggle",
-        "title": "Bananabox Coding Style: Enable / disable"
+        "title": "%pkg.bananabox.coding.style.enable.disable%"
       },
       {
         "command": "epibox.codingStyle.locateEpiclang",
-        "title": "Bananabox Coding Style: Locate the epiclang executable"
+        "title": "%pkg.bananabox.coding.style.locate.the.epiclang.executable%"
       },
       {
         "command": "epibox.codingStyle.showOutput",
-        "title": "Bananabox Coding Style: Show output"
+        "title": "%pkg.bananabox.coding.style.show.output%"
       },
       {
         "command": "epibox.codingStyle.previewCorrections",
-        "title": "Bananabox Coding Style: Preview suggested corrections"
+        "title": "%pkg.bananabox.coding.style.preview.suggested.corrections%"
       },
       {
         "command": "epibox.codingStyle.acceptCorrections",
-        "title": "Bananabox Coding Style: Accept all suggested corrections"
+        "title": "%pkg.bananabox.coding.style.accept.all.suggested.corrections%"
       },
       {
         "command": "epibox.codingStyle.acceptCorrection",
-        "title": "Bananabox Coding Style: Accept this correction"
+        "title": "%pkg.bananabox.coding.style.accept.this.correction%"
       },
       {
         "command": "epibox.codingStyle.nextCorrection",
-        "title": "Bananabox Coding Style: Next suggested correction"
+        "title": "%pkg.bananabox.coding.style.next.suggested.correction%"
       },
       {
         "command": "epibox.codingStyle.previousCorrection",
-        "title": "Bananabox Coding Style: Previous suggested correction"
+        "title": "%pkg.bananabox.coding.style.previous.suggested.correction%"
       },
       {
         "command": "epibox.codingStyle.dismissCorrections",
-        "title": "Bananabox Coding Style: Dismiss suggested corrections"
+        "title": "%pkg.bananabox.coding.style.dismiss.suggested.corrections%"
       },
       {
         "command": "epibox.codingStyle.configureCorrections",
-        "title": "Bananabox Coding Style: Choose correction mode",
+        "title": "%pkg.bananabox.coding.style.choose.correction.mode%",
         "icon": "$(settings-gear)"
       },
       {
         "command": "epibox.codingStyle.configureAppearance",
-        "title": "Bananabox Coding Style: Customize lenses and colours",
+        "title": "%pkg.bananabox.coding.style.customize.lenses.and.colours%",
         "icon": "$(paintcan)"
       },
       {
         "command": "epibox.checkReadiness",
-        "title": "Check Whether the Project Is Ready to Submit",
+        "title": "%pkg.check.whether.the.project.is.ready.to.submit%",
         "category": "Bananabox",
         "icon": "$(checklist)"
       },
       {
         "command": "epibox.guidedDelivery",
-        "title": "Prepare Project Submission",
+        "title": "%pkg.prepare.project.submission%",
         "category": "Bananabox",
         "icon": "$(rocket)"
       },
       {
         "command": "epibox.codingStyle.toggleInline",
-        "title": "Bananabox Coding Style: Toggle Inline Error Lenses",
+        "title": "%pkg.bananabox.coding.style.toggle.inline.error.lenses%",
         "icon": "$(eye)"
       },
       {
         "command": "epibox.acknowledgeDefense",
-        "title": "Acknowledge Defense Reminder",
+        "title": "%pkg.acknowledge.defense.reminder%",
         "category": "Bananabox",
         "enablement": "epibox.defenseAlertActive"
       }
@@ -459,11 +459,11 @@
             "ignore"
           ],
           "enumDescriptions": [
-            "Ask each time in a dialog.",
-            "Open the cloned folder in the current window.",
-            "Open the cloned folder in a new window.",
-            "Add the cloned folder to the current workspace.",
-            "Do nothing."
+            "%pkg.ask.each.time.in.a.dialog%",
+            "%pkg.open.the.cloned.folder.in.the.current.window%",
+            "%pkg.open.the.cloned.folder.in.a.new.window%",
+            "%pkg.add.the.cloned.folder.to.the.current.workspace%",
+            "%pkg.do.nothing%"
           ],
           "default": "ask",
           "markdownDescription": "What to do once a project repository has been cloned."
@@ -682,9 +682,9 @@
             "full"
           ],
           "enumDescriptions": [
-            "Native diagnostic underline and hover only",
-            "Level only (rule id in hover)",
-            "Level, rule id and message"
+            "%pkg.native.diagnostic.underline.and.hover.only%",
+            "%pkg.level.only.rule.id.in.hover%",
+            "%pkg.level.rule.id.and.message%"
           ],
           "order": 7,
           "scope": "resource"
