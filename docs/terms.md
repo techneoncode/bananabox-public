@@ -1,46 +1,54 @@
 # Terms of use and data collected
 
-Bananabox is an unofficial open-source extension (MIT license). It is provided as is, without warranty. It is not affiliated with Epitech.
+Bananabox is an unofficial open-source extension (MIT license), provided as is, without warranty. It is not affiliated with Epitech.
 
-## What the extension sends to the Bananabox API
+The short version: Bananabox sends a very small amount of technical information to its own API, for **statistics** and **security**. No password, e-mail, project, file or My data ever leaves your machine because of it, and you can ask for what was stored to be deleted at any time.
 
-The API runs on Cloudflare Workers and Cloudflare D1.
+You must accept these terms the first time you open the sign-in page, before you can sign in. **Nothing about you is sent to the API before you accept** (only the public policy, described below, is downloaded).
 
-**Remote policy (always).** Every minute the extension downloads the policy (`GET /v1/config`): the two feature switches, the required version and the lists of banned and authorized account names. This is how a faulty version can be disabled and updates delivered. The extension compares your OS account name with these lists on your machine. **Your account name is never sent.**
+## What is sent, and why
 
-**Anonymous usage statistics (optional, on by default).** At each launch the extension sends:
+The API runs on Cloudflare Workers and Cloudflare D1. When you use Bananabox, at each launch it sends:
 
-- a random installation ID, generated on your machine, unrelated to your account, e-mail or machine. The server stores only its SHA-256;
-- the extension version;
-- on the first launch after an update, the previous and the new version.
-
-The server derives the number of launches, the first and last launch time of the installation, and the date of each update. **No name, e-mail, account name, project, file or MyEpitech data is sent**, and nothing is sent when the policy refuses your account.
-
-Purpose: count active installations, know which versions are still in use, and decide when old versions can be dropped.
-
-**Single-use nonces.** Each statistics write first asks the API for a random nonce (valid 5 minutes, usable once). It stops a captured request from being replayed and keeps one installation from changing another one's counters, which would also require its secret ID.
-
-**Network metadata.** Like any web request, these calls expose your IP address to Cloudflare. The Bananabox API does not store it. Cloudflare's own processing is covered by its policies.
-
-## Notice, consent and control
-
-- After an update that adds statistics, the extension shows a notice once and **sends nothing until the next launch**.
-- Turn it off with the setting `epibox.anonymousStatistics` (or the **Turn off** button of the notice). The extension then asks the API to delete everything stored for the installation and forgets the ID.
-- Because the ID is random and secret, the data cannot be linked to a person by anyone, including the maintainers. Access and deletion therefore work through the setting above. To ask for something else, open an issue on https://github.com/techneoncode/bananabox-public.
-
-## Retention
-
-| Data | Kept |
+| Data | What it is |
 | --- | --- |
-| Installation (hashed ID, version, launch count, first and last seen) | 180 days after the last launch |
-| Update history (hashed ID, versions, date) | 365 days |
-| Nonces | 5 minutes |
+| Account name (`whoami`) | The name of your user account on your computer: what the `whoami` command prints in a terminal, for example `jdupont`. It is not your Epitech login, your e-mail or your real name, though it can look like one. |
+| Installation ID | A random number generated on your machine, unrelated to you. The server keeps only its SHA-256. |
+| Extension version | For example `1.4.0`. After an update, the previous and the new version are also sent once. |
 
-A daily job deletes expired data.
+From these the server derives the number of launches, the date of the first and last launch, and the date of each update.
 
-## Bans
+**Why we need it**
 
-Maintainers can restrict features for account names listed in the policy. The list is publicly readable through `GET /v1/config`.
+- **Statistics.** Know how many people use the extension, in which Epitech promotions, and also how many people outside Epitech use it. This also tells us which versions are still in use and when old ones can be dropped.
+- **Security.** If a malicious version were ever published (we hope not, and the GitHub project is protected against it), we could tell which computers are affected and act quickly. The account name also lets maintainers restrict a specific account if there is a serious abuse, which requires knowing its name.
+
+It is first of all statistics and security. We do not use it for anything else, we do not sell it and we do not share it.
+
+## What is stored
+
+Exactly this, and nothing more:
+
+| Stored | Content | Kept |
+| --- | --- | --- |
+| Installation | SHA-256 of the installation ID, account name, version, launch count, first and last launch | 180 days after the last launch |
+| Update history | SHA-256 of the installation ID, previous and new version, date | 365 days |
+| Nonces | A random single-use value that stops a captured request from being replayed | 5 minutes |
+
+Only the maintainers can read the account names, through an authenticated admin endpoint. A daily job deletes expired data.
+
+**Not stored and not sent:** your e-mail, name, password, Microsoft or My tokens, projects, files, grades, code, or your IP address (like any web request, the call reaches Cloudflare, which processes network metadata under its own policies; the Bananabox API does not store it).
+
+## Remote policy
+
+Every minute the extension downloads the policy (`GET /v1/config`): the two feature switches, the required version and the lists of authorized and banned account names. It is how a faulty version can be disabled and updates delivered. The comparison between your account name and these lists happens on your machine. The lists are publicly readable.
+
+## Your control
+
+- You can read the code: everything described here is in this repository.
+- Turn it off with the setting `epibox.anonymousStatistics`. The extension then asks the API to delete everything stored for your installation and forgets the ID.
+- To ask for anything else (access, deletion), open an issue on https://github.com/techneoncode/bananabox-public.
+- If you do not accept these terms, you cannot sign in with Bananabox.
 
 ## Changes
 

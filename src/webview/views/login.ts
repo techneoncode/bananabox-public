@@ -1,6 +1,7 @@
 import { h, icon } from '../dom';
 import type { Ctx } from '../ctx';
 import { notice } from '../ui';
+import { termsUrl } from '../../shared/terms';
 
 export function renderLogin(ctx: Ctx): HTMLElement {
   const { t, state } = ctx;
@@ -13,7 +14,26 @@ export function renderLogin(ctx: Ctx): HTMLElement {
         h('li', h('span.feature-icon', icon(glyph)), h('span', t(key))))),
     expired && !auth.pending && notice('warn', 'warning', h('strong', t('login.expiredTitle')), h('span', t('login.expiredBody'))),
     auth.error && notice('error', 'error', auth.error),
-    auth.pending ? renderPending(ctx) : renderChoices(ctx, expired, auth.busy));
+    !state.termsAccepted ? renderTerms(ctx)
+      : auth.pending ? renderPending(ctx) : renderChoices(ctx, expired, auth.busy));
+}
+
+/** Signing in is closed until the terms are accepted; the host enforces it too. */
+function renderTerms(ctx: Ctx): HTMLElement {
+  const { t } = ctx;
+  const accept = h('button.btn.primary.block.big', { disabled: true, onclick: () => ctx.post({ type: 'acceptTerms' }) }, icon('check'), t('terms.accept'));
+  const box = h('input', { type: 'checkbox', id: 'terms-agree', onchange: () => { (accept as HTMLButtonElement).disabled = !(box as HTMLInputElement).checked; } });
+  return h('section.terms',
+    h('h2', icon('shield'), t('terms.title')),
+    h('p', t('terms.intro')),
+    h('p', h('strong', t('terms.whoamiTitle')), ' ', t('terms.whoami')),
+    h('ul',
+      h('li', t('terms.purposeStats')),
+      h('li', t('terms.purposeSecurity'))),
+    h('p.muted.small', t('terms.scope')),
+    h('p', h('button.btn.ghost', { onclick: () => ctx.post({ type: 'openExternal', url: termsUrl(ctx.state.lang) }) }, icon('link-external'), t('terms.read'))),
+    h('label.small', { htmlFor: 'terms-agree' }, box, ' ', t('terms.agree')),
+    accept);
 }
 
 function renderChoices(ctx: Ctx, expired: boolean, busy: boolean): HTMLElement[] {

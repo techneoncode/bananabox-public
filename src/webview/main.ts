@@ -35,6 +35,7 @@ const ui: UiState = { search: '', filter: 'all', showList: false, tab: null, sel
 
 const emptyState: StateSnapshot = {
   auth: { status: 'signedOut', login: null, firstname: null, lastname: null, promotion: null, cursus: null, campus: null, expiresAt: null, busy: false, error: null, pending: null },
+  termsAccepted: false,
   projects: null,
   loading: true,
   error: null,

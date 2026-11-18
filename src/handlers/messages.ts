@@ -94,6 +94,8 @@ export async function handleMessage(
         c.post({ type: 'selectTab', tab: surface.initialTab }, surface);
       }
       return;
+    case 'acceptTerms':
+      return c.acceptTerms();
     case 'signIn':
       return void (await vscode.commands.executeCommand('epibox.signIn'));
     case 'signInMicrosoft':

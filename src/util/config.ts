@@ -40,8 +40,6 @@ export const config = {
   showStatusBar: (): boolean =>
     cfg().get<boolean>('showStatusBarItem') ?? true,
   statistics: (): boolean => cfg().get<boolean>('anonymousStatistics') ?? true,
-  disableStatistics: (): Thenable<void> =>
-    cfg().update('anonymousStatistics', false, vscode.ConfigurationTarget.Global),
   language: (): 'en' | 'fr' => {
     const v = cfg().get<string>('language') ?? 'auto';
     if (v === 'en' || v === 'fr') {
