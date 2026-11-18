@@ -238,7 +238,7 @@ export type WebviewMessage =
   | {
       type: 'openSubject';
       projectId: number;
-      target: 'editor' | 'browser' | 'desktop';
+      target: 'editor' | 'browser' | 'desktop' | 'binaries';
     }
   | { type: 'openExternal'; url: string }
   | { type: 'openCommit'; projectId: number; commit: string }

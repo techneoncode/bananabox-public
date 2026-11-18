@@ -187,3 +187,12 @@ test('grader confirmation: skipped when disabled and clean, forced when work is 
   assert.deepEqual(asked[0].titles, ['Run the grader', 'Run, and don’t ask again']);
   assert.match(asked[0].options.detail, /4 of 6 left/);
 });
+
+test('listSubjectDocuments(tree, false) lists the non-PDF attachments', () => {
+  const tree = [{ kind: 'folder', name: 'Project', childrens: [
+    { kind: 'file', name: 'subject.pdf', blob: { mimeType: 'application/pdf' } },
+    { kind: 'file', name: 'setting_up', blob: { mimeType: 'application/octet-stream' } },
+  ] }];
+  assert.deepEqual(listSubjectDocuments(tree).map(d => d.name), ['subject.pdf']);
+  assert.deepEqual(listSubjectDocuments(tree, false).map(d => d.name), ['setting_up']);
+});
