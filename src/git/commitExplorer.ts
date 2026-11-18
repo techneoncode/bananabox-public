@@ -18,6 +18,7 @@ import { createT } from '../shared/i18n';
 import { config } from '../util/config';
 import type { ProjectVM } from '../shared/types';
 import { remoteFeatures } from '../services/remoteFeatures';
+import { tr } from '../util/text';
 
 interface Snapshot {
   id: string;
@@ -118,7 +119,7 @@ export class CommitExplorer
 
   private async api(repo: string, resource: string): Promise<any> {
     if (!remoteFeatures.status.myApiActive) {
-      throw new Error('Bananabox is disabled.');
+      throw new Error(tr('Bananabox is disabled.'));
     }
     const session = await this.session(false);
     if (!session) {
@@ -414,7 +415,7 @@ export class CommitExplorer
     } else {
       const data = await this.api(snapshot.repo!, `blobs/${entry.sha}`);
       if (data.encoding !== 'base64') {
-        throw new Error('Unsupported GitHub blob encoding');
+        throw new Error(tr('Unsupported GitHub blob encoding'));
       }
       bytes = Buffer.from(data.content, 'base64');
     }

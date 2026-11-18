@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { inflateRawSync } from 'node:zlib';
 import * as vscode from 'vscode';
+import { tr } from '../util/text';
 
 /**
  * Entries of a VSIX (zip) whose name passes `wanted`, read from the ZIP
@@ -18,7 +19,7 @@ function vsixEntries(
   while (end >= minimum && bytes.readUInt32LE(end) !== 0x06054b50) end--;
   if (end < minimum
     || bytes.readUInt16LE(end + 20) !== bytes.length - end - 22) {
-    throw new Error('Invalid VSIX archive.');
+    throw new Error(tr('Invalid VSIX archive.'));
   }
 
   const count = bytes.readUInt16LE(end + 10);
@@ -27,7 +28,7 @@ function vsixEntries(
   for (let idx = 0; idx < count; idx++) {
     if (offset + 46 > end
       || bytes.readUInt32LE(offset) !== 0x02014b50) {
-      throw new Error('Invalid VSIX directory.');
+      throw new Error(tr('Invalid VSIX directory.'));
     }
     const method = bytes.readUInt16LE(offset + 10);
     const size = bytes.readUInt32LE(offset + 20);
@@ -39,14 +40,14 @@ function vsixEntries(
     if (wanted(name)) {
       if (local + 30 > bytes.length
         || bytes.readUInt32LE(local) !== 0x04034b50) {
-        throw new Error(`Invalid VSIX entry ${name}.`);
+        throw new Error(tr('Invalid VSIX entry {p0}.', { p0: name }));
       }
       const start = local + 30
         + bytes.readUInt16LE(local + 26)
         + bytes.readUInt16LE(local + 28);
       if (start + size > bytes.length
         || (method !== 0 && method !== 8)) {
-        throw new Error(`Invalid VSIX compression for ${name}.`);
+        throw new Error(tr('Invalid VSIX compression for {p0}.', { p0: name }));
       }
       const compressed = bytes.subarray(start, start + size);
       const content = method === 8
@@ -75,12 +76,12 @@ export function validateVsix(
     1024 * 1024,
   ).get('extension/package.json');
   if (!content) {
-    throw new Error('The VSIX does not contain extension/package.json.');
+    throw new Error(tr('The VSIX does not contain extension/package.json.'));
   }
   const manifest = JSON.parse(content.toString('utf8'));
   if (`${manifest.publisher}.${manifest.name}` !== extensionId
     || manifest.version !== version) {
-    throw new Error('The VSIX extension identity or version does not match the remote configuration.');
+    throw new Error(tr('The VSIX extension identity or version does not match the remote configuration.'));
   }
 }
 
@@ -110,11 +111,11 @@ export async function downloadAndInstall(
     const location = response.headers.get('location');
     await response.body?.cancel();
     if (!location || redirects === 5) {
-      throw new Error('Invalid VSIX download redirect.');
+      throw new Error(tr('Invalid VSIX download redirect.'));
     }
     url = new URL(location, url);
     if (url.protocol !== 'https:' || url.username || url.password) {
-      throw new Error('VSIX redirects must use HTTPS.');
+      throw new Error(tr('VSIX redirects must use HTTPS.'));
     }
   }
   if (!response?.ok || !response.body) {
@@ -142,7 +143,7 @@ export async function downloadAndInstall(
     length += chunk.byteLength;
     if (length > maxSize) {
       await response.body.cancel().catch(() => undefined);
-      throw new Error('VSIX exceeds 100 MiB.');
+      throw new Error(tr('VSIX exceeds 100 MiB.'));
     }
     chunks.push(Buffer.from(chunk));
     if (Date.now() - lastReport >= 100) {

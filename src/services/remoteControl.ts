@@ -10,6 +10,7 @@ import { config } from '../util/config';
 import { log } from '../util/log';
 import { downloadAndInstall } from './extensionUpdate';
 import { remoteFeatures } from './remoteFeatures';
+import { tr } from '../util/text';
 
 export const REMOTE_CONFIG_URL = 'https://raw.githubusercontent.com/techneoncode/bananabox-public/refs/heads/main/api.json';
 const CACHE_KEY = 'bananabox.remoteConfig.v1';
@@ -139,7 +140,7 @@ export class RemoteControl implements vscode.Disposable {
       this.updating = undefined;
       this.apply();
       log().warn(
-        'Remote configuration unavailable; all features are disabled until the next successful check.',
+        tr('Remote configuration unavailable; all features are disabled until the next successful check.'),
         error,
       );
     }

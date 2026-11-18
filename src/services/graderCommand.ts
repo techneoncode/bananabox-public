@@ -1,5 +1,6 @@
 import type { Memento } from 'vscode';
 import { splitChain } from '../domain/graderTrace';
+import { tr } from '../util/text';
 
 export function parseGraderCommand(text: string): string[][] | null {
   if (text.length > 4096 || /[\r\n\0]/.test(text)) return null;
@@ -20,7 +21,7 @@ export class GraderCommand {
 
   async set(scope: string, id: number, command: string): Promise<void> {
     if (typeof command !== 'string' || parseGraderCommand(command) === null) {
-      throw new Error('Invalid grader command');
+      throw new Error(tr('Invalid grader command'));
     }
     await this.storage.update(this.key(scope, id), command.trim());
   }

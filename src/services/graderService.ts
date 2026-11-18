@@ -21,6 +21,7 @@ import { fresh, inBackground, wantsFresh } from '../api/requestGuard';
 import { config } from '../util/config';
 import { log } from '../util/log';
 import type { ProjectService } from './projectService';
+import { tr } from '../util/text';
 
 const MAX_POLL_MS = 10 * 60_000;
 const CACHE_KEY = 'epibox.graderCache.v1';
@@ -378,10 +379,10 @@ export class GraderService implements vscode.Disposable {
     }
     const quota = this.states.get(project.id)?.quota;
     if (quota && quota.remaining <= 0) {
-      throw new Error('You have no grader tokens left for this project.');
+      throw new Error(tr('You have no grader tokens left for this project.'));
     }
     if (this.states.get(project.id)?.running) {
-      throw new Error('A grader run is already in progress.');
+      throw new Error(tr('A grader run is already in progress.'));
     }
 
     const gen = this.generation;
@@ -457,7 +458,7 @@ export class GraderService implements vscode.Disposable {
       this.pollers.delete(project.id);
       if (!state || state.running) {
         this.patch(project, {
-          error: 'Live updates paused after 10 minutes. Refresh to resume.',
+          error: tr('Live updates paused after 10 minutes. Refresh to resume.'),
         });
       }
       if (state && !state.running) {
@@ -477,7 +478,7 @@ export class GraderService implements vscode.Disposable {
       resultId,
     );
     if (gen !== this.generation || this.disposed) {
-      throw new Error('Session ended.');
+      throw new Error(tr('Session ended.'));
     }
     this.details.set(resultId, detail);
     return detail;
@@ -508,7 +509,7 @@ export function pollDelay(elapsed: number): number {
 
 export function describe(e: unknown): string {
   if (e instanceof ApiError) {
-    return e.status === 404 ? 'Not available for this project.' : e.message;
+    return e.status === 404 ? tr('Not available for this project.') : e.message;
   }
   return (e as Error)?.message ?? String(e);
 }

@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
+import { tr } from '../util/text';
 
 export const MS_TENANT = '901cb4ca-b862-4029-9306-e5cd0f6d9f86';
 export const MS_CLIENT_ID = '6cace631-d5fa-43cb-9903-f88d5ee17576';
@@ -110,7 +111,7 @@ export function parseRedirect(
   expectedState: string,
 ): { code: string } {
   const text = input.trim().replace(/^["'<]+|["'>]+$/g, '');
-  if (!text) throw new MicrosoftAuthError('invalid', 'Nothing was pasted.');
+  if (!text) throw new MicrosoftAuthError('invalid', tr('Nothing was pasted.'));
   let params: URLSearchParams | undefined;
   try {
     const url = new URL(text);
@@ -131,7 +132,7 @@ export function parseRedirect(
     const desc = cleanDescription(get('error_description')) || get('error');
     throw new MicrosoftAuthError(
       get('error') === 'access_denied' ? 'declined' : 'failed',
-      `Microsoft refused the sign-in: ${desc}`,
+      tr('Microsoft refused the sign-in: {p0}', { p0: desc ?? "" }),
     );
   }
 
@@ -143,7 +144,7 @@ export function parseRedirect(
   if (!code) {
     throw new MicrosoftAuthError(
       'invalid',
-      'No authorization code found. Paste the full address of the my.epitech.eu page you landed on.',
+      tr('No authorization code found. Paste the full address of the my.epitech.eu page you landed on.'),
     );
   }
 
@@ -181,7 +182,7 @@ async function post(
   } catch (e) {
     throw new MicrosoftAuthError(
       'network',
-      `Could not reach Microsoft: ${(e as Error).message}`,
+      tr('Could not reach Microsoft: {p0}', { p0: (e as Error).message }),
     );
   } finally {
     clearTimeout(timer);
@@ -207,7 +208,7 @@ function toTokens(json: Json): MicrosoftTokens {
   if (!json.id_token) {
     throw new MicrosoftAuthError(
       'failed',
-      'Microsoft did not return an ID token.',
+      tr('Microsoft did not return an ID token.'),
     );
   }
 
@@ -285,7 +286,7 @@ export async function refreshMicrosoftTokens(
   ) {
     throw new MicrosoftAuthError(
       'reauth',
-      'Your Microsoft session expired. Sign in again.',
+      tr('Your Microsoft session expired. Sign in again.'),
     );
   }
 

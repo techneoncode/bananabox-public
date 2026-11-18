@@ -18,6 +18,7 @@ import * as prompts from '../ui/prompts';
 import { config } from '../util/config';
 import { remoteFeatures } from '../services/remoteFeatures';
 import type { Controller, Surface } from '../controller';
+import { tr } from '../util/text';
 
 export async function localRoot(
   c: Controller,
@@ -57,7 +58,7 @@ export async function cloneProject(c: Controller, projectId?: number) {
       (c.projects.projects ?? [])
         .filter((p) => p.repoEnabled || p.repoLink)
         .map((p) => ({ label: p.name, description: p.unitName, project: p })),
-      { title: 'Clone the repository of…' },
+      { title: tr('Clone the repository of…') },
     );
     project = pick?.project;
   }
@@ -68,8 +69,8 @@ export async function cloneProject(c: Controller, projectId?: number) {
   }
   if (!project.repoLink) {
     const choice = await vscode.window.showWarningMessage(
-      `Bananabox: the repository URL of “${project.name}” is not known yet. The project data did not provide a repository URL. Open the project page to find it.`,
-      'Open on my.epitech.eu',
+      tr('Bananabox: the repository URL of “{name}” is not known yet. The project data did not provide a repository URL. Open the project page to find it.', { name: project.name }),
+      tr('Open on my.epitech.eu'),
     );
     if (choice) {
       await vscode.env.openExternal(vscode.Uri.parse(project.intranetUrl));
@@ -90,8 +91,8 @@ export async function cloneProject(c: Controller, projectId?: number) {
     canSelectFiles: false,
     canSelectMany: false,
     defaultUri: vscode.Uri.file(startDir),
-    openLabel: 'Clone here',
-    title: `Choose the folder to clone “${project.name}” into`,
+    openLabel: tr('Clone here'),
+    title: tr('Choose the folder to clone “{name}” into', { name: project.name }),
   });
   if (!parent?.[0]) return;
 
@@ -99,12 +100,12 @@ export async function cloneProject(c: Controller, projectId?: number) {
   let target = '';
   for (;;) {
     const folderName = await vscode.window.showInputBox({
-      title: 'Bananabox · Folder name',
+      title: tr('Bananabox · Folder name'),
       value: repoFolderName(project.repoLink),
-      prompt: `The repository will be cloned into ${parent[0].fsPath}`,
+      prompt: tr('The repository will be cloned into {path}', { path: parent[0].fsPath }),
       validateInput: (v) =>
         !v.trim() || /^\.{1,2}$/.test(v.trim()) || /[\\/:*?"<>|]/.test(v)
-          ? 'Invalid folder name.'
+          ? tr('Invalid folder name.')
           : undefined,
     });
     if (!folderName) return;
@@ -139,7 +140,7 @@ export async function cloneProject(c: Controller, projectId?: number) {
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: `Cloning ${project.name}`,
+        title: tr('Cloning {p0}', { p0: project.name }),
         cancellable: false,
       },
       async (progress) => {
@@ -217,7 +218,7 @@ export function openCurrentProject(c: Controller): void {
   const current = c.projects.current;
   if (!current) {
     void vscode.window.showInformationMessage(
-      'Bananabox: the opened folder is not a known project repository.',
+      tr('Bananabox: the opened folder is not a known project repository.'),
     );
     return;
   }

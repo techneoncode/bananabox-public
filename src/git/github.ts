@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { parseRemote } from '../domain/git';
 import { validCommit } from './commitData';
+import { tr } from '../util/text';
 
 export async function githubJson(
   repoLink: string,
@@ -8,7 +9,7 @@ export async function githubJson(
 ): Promise<any> {
   const repo = parseRemote(repoLink);
   if (!repo || repo.host !== 'github.com') {
-    throw new Error('GitHub repository unavailable');
+    throw new Error(tr('GitHub repository unavailable'));
   }
 
   const session = await Promise.resolve(

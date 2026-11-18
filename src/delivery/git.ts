@@ -4,6 +4,7 @@ import { relative, isAbsolute } from 'node:path';
 import { gitBytes, validCommit } from '../git/commitData';
 import { resolveInside } from '../domain/styleScan';
 import { readGitState } from '../git/repoDetector';
+import { tr } from '../util/text';
 
 export async function projectFiles(root: string): Promise<string[]> {
   const out = (
@@ -112,7 +113,7 @@ export async function diffText(
 ): Promise<string> {
   if (before && after) {
     if (!validCommit(before) || !validCommit(after)) {
-      throw new Error('Invalid commit.');
+      throw new Error(tr('Invalid commit.'));
     }
     return (
       await gitBytes(root, [
