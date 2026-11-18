@@ -696,6 +696,13 @@ class BananaLens implements vscode.Disposable {
                 ? {
                     files: makefileSources(dir, settings.exclude),
                     ignore: settings.makefile.missingSourcesIgnore,
+                    isFile: relative => {
+                        try {
+                            return fs.statSync(path.join(dir, relative)).isFile();
+                        } catch {
+                            return false;
+                        }
+                    },
                 }
                 : undefined,
         });
