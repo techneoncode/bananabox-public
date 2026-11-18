@@ -29,6 +29,7 @@ export interface DeliveryCheck {
     | 'tests'
     | 'files'
     | 'functions'
+    | 'valgrind'
     | 'style'
     | 'git'
     | 'deadline'

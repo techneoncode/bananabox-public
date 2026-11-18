@@ -16,7 +16,11 @@ import { findForbiddenFunctions } from '../domain/forbiddenFunctions';
 import { findDisallowedCalls, isTestPath } from '../domain/allowedFunctions';
 import { gitReadinessDetail } from '../domain/readiness';
 import type { DeliveryCheck, ReadinessVM } from '../shared/deliveryTypes';
-import type { StyleScanVM, TestResultDetail } from '../shared/types';
+import type {
+  StyleScanVM,
+  TestResultDetail,
+  ValgrindVM,
+} from '../shared/types';
 
 export class ReadinessService implements vscode.Disposable {
   private readonly emitter = new vscode.EventEmitter<number>();
@@ -35,6 +39,10 @@ export class ReadinessService implements vscode.Disposable {
       key: string,
       params?: Record<string, number | string>,
     ) => string,
+    /** Runs the saved valgrind command; null when there is nothing to run. */
+    private readonly valgrind: (
+      root: string,
+    ) => Promise<ValgrindVM | null> = async () => null,
   ) {}
 
   get(id: number) {
@@ -304,6 +312,29 @@ export class ReadinessService implements vscode.Disposable {
               ),
         files: violations,
       });
+
+      add({ id: 'valgrind', status: 'running', detail: '' });
+      const memory = await this.valgrind(root).catch(() => null);
+      if (abort.signal.aborted) {
+        throw new Error(this.t('delivery.cancelled'));
+      }
+      if (!memory || memory.status !== 'done' || memory.error) {
+        vm.checks = vm.checks.filter((c) => c.id !== 'valgrind');
+        publish();
+      } else {
+        const memoryErrors = memory.errors?.length ?? 0;
+        const found = memory.leaks.length || memoryErrors;
+        add({
+          id: 'valgrind',
+          status: found || memory.signal ? 'fail' : 'pass',
+          detail: found
+            ? this.t('delivery.valgrindFound', {
+                leaks: memory.leaks.length,
+                errors: memoryErrors,
+              })
+            : memory.signal ?? this.t('delivery.valgrindClean'),
+        });
+      }
 
       const git = await deliveryGitState(root, plan.generated);
       add({
