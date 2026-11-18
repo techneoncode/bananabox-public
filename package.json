@@ -55,6 +55,11 @@
           "id": "epibox-calendar",
           "title": "%view.calendar.container%",
           "icon": "media/calendar.svg"
+        },
+        {
+          "id": "epibox-admin",
+          "title": "%view.admin.container%",
+          "icon": "media/dashboard.svg"
         }
       ]
     },
@@ -73,6 +78,15 @@
           "id": "epibox.calendar",
           "name": "%view.calendar.name%",
           "icon": "media/calendar.svg"
+        }
+      ],
+      "epibox-admin": [
+        {
+          "type": "webview",
+          "id": "epibox.admin",
+          "name": "%view.admin.name%",
+          "icon": "media/dashboard.svg",
+          "when": "epibox.isAdmin"
         }
       ],
       "explorer": [

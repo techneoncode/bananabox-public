@@ -54,6 +54,16 @@ export function buildHtml(
 </html>`;
 }
 
+/** The admin dashboard: the sidebar shell with its own bundle. */
+export function buildAdminHtml(
+  webview: vscode.Webview,
+  extensionUri: vscode.Uri,
+): string {
+  return buildHtml(webview, extensionUri, 'sidebar')
+    .replace('main.js', 'admin.js')
+    .replace('aria-label="Bananabox"', `aria-label="${tr('Bananabox admin dashboard')}"`);
+}
+
 /** Uses the same theme, fonts, logo and CSP as project views. */
 export function buildReminderHtml(
   webview: vscode.Webview,
