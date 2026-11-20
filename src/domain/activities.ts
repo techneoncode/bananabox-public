@@ -17,6 +17,7 @@ export function activityKind(name: string): ActivityVM['kind'] {
   if (/defen[cs]e|soutenance|final\s+(?:review|presentation)/i.test(name)) {
     return 'defense';
   }
+  if (/follow[\s-]?up|\bsuivi\b/i.test(name)) return 'followup';
   if (/\bsusie\b/i.test(name)) return 'susie';
   if (/^\s*kick[\s-]?off\b/i.test(name)) return 'kickoff';
   if (/^\s*boot[\s-]?strap\b/i.test(name)) return 'bootstrap';

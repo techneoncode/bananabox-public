@@ -83,7 +83,7 @@ test('Test popup uses the real urgent alert and key acknowledgement without chan
     service.update('student@example.test', []);
     t.mock.timers.tick(10_000);
     assert.equal(panel.disposed, false, 'background updates must not dismiss the preview');
-    h.commands.get('epibox.acknowledgeDefense')!();
+    h.commands.get('bananabox.acknowledgeDefense')!();
     assert.equal(panel.disposed, true);
     assert.equal(h.store.size, 0, 'test acknowledgement must never consume a real reminder');
     t.mock.timers.tick(20_000);

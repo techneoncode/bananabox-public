@@ -30,6 +30,7 @@ export interface DeliveryCheck {
     | 'files'
     | 'functions'
     | 'valgrind'
+    | 'binary'
     | 'style'
     | 'git'
     | 'deadline'
@@ -37,6 +38,8 @@ export interface DeliveryCheck {
   status: CheckStatus;
   detail: string;
   output?: string;
+  /** Valgrind: bytes the project leaked, set when the program ran to its end. */
+  leakBytes?: number;
   files?: Array<{
     file: string;
     line: number;
@@ -70,6 +73,8 @@ export interface ReadinessVM {
    */
   allowedCount?: number;
   commandSource?: 'manual' | 'grader' | 'repository';
+  /** The project holds C sources (style, functions and binary checks apply). */
+  c?: boolean;
   unreproducedCommands?: string[];
 }
 

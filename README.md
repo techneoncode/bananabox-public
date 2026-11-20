@@ -60,7 +60,7 @@ Coding style works without signing in, in trusted workspaces only.
 - The grader evaluates your latest **pushed** commit and costs a token. Bananabox warns you when it differs from your local HEAD.
 - Acknowledge a defense reminder with **Ctrl+Alt+Shift+Y** (**Cmd+Alt+Shift+Y** on macOS). Reminders only run while VS Code is open and you are signed in.
 - Corrections are off by default. Old `bananalens.*` settings and `.bananalens.json` files still work. Disable the standalone Banana Lens extension to avoid duplicate findings.
-- Interface in English or French (`epibox.language`). Search **Bananabox** in settings for everything else.
+- Interface in English or French (`bananabox.language`). Search **Bananabox** in settings for everything else.
 
 ## Links
 

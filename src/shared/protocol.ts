@@ -1,3 +1,4 @@
+import type { DisabledChecks, Milestone } from '../domain/milestones';
 import type {
   ActivityLimitsVM,
   ActivitySlotVM,
@@ -34,7 +35,10 @@ export type PanelTab =
   | 'valgrind'
   | 'history'
   | 'subject'
-  | 'activities';
+  | 'activities'
+  | 'prepare-followup'
+  | 'prepare-midterm'
+  | 'prepare-delivery';
 
 export interface StateSnapshot {
   apiActivity?: ApiActivitySnapshot;
@@ -70,6 +74,8 @@ export interface StateSnapshot {
   localProjects?: number[];
   /** Colours chosen by the student; missing keys follow the theme. */
   palette?: Palette;
+  /** Checks turned off on the Prepare page, per event (setting). */
+  disabledChecks?: DisabledChecks;
 }
 
 export type HostMessage =
@@ -209,7 +215,8 @@ export type WebviewMessage =
   | { type: 'readSubjectFunctions'; projectId: number }
   | { type: 'cancelLocal'; projectId: number }
   | { type: 'configureChecks'; projectId: number; advanced?: boolean }
-  | { type: 'guidedDelivery'; projectId: number }
+  | { type: 'guidedDelivery'; projectId: number; milestone?: Milestone }
+  | { type: 'setPrepareCheck'; milestone: Milestone; check: string; enabled: boolean }
   | { type: 'reviewChanges'; projectId: number }
   | {
       type: 'compareCommits';

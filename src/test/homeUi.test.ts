@@ -96,7 +96,7 @@ test('Home renders timeline, selected project, agenda and the full project brows
   card.has('sb-tile').find(b => b.textContent.includes('Last score'))!.click();
   assert.deepEqual(messages.at(-1), { type: 'openProject', projectId: 1, tab: 'history' });
   card.has('sb-row-link').find(b => b.textContent.includes('Delivery'))!.click();
-  assert.deepEqual(messages.at(-1), { type: 'openProject', projectId: 1, tab: 'grader' });
+  assert.deepEqual(messages.at(-1), { type: 'openProject', projectId: 1, tab: 'prepare-delivery' });
   // Agenda lists what closes next, most pressing first.
   const agenda = root.has('agenda-title').map(n => n.textContent.trim());
   assert.match(agenda[0], /bravo closes/);

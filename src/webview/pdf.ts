@@ -69,4 +69,4 @@ const viewer: Viewer = {
   },
 };
 
-(window as any).__epiboxPdf = viewer;
+(window as any).__bananaboxPdf = viewer;

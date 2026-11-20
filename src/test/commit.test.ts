@@ -16,7 +16,7 @@ test('commit links accept GitHub remotes and reject malformed revisions and host
 });
 
 test('historical trees and blobs preserve exact filenames and content without checkout', async () => {
-  const folder = await mkdtemp(join(tmpdir(), 'epibox-commit-'));
+  const folder = await mkdtemp(join(tmpdir(), 'bananabox-commit-'));
   try {
     await gitBytes(folder, ['init']);
     await gitBytes(folder, ['config', 'user.name', 'Test']);
@@ -47,5 +47,5 @@ test('historical trees and blobs preserve exact filenames and content without ch
 });
 
 test('missing local repository leaves comparison unavailable', async () => {
-  assert.equal(await localState('/epibox/nonexistent-repository'), undefined);
+  assert.equal(await localState('/bananabox/nonexistent-repository'), undefined);
 });

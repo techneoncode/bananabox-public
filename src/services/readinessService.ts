@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { readFile, stat } from 'node:fs/promises';
+import { open, readFile, stat } from 'node:fs/promises';
 import { discoverPlan } from '../delivery/discovery';
 import {
   deliveryGitState,
@@ -21,6 +21,28 @@ import type {
   TestResultDetail,
   ValgrindVM,
 } from '../shared/types';
+
+const BINARY_EXTENSIONS = /\.(?:o|a|so|gch|dylib|exe|dll)$/i;
+
+/** A compiled artifact: object files and libraries by name, executables by their ELF or Mach-O header. */
+async function isBinaryArtifact(root: string, file: string): Promise<boolean> {
+  if (BINARY_EXTENSIONS.test(file)) return true;
+  let handle: Awaited<ReturnType<typeof open>> | undefined;
+  try {
+    handle = await open(await safeProjectPath(root, file), 'r');
+    const head = Buffer.alloc(4);
+    const { bytesRead } = await handle.read(head, 0, 4, 0);
+    if (bytesRead < 4) return false;
+    const magic = head.readUInt32BE(0);
+    return magic === 0x7f454c46 // ELF
+      || magic === 0xfeedface || magic === 0xfeedfacf
+      || magic === 0xcefaedfe || magic === 0xcffaedfe; // Mach-O
+  } catch {
+    return false;
+  } finally {
+    await handle?.close();
+  }
+}
 
 export class ReadinessService implements vscode.Disposable {
   private readonly emitter = new vscode.EventEmitter<number>();
@@ -313,6 +335,31 @@ export class ReadinessService implements vscode.Disposable {
         files: violations,
       });
 
+      // Tracked and untracked-but-not-ignored files: what a push carries. A binary listed in .gitignore is fine.
+      const pushable = await projectFiles(root);
+      vm.c = pushable.some((f) => /\.[ch]$/i.test(f));
+      const binaries: string[] = [];
+      for (const file of pushable) {
+        if (await isBinaryArtifact(root, file)) binaries.push(file);
+      }
+      add({
+        id: 'binary',
+        status: binaries.length ? 'fail' : 'pass',
+        detail: binaries.length
+          ? this.t('delivery.binariesFound', {
+              n: binaries.length,
+              names: binaries.slice(0, 4).join(', ')
+                + (binaries.length > 4 ? '…' : ''),
+            })
+          : this.t('delivery.noBinaries'),
+        files: binaries.map((file) => ({
+          file,
+          line: 1,
+          column: 1,
+          message: this.t('delivery.binaryHint'),
+        })),
+      });
+
       add({ id: 'valgrind', status: 'running', detail: '' });
       const memory = await this.valgrind(root).catch(() => null);
       if (abort.signal.aborted) {
@@ -336,6 +383,7 @@ export class ReadinessService implements vscode.Disposable {
                 errors: memoryErrors,
               })
             : memory.signal ?? this.t('delivery.valgrindClean'),
+          leakBytes: memory.signal ? undefined : memory.bytes,
         });
       }
 

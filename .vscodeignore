@@ -12,7 +12,7 @@ esbuild.mjs
 *.zip
 **/*.har
 package-lock.json
-.epibox-inspect/**
+.bananabox-inspect/**
 test/**
 logo.png
 gitdiff.png

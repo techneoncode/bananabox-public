@@ -181,10 +181,10 @@ export class SummaryLensProvider implements vscode.CodeLensProvider {
                 title: banner ? ui('Bananabox Coding Style') : statusText(view),
                 tooltip: summaryDetails(view, settings),
                 command: view?.error || view?.running
-                    ? 'epibox.codingStyle.showOutput'
+                    ? 'bananabox.codingStyle.showOutput'
                     : hasIssues
-                        ? 'epibox.codingStyle.showIssues'
-                        : 'epibox.codingStyle.run',
+                        ? 'bananabox.codingStyle.showIssues'
+                        : 'bananabox.codingStyle.run',
                 arguments: [document.uri],
             }),
         ];
@@ -194,7 +194,7 @@ export class SummaryLensProvider implements vscode.CodeLensProvider {
                     count: issueLabel(issueCount(view!.summary)),
                 }),
                 tooltip: ui('Browse this file’s diagnostics, grouped by severity and rule'),
-                command: 'epibox.codingStyle.showIssues',
+                command: 'bananabox.codingStyle.showIssues',
                 arguments: [document.uri],
             }));
         }
@@ -204,7 +204,7 @@ export class SummaryLensProvider implements vscode.CodeLensProvider {
                     ? ui('$(refresh) Recheck')
                     : ui('$(play) Check file'),
                 tooltip: ui('Check this file'),
-                command: 'epibox.codingStyle.run',
+                command: 'bananabox.codingStyle.run',
                 arguments: [document.uri],
             }));
         }
@@ -214,14 +214,14 @@ export class SummaryLensProvider implements vscode.CodeLensProvider {
                     mode: correctionLabel(settings.corrections.mode),
                 }),
                 tooltip: ui('Choose Off, Suggestion or Automatic corrections for this workspace'),
-                command: 'epibox.codingStyle.configureCorrections',
+                command: 'bananabox.codingStyle.configureCorrections',
                 arguments: [document.uri],
             }));
         }
         if (settings.summary.attribution) {
             lenses.push(new vscode.CodeLens(range, {
                 title: 'by techneon',
-                command: 'epibox.codingStyle.showOutput',
+                command: 'bananabox.codingStyle.showOutput',
             }));
         }
         return lenses;
@@ -814,7 +814,7 @@ export class StatusBar implements vscode.Disposable {
 
     constructor() {
         this.item.name = ui('Bananabox Coding Style');
-        this.item.command = 'epibox.codingStyle.showIssues';
+        this.item.command = 'bananabox.codingStyle.showIssues';
     }
 
     dispose(): void { this.item.dispose(); }

@@ -21,11 +21,11 @@ Comme le code ne peut pas être renvoyé vers VS Code, Bananabox **lit la redire
 2. Vous vous connectez dans cette fenêtre. Dès qu’elle arrive sur `my.epitech.eu/#code=…`, Bananabox lit l’adresse et **ferme la fenêtre** (Chromium : `--remote-debugging-pipe`, aucun port ; Firefox : WebSocket BiDi sur `127.0.0.1`, port local aléatoire, le temps de la connexion).
 3. Bananabox échange le code (PKCE + `Origin: https://my.epitech.eu`), puis l’ID token via `POST /api/auth/token`.
 
-Bananabox préfère Chrome/Edge/Brave/Chromium s’il en trouve, sinon Firefox. Avec Firefox, c’est une **instance séparée** (`--no-remote`, profil dédié) : vos onglets et votre profil ne sont jamais touchés. Sur Ubuntu, Firefox est un *snap* qui ne peut pas lire `~/.config` : le profil dédié est alors créé dans `~/snap/firefox/common/epibox-firefox-profile`.
+Bananabox préfère Chrome/Edge/Brave/Chromium s’il en trouve, sinon Firefox. Avec Firefox, c’est une **instance séparée** (`--no-remote`, profil dédié) : vos onglets et votre profil ne sont jamais touchés. Sur Ubuntu, Firefox est un *snap* qui ne peut pas lire `~/.config` : le profil dédié est alors créé dans `~/snap/firefox/common/bananabox-firefox-profile`.
 
 La fenêtre a son **propre profil** (dossier de stockage global de l’extension) : les cookies Microsoft y sont conservés. Répondez **Oui** à « Rester connecté ? » : les connexions suivantes sont quasi instantanées, et Bananabox renouvelle la session **sans rien afficher** (`prompt=none` dans un navigateur invisible) quand le refresh token de 24 h est épuisé.
 
-**Secours** : si aucun navigateur compatible n’est trouvé (ou si Firefox Flatpak : indiquez son exécutable dans `epibox.browserPath`, sinon collage) (ou si vous cliquez sur « La fenêtre ne s’ouvre pas ? »), Bananabox ouvre votre navigateur habituel et vous collez l’adresse de la page d’arrivée (`#code=…`). Le réglage `epibox.browserPath` permet d’indiquer un exécutable précis. Le token manuel reste disponible.
+**Secours** : si aucun navigateur compatible n’est trouvé (ou si Firefox Flatpak : indiquez son exécutable dans `bananabox.browserPath`, sinon collage) (ou si vous cliquez sur « La fenêtre ne s’ouvre pas ? »), Bananabox ouvre votre navigateur habituel et vous collez l’adresse de la page d’arrivée (`#code=…`). Le réglage `bananabox.browserPath` permet d’indiquer un exécutable précis. Le token manuel reste disponible.
 
 Les tokens sont stockés dans `SecretStorage`, jamais dans les paramètres ni dans la webview.
 

@@ -17,6 +17,7 @@ import { gitBytes, validCommit } from '../git/commitData';
 import { remoteChangedFiles } from '../git/github';
 import { gitPush } from '../git/repoDetector';
 import type { DeliveryStep } from '../shared/deliveryTypes';
+import { milestoneChecks, type Milestone } from '../domain/milestones';
 import { createT } from '../shared/i18n';
 import type { ProjectVM } from '../shared/types';
 import * as prompts from '../ui/prompts';
@@ -413,7 +414,7 @@ export async function showChanges(
   await vscode.window.showTextDocument(doc, { preview: true });
 }
 
-export async function guidedDelivery(c: Controller, projectId?: number) {
+export async function guidedDelivery(c: Controller, projectId?: number, milestone: Milestone = 'delivery') {
   const project = projectId === undefined
     ? c.projects.current
     : c.projects.get(projectId);
@@ -447,9 +448,10 @@ export async function guidedDelivery(c: Controller, projectId?: number) {
         const vm = await c.checkReadiness(project.id);
         if (!vm || vm.status !== 'done' || vm.stale) return false;
 
-        const failures = vm.checks.filter(
-          ch => ch.status === 'fail' && ch.id !== 'git',
-        );
+        const failures = milestoneChecks(milestone, vm.checks, vm, {
+          c: vm.c ?? true,
+          disabled: config.disabledChecks()[milestone],
+        }, t).filter(ch => ch.status === 'fail' && ch.id !== 'git');
         const style = c.style.get(project.id);
         if (failures.some(ch => ch.id === 'style') && style) {
           const decision = await prompts.styleGate({
@@ -606,6 +608,7 @@ export async function guidedDelivery(c: Controller, projectId?: number) {
 
       const state = await deliveryGitState(root, generated);
       if (!state?.hasUpstream || state.dirty || state.ahead) return false;
+      if (milestone !== 'delivery') return true;
 
       await fresh(() => c.grader.load(project));
       const grader = c.grader.get(project.id);

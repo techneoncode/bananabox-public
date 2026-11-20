@@ -2,7 +2,7 @@
   "name": "bananabox",
   "displayName": "Bananabox",
   "description": "%extension.description%",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "publisher": "techneoncode",
   "license": "MIT",
   "icon": "images/icon_nobg.png",
@@ -19,7 +19,7 @@
   "keywords": [
     "bananabox",
     "epitech",
-    "epibox",
+    "bananabox",
     "grader",
     "moulinette",
     "projects",
@@ -47,51 +47,51 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "epibox",
+          "id": "bananabox",
           "title": "Bananabox",
           "icon": "media/activity.svg"
         },
         {
-          "id": "epibox-calendar",
+          "id": "bananabox-calendar",
           "title": "%view.calendar.container%",
           "icon": "media/calendar.svg"
         },
         {
-          "id": "epibox-admin",
+          "id": "bananabox-admin",
           "title": "%view.admin.container%",
           "icon": "media/dashboard.svg"
         }
       ]
     },
     "views": {
-      "epibox": [
+      "bananabox": [
         {
           "type": "webview",
-          "id": "epibox.sidebar",
+          "id": "bananabox.sidebar",
           "name": "Bananabox",
           "icon": "media/activity.svg"
         }
       ],
-      "epibox-calendar": [
+      "bananabox-calendar": [
         {
           "type": "webview",
-          "id": "epibox.calendar",
+          "id": "bananabox.calendar",
           "name": "%view.calendar.name%",
           "icon": "media/calendar.svg"
         }
       ],
-      "epibox-admin": [
+      "bananabox-admin": [
         {
           "type": "webview",
-          "id": "epibox.admin",
+          "id": "bananabox.admin",
           "name": "%view.admin.name%",
           "icon": "media/dashboard.svg",
-          "when": "epibox.isAdmin"
+          "when": "bananabox.isAdmin"
         }
       ],
       "explorer": [
         {
-          "id": "epibox.commits",
+          "id": "bananabox.commits",
           "name": "%view.commits.name%",
           "icon": "images/gitdiff_nobg.png",
           "contextualTitle": "Bananabox"
@@ -100,292 +100,292 @@
     },
     "commands": [
       {
-        "command": "epibox.signInMicrosoft",
+        "command": "bananabox.signInMicrosoft",
         "title": "%pkg.sign.in.with.microsoft%",
         "category": "Bananabox",
         "icon": "$(account)"
       },
       {
-        "command": "epibox.signIn",
+        "command": "bananabox.signIn",
         "title": "%pkg.sign.in.with.access.token%",
         "category": "Bananabox",
         "icon": "$(key)"
       },
       {
-        "command": "epibox.signOut",
+        "command": "bananabox.signOut",
         "title": "%pkg.sign.out%",
         "category": "Bananabox",
         "icon": "$(sign-out)"
       },
       {
-        "command": "epibox.refresh",
+        "command": "bananabox.refresh",
         "title": "%pkg.refresh%",
         "category": "Bananabox",
         "icon": "$(refresh)"
       },
       {
-        "command": "epibox.openProject",
+        "command": "bananabox.openProject",
         "title": "%pkg.open.project.details%",
         "category": "Bananabox",
         "icon": "$(link-external)"
       },
       {
-        "command": "epibox.openHome",
+        "command": "bananabox.openHome",
         "title": "%pkg.open.home%",
         "category": "Bananabox",
         "icon": "$(home)"
       },
       {
-        "command": "epibox.openCurrentProject",
+        "command": "bananabox.openCurrentProject",
         "title": "%pkg.open.current.project.in.editor%",
         "category": "Bananabox",
         "icon": "$(layout-panel-center)"
       },
       {
-        "command": "epibox.runGrader",
+        "command": "bananabox.runGrader",
         "title": "%pkg.run.grader.on.current.project%",
         "category": "Bananabox",
         "icon": "$(play)"
       },
       {
-        "command": "epibox.cloneProject",
+        "command": "bananabox.cloneProject",
         "title": "%pkg.clone.project.repository%",
         "category": "Bananabox",
         "icon": "$(repo-clone)"
       },
       {
-        "command": "epibox.openSubject",
+        "command": "bananabox.openSubject",
         "title": "%pkg.open.project.subject.pdf%",
         "category": "Bananabox",
         "icon": "$(file-pdf)"
       },
       {
-        "command": "epibox.openOnIntranet",
+        "command": "bananabox.openOnIntranet",
         "title": "%pkg.open.project.on.my.epitech.eu%",
         "category": "Bananabox",
         "icon": "$(globe)"
       },
       {
-        "command": "epibox.codingStyle.run",
+        "command": "bananabox.codingStyle.run",
         "title": "%pkg.bananabox.coding.style.run.epiclang.on.the.current.file%"
       },
       {
-        "command": "epibox.codingStyle.valgrind",
+        "command": "bananabox.codingStyle.valgrind",
         "title": "%pkg.bananabox.check.memory.leaks.with.valgrind%",
         "icon": "$(debug-alt)"
       },
       {
-        "command": "epibox.codingStyle.configureValgrind",
+        "command": "bananabox.codingStyle.configureValgrind",
         "title": "%pkg.bananabox.set.the.command.valgrind.runs%"
       },
       {
-        "command": "epibox.codingStyle.runWorkspace",
+        "command": "bananabox.codingStyle.runWorkspace",
         "title": "%pkg.bananabox.coding.style.check.the.whole.project%"
       },
       {
-        "command": "epibox.codingStyle.showIssues",
+        "command": "bananabox.codingStyle.showIssues",
         "title": "%pkg.bananabox.coding.style.show.the.violations.of.this.file%"
       },
       {
-        "command": "epibox.codingStyle.nextIssue",
+        "command": "bananabox.codingStyle.nextIssue",
         "title": "%pkg.bananabox.coding.style.go.to.next.violation%"
       },
       {
-        "command": "epibox.codingStyle.previousIssue",
+        "command": "bananabox.codingStyle.previousIssue",
         "title": "%pkg.bananabox.coding.style.go.to.previous.violation%"
       },
       {
-        "command": "epibox.codingStyle.fixTrailingWhitespace",
+        "command": "bananabox.codingStyle.fixTrailingWhitespace",
         "title": "%pkg.bananabox.coding.style.remove.trailing.whitespace.in.this.fi%"
       },
       {
-        "command": "epibox.codingStyle.refreshBuildConfiguration",
+        "command": "bananabox.codingStyle.refreshBuildConfiguration",
         "title": "%pkg.bananabox.coding.style.refresh.build.configuration%"
       },
       {
-        "command": "epibox.codingStyle.clear",
+        "command": "bananabox.codingStyle.clear",
         "title": "%pkg.bananabox.coding.style.clear.all.diagnostics%"
       },
       {
-        "command": "epibox.codingStyle.toggle",
+        "command": "bananabox.codingStyle.toggle",
         "title": "%pkg.bananabox.coding.style.enable.disable%"
       },
       {
-        "command": "epibox.codingStyle.locateEpiclang",
+        "command": "bananabox.codingStyle.locateEpiclang",
         "title": "%pkg.bananabox.coding.style.locate.the.epiclang.executable%"
       },
       {
-        "command": "epibox.codingStyle.showOutput",
+        "command": "bananabox.codingStyle.showOutput",
         "title": "%pkg.bananabox.coding.style.show.output%"
       },
       {
-        "command": "epibox.codingStyle.previewCorrections",
+        "command": "bananabox.codingStyle.previewCorrections",
         "title": "%pkg.bananabox.coding.style.preview.suggested.corrections%"
       },
       {
-        "command": "epibox.codingStyle.acceptCorrections",
+        "command": "bananabox.codingStyle.acceptCorrections",
         "title": "%pkg.bananabox.coding.style.accept.all.suggested.corrections%"
       },
       {
-        "command": "epibox.codingStyle.acceptCorrection",
+        "command": "bananabox.codingStyle.acceptCorrection",
         "title": "%pkg.bananabox.coding.style.accept.this.correction%"
       },
       {
-        "command": "epibox.codingStyle.nextCorrection",
+        "command": "bananabox.codingStyle.nextCorrection",
         "title": "%pkg.bananabox.coding.style.next.suggested.correction%"
       },
       {
-        "command": "epibox.codingStyle.previousCorrection",
+        "command": "bananabox.codingStyle.previousCorrection",
         "title": "%pkg.bananabox.coding.style.previous.suggested.correction%"
       },
       {
-        "command": "epibox.codingStyle.dismissCorrections",
+        "command": "bananabox.codingStyle.dismissCorrections",
         "title": "%pkg.bananabox.coding.style.dismiss.suggested.corrections%"
       },
       {
-        "command": "epibox.codingStyle.configureCorrections",
+        "command": "bananabox.codingStyle.configureCorrections",
         "title": "%pkg.bananabox.coding.style.choose.correction.mode%",
         "icon": "$(settings-gear)"
       },
       {
-        "command": "epibox.codingStyle.configureAppearance",
+        "command": "bananabox.codingStyle.configureAppearance",
         "title": "%pkg.bananabox.coding.style.customize.lenses.and.colours%",
         "icon": "$(paintcan)"
       },
       {
-        "command": "epibox.checkReadiness",
+        "command": "bananabox.checkReadiness",
         "title": "%pkg.check.whether.the.project.is.ready.to.submit%",
         "category": "Bananabox",
         "icon": "$(checklist)"
       },
       {
-        "command": "epibox.guidedDelivery",
+        "command": "bananabox.guidedDelivery",
         "title": "%pkg.prepare.project.submission%",
         "category": "Bananabox",
         "icon": "$(rocket)"
       },
       {
-        "command": "epibox.codingStyle.toggleInline",
+        "command": "bananabox.codingStyle.toggleInline",
         "title": "%pkg.bananabox.coding.style.toggle.inline.error.lenses%",
         "icon": "$(eye)"
       },
       {
-        "command": "epibox.acknowledgeDefense",
+        "command": "bananabox.acknowledgeDefense",
         "title": "%pkg.acknowledge.defense.reminder%",
         "category": "Bananabox",
-        "enablement": "epibox.defenseAlertActive"
+        "enablement": "bananabox.defenseAlertActive"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "epibox.refresh",
-          "when": "view == epibox.sidebar && epibox.signedIn",
+          "command": "bananabox.refresh",
+          "when": "view == bananabox.sidebar && bananabox.signedIn",
           "group": "navigation@1"
         },
         {
-          "command": "epibox.openHome",
-          "when": "view == epibox.sidebar && epibox.signedIn",
+          "command": "bananabox.openHome",
+          "when": "view == bananabox.sidebar && bananabox.signedIn",
           "group": "navigation@0"
         },
         {
-          "command": "epibox.openCurrentProject",
-          "when": "view == epibox.sidebar && epibox.signedIn && epibox.hasCurrentProject",
+          "command": "bananabox.openCurrentProject",
+          "when": "view == bananabox.sidebar && bananabox.signedIn && bananabox.hasCurrentProject",
           "group": "navigation@2"
         },
         {
-          "command": "epibox.signOut",
-          "when": "view == epibox.sidebar && epibox.signedIn",
+          "command": "bananabox.signOut",
+          "when": "view == bananabox.sidebar && bananabox.signedIn",
           "group": "overflow@1"
         },
         {
-          "command": "epibox.codingStyle.runWorkspace",
-          "when": "view == epibox.sidebar",
+          "command": "bananabox.codingStyle.runWorkspace",
+          "when": "view == bananabox.sidebar",
           "group": "codingStyle@1"
         },
         {
-          "command": "epibox.codingStyle.configureCorrections",
-          "when": "view == epibox.sidebar",
+          "command": "bananabox.codingStyle.configureCorrections",
+          "when": "view == bananabox.sidebar",
           "group": "codingStyle@2"
         },
         {
-          "command": "epibox.codingStyle.configureAppearance",
-          "when": "view == epibox.sidebar",
+          "command": "bananabox.codingStyle.configureAppearance",
+          "when": "view == bananabox.sidebar",
           "group": "codingStyle@3"
         }
       ],
       "commandPalette": [
         {
-          "command": "epibox.signInMicrosoft",
-          "when": "!epibox.signedIn"
+          "command": "bananabox.signInMicrosoft",
+          "when": "!bananabox.signedIn"
         },
         {
-          "command": "epibox.signIn",
-          "when": "!epibox.signedIn"
+          "command": "bananabox.signIn",
+          "when": "!bananabox.signedIn"
         },
         {
-          "command": "epibox.runGrader",
-          "when": "epibox.signedIn && epibox.hasCurrentProject"
+          "command": "bananabox.runGrader",
+          "when": "bananabox.signedIn && bananabox.hasCurrentProject"
         },
         {
-          "command": "epibox.openHome",
-          "when": "epibox.signedIn"
+          "command": "bananabox.openHome",
+          "when": "bananabox.signedIn"
         },
         {
-          "command": "epibox.openCurrentProject",
-          "when": "epibox.signedIn && epibox.hasCurrentProject"
+          "command": "bananabox.openCurrentProject",
+          "when": "bananabox.signedIn && bananabox.hasCurrentProject"
         },
         {
-          "command": "epibox.signOut",
-          "when": "epibox.signedIn"
+          "command": "bananabox.signOut",
+          "when": "bananabox.signedIn"
         },
         {
-          "command": "epibox.refresh",
-          "when": "epibox.signedIn"
+          "command": "bananabox.refresh",
+          "when": "bananabox.signedIn"
         },
         {
-          "command": "epibox.codingStyle.run",
+          "command": "bananabox.codingStyle.run",
           "when": "editorLangId == c || editorLangId == cpp || editorLangId == makefile"
         },
         {
-          "command": "epibox.codingStyle.nextIssue",
+          "command": "bananabox.codingStyle.nextIssue",
           "when": "editorLangId == c || editorLangId == cpp || editorLangId == makefile"
         },
         {
-          "command": "epibox.codingStyle.previousIssue",
+          "command": "bananabox.codingStyle.previousIssue",
           "when": "editorLangId == c || editorLangId == cpp || editorLangId == makefile"
         },
         {
-          "command": "epibox.codingStyle.fixTrailingWhitespace",
+          "command": "bananabox.codingStyle.fixTrailingWhitespace",
           "when": "editorLangId == c || editorLangId == cpp"
         },
         {
-          "command": "epibox.codingStyle.showIssues",
+          "command": "bananabox.codingStyle.showIssues",
           "when": "editorLangId == c || editorLangId == cpp || editorLangId == makefile"
         },
         {
-          "command": "epibox.checkReadiness",
-          "when": "epibox.signedIn && epibox.hasCurrentProject"
+          "command": "bananabox.checkReadiness",
+          "when": "bananabox.signedIn && bananabox.hasCurrentProject"
         },
         {
-          "command": "epibox.guidedDelivery",
-          "when": "epibox.signedIn && epibox.hasCurrentProject"
+          "command": "bananabox.guidedDelivery",
+          "when": "bananabox.signedIn && bananabox.hasCurrentProject"
         },
         {
-          "command": "epibox.acknowledgeDefense",
+          "command": "bananabox.acknowledgeDefense",
           "when": "false"
         },
         {
-          "command": "epibox.codingStyle.acceptCorrection",
-          "when": "epibox.codingStyle.hasCorrections"
+          "command": "bananabox.codingStyle.acceptCorrection",
+          "when": "bananabox.codingStyle.hasCorrections"
         },
         {
-          "command": "epibox.codingStyle.nextCorrection",
-          "when": "epibox.codingStyle.hasCorrections"
+          "command": "bananabox.codingStyle.nextCorrection",
+          "when": "bananabox.codingStyle.hasCorrections"
         },
         {
-          "command": "epibox.codingStyle.previousCorrection",
-          "when": "epibox.codingStyle.hasCorrections"
+          "command": "bananabox.codingStyle.previousCorrection",
+          "when": "bananabox.codingStyle.hasCorrections"
         }
       ],
       "editor/context": [
@@ -397,39 +397,39 @@
       ],
       "bananalens.editor": [
         {
-          "command": "epibox.codingStyle.run",
+          "command": "bananabox.codingStyle.run",
           "group": "1_scan"
         },
         {
-          "command": "epibox.codingStyle.showIssues",
+          "command": "bananabox.codingStyle.showIssues",
           "group": "1_scan"
         },
         {
-          "command": "epibox.codingStyle.valgrind",
+          "command": "bananabox.codingStyle.valgrind",
           "when": "editorLangId == c",
           "group": "1_scan"
         },
         {
-          "command": "epibox.codingStyle.configureCorrections",
+          "command": "bananabox.codingStyle.configureCorrections",
           "when": "editorLangId == c",
           "group": "2_corrections"
         },
         {
-          "command": "epibox.codingStyle.previewCorrections",
-          "when": "epibox.codingStyle.hasCorrections",
+          "command": "bananabox.codingStyle.previewCorrections",
+          "when": "bananabox.codingStyle.hasCorrections",
           "group": "2_corrections"
         },
         {
-          "command": "epibox.codingStyle.acceptCorrections",
-          "when": "epibox.codingStyle.hasCorrections",
+          "command": "bananabox.codingStyle.acceptCorrections",
+          "when": "bananabox.codingStyle.hasCorrections",
           "group": "2_corrections"
         },
         {
-          "command": "epibox.codingStyle.configureAppearance",
+          "command": "bananabox.codingStyle.configureAppearance",
           "group": "3_appearance"
         },
         {
-          "command": "epibox.codingStyle.toggleInline",
+          "command": "bananabox.codingStyle.toggleInline",
           "group": "3_appearance@1"
         }
       ]
@@ -437,19 +437,19 @@
     "configuration": {
       "title": "Bananabox",
       "properties": {
-        "epibox.apiBaseUrl": {
+        "bananabox.apiBaseUrl": {
           "type": "string",
           "default": "https://my.epitech.eu",
           "markdownDescription": "Base URL of the Epitech MyEpitech API.",
           "scope": "application"
         },
-        "epibox.browserPath": {
+        "bananabox.browserPath": {
           "type": "string",
           "default": "",
           "markdownDescription": "Chrome, Edge, Brave, Chromium or Firefox executable used for the Microsoft sign-in window. Leave empty to detect it automatically. Without a compatible browser, Bananabox falls back to a copy-and-paste sign-in.",
           "scope": "machine"
         },
-        "epibox.cloneProtocol": {
+        "bananabox.cloneProtocol": {
           "type": "string",
           "enum": [
             "ssh",
@@ -458,12 +458,12 @@
           "default": "ssh",
           "markdownDescription": "Protocol used when cloning a project repository. Epitech repositories are normally accessed through SSH."
         },
-        "epibox.defaultCloneDirectory": {
+        "bananabox.defaultCloneDirectory": {
           "type": "string",
           "default": "",
           "markdownDescription": "Default parent folder proposed when cloning a project. Leave empty to start from your home directory."
         },
-        "epibox.afterClone": {
+        "bananabox.afterClone": {
           "type": "string",
           "enum": [
             "ask",
@@ -482,50 +482,76 @@
           "default": "ask",
           "markdownDescription": "What to do once a project repository has been cloned."
         },
-        "epibox.confirmGraderRun": {
+        "bananabox.confirmGraderRun": {
           "type": "boolean",
           "default": true,
           "markdownDescription": "Ask for confirmation before running the grader, since each run uses one grader token. A warning is always shown when local commits are not pushed or files are uncommitted, whatever this setting says."
         },
-        "epibox.preflightCodingStyle": {
+        "bananabox.preflightCodingStyle": {
           "type": "boolean",
           "default": true,
           "markdownDescription": "Before a grader run, check the whole project with Bananabox Coding Style. Fatal or major issues cancel the run unless you choose to ignore them (a coding style failure scores 0 and still uses a grader token). Only applies when the project folder is available locally."
         },
-        "epibox.autoLocateCodingStyle": {
+        "bananabox.autoLocateCodingStyle": {
           "type": "boolean",
           "default": true,
           "markdownDescription": "When a finished grader run reports coding style failures, automatically run Bananabox Coding Style on the project to show where they come from."
         },
-        "epibox.deadlineNotifications": {
+        "bananabox.deadlineNotifications": {
           "type": "boolean",
           "default": true,
           "markdownDescription": "Remind me one day and three hours before the project of the open folder closes, and show a countdown in the status bar."
         },
-        "epibox.autoOpenProjectInEditor": {
+        "bananabox.disabledChecks": {
+          "type": "object",
+          "default": {},
+          "properties": {
+            "followup": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "midterm": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "delivery": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "markdownDescription": "Checks turned off on the Prepare page, per event (`followup`, `midterm`, `delivery`), e.g. `{ \"midterm\": [\"tests\"] }`."
+        },
+        "bananabox.autoOpenProjectInEditor": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Automatically open the detailed project page in the editor area when the opened folder is a project repository."
         },
-        "epibox.graderPollIntervalSeconds": {
+        "bananabox.graderPollIntervalSeconds": {
           "type": "number",
           "default": 3,
           "minimum": 2,
           "maximum": 30,
           "markdownDescription": "How often (in seconds) a running grader job is polled."
         },
-        "epibox.anonymousStatistics": {
+        "bananabox.anonymousStatistics": {
           "type": "boolean",
           "default": true,
           "markdownDescription": "Send anonymous usage statistics to the Bananabox API: a random installation ID, the extension version, the launch count and the last launch time. No account name, e-mail or project data. Turning this off deletes the data stored for this installation. See [the terms](https://github.com/techneoncode/bananabox-public/blob/main/docs/terms.md).",
           "scope": "application"
         },
-        "epibox.showStatusBarItem": {
+        "bananabox.showStatusBarItem": {
           "type": "boolean",
           "default": true,
           "markdownDescription": "Show the grader summary (remaining tokens and latest score) in the status bar when a project repository is open."
         },
-        "epibox.language": {
+        "bananabox.language": {
           "type": "string",
           "enum": [
             "auto",
@@ -695,7 +721,7 @@
         "bananalens.inline.mode": {
           "type": "string",
           "default": "full",
-          "markdownDescription": "Styled inline diagnostics with a severity-coloured square, bold text and a subtle message background. `off` keeps only native diagnostic underlines and hover. Customize content, layout and severity colours with [Bananabox Coding Style: Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "markdownDescription": "Styled inline diagnostics with a severity-coloured square, bold text and a subtle message background. `off` keeps only native diagnostic underlines and hover. Customize content, layout and severity colours with [Bananabox Coding Style: Customize lenses and colours](command:bananabox.codingStyle.configureAppearance).",
           "enum": [
             "off",
             "compact",
@@ -947,7 +973,7 @@
           "type": "string",
           "default": "",
           "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
-          "markdownDescription": "Fatal foreground colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "markdownDescription": "Fatal foreground colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:bananabox.codingStyle.configureAppearance).",
           "scope": "resource",
           "order": 150
         },
@@ -955,7 +981,7 @@
           "type": "string",
           "default": "",
           "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
-          "markdownDescription": "Fatal background colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "markdownDescription": "Fatal background colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:bananabox.codingStyle.configureAppearance).",
           "scope": "resource",
           "order": 151
         },
@@ -963,7 +989,7 @@
           "type": "string",
           "default": "",
           "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
-          "markdownDescription": "Fatal underline colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "markdownDescription": "Fatal underline colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:bananabox.codingStyle.configureAppearance).",
           "scope": "resource",
           "order": 152
         },
@@ -971,7 +997,7 @@
           "type": "string",
           "default": "",
           "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
-          "markdownDescription": "Major foreground colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "markdownDescription": "Major foreground colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:bananabox.codingStyle.configureAppearance).",
           "scope": "resource",
           "order": 153
         },
@@ -979,7 +1005,7 @@
           "type": "string",
           "default": "",
           "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
-          "markdownDescription": "Major background colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "markdownDescription": "Major background colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:bananabox.codingStyle.configureAppearance).",
           "scope": "resource",
           "order": 154
         },
@@ -987,7 +1013,7 @@
           "type": "string",
           "default": "",
           "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
-          "markdownDescription": "Major underline colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "markdownDescription": "Major underline colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:bananabox.codingStyle.configureAppearance).",
           "scope": "resource",
           "order": 155
         },
@@ -995,7 +1021,7 @@
           "type": "string",
           "default": "",
           "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
-          "markdownDescription": "Minor foreground colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "markdownDescription": "Minor foreground colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:bananabox.codingStyle.configureAppearance).",
           "scope": "resource",
           "order": 156
         },
@@ -1003,7 +1029,7 @@
           "type": "string",
           "default": "",
           "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
-          "markdownDescription": "Minor background colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "markdownDescription": "Minor background colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:bananabox.codingStyle.configureAppearance).",
           "scope": "resource",
           "order": 157
         },
@@ -1011,7 +1037,7 @@
           "type": "string",
           "default": "",
           "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
-          "markdownDescription": "Minor underline colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "markdownDescription": "Minor underline colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:bananabox.codingStyle.configureAppearance).",
           "scope": "resource",
           "order": 158
         },
@@ -1019,7 +1045,7 @@
           "type": "string",
           "default": "",
           "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
-          "markdownDescription": "Info foreground colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "markdownDescription": "Info foreground colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:bananabox.codingStyle.configureAppearance).",
           "scope": "resource",
           "order": 159
         },
@@ -1027,7 +1053,7 @@
           "type": "string",
           "default": "",
           "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
-          "markdownDescription": "Info background colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "markdownDescription": "Info background colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:bananabox.codingStyle.configureAppearance).",
           "scope": "resource",
           "order": 160
         },
@@ -1035,7 +1061,7 @@
           "type": "string",
           "default": "",
           "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
-          "markdownDescription": "Info underline colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance).",
+          "markdownDescription": "Info underline colour. Empty uses the theme. Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:bananabox.codingStyle.configureAppearance).",
           "scope": "resource",
           "order": 161
         },
@@ -1135,7 +1161,7 @@
           "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
           "scope": "resource",
           "order": 162,
-          "markdownDescription": "Unauthorized function foreground colour. Empty uses the theme (slate grey). Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance)."
+          "markdownDescription": "Unauthorized function foreground colour. Empty uses the theme (slate grey). Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:bananabox.codingStyle.configureAppearance)."
         },
         "bananalens.inline.colors.function.background": {
           "type": "string",
@@ -1143,7 +1169,7 @@
           "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
           "scope": "resource",
           "order": 163,
-          "markdownDescription": "Unauthorized function background colour. Empty uses the theme (slate grey). Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance)."
+          "markdownDescription": "Unauthorized function background colour. Empty uses the theme (slate grey). Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:bananabox.codingStyle.configureAppearance)."
         },
         "bananalens.inline.colors.function.underline": {
           "type": "string",
@@ -1151,7 +1177,7 @@
           "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)?$",
           "scope": "resource",
           "order": 164,
-          "markdownDescription": "Unauthorized function underline colour. Empty uses the theme (slate grey). Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:epibox.codingStyle.configureAppearance)."
+          "markdownDescription": "Unauthorized function underline colour. Empty uses the theme (slate grey). Accepts `#RRGGBB` or `#RRGGBBAA` (alpha). Use the colour picker in [Customize lenses and colours](command:bananabox.codingStyle.configureAppearance)."
         }
       }
     },
@@ -1172,42 +1198,42 @@
     ],
     "keybindings": [
       {
-        "command": "epibox.codingStyle.acceptCorrections",
+        "command": "bananabox.codingStyle.acceptCorrections",
         "key": "ctrl+alt+enter",
         "mac": "cmd+alt+enter",
-        "when": "editorTextFocus && editorLangId == c && epibox.codingStyle.hasCorrections"
+        "when": "editorTextFocus && editorLangId == c && bananabox.codingStyle.hasCorrections"
       },
       {
-        "command": "epibox.codingStyle.acceptCorrection",
+        "command": "bananabox.codingStyle.acceptCorrection",
         "key": "tab",
-        "when": "editorTextFocus && editorLangId == c && epibox.codingStyle.correctionAtCursor && !editorHasSelection && !editorHasMultipleSelections && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorTabMovesFocus"
+        "when": "editorTextFocus && editorLangId == c && bananabox.codingStyle.correctionAtCursor && !editorHasSelection && !editorHasMultipleSelections && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorTabMovesFocus"
       },
       {
-        "command": "epibox.codingStyle.nextCorrection",
+        "command": "bananabox.codingStyle.nextCorrection",
         "key": "alt+]",
-        "when": "editorTextFocus && editorLangId == c && epibox.codingStyle.hasCorrections && !inlineSuggestionVisible"
+        "when": "editorTextFocus && editorLangId == c && bananabox.codingStyle.hasCorrections && !inlineSuggestionVisible"
       },
       {
-        "command": "epibox.codingStyle.previousCorrection",
+        "command": "bananabox.codingStyle.previousCorrection",
         "key": "alt+[",
-        "when": "editorTextFocus && editorLangId == c && epibox.codingStyle.hasCorrections && !inlineSuggestionVisible"
+        "when": "editorTextFocus && editorLangId == c && bananabox.codingStyle.hasCorrections && !inlineSuggestionVisible"
       },
       {
-        "command": "epibox.codingStyle.dismissCorrections",
+        "command": "bananabox.codingStyle.dismissCorrections",
         "key": "escape",
-        "when": "editorTextFocus && editorLangId == c && epibox.codingStyle.hasCorrections && !suggestWidgetVisible && !inSnippetMode"
+        "when": "editorTextFocus && editorLangId == c && bananabox.codingStyle.hasCorrections && !suggestWidgetVisible && !inSnippetMode"
       },
       {
-        "command": "epibox.codingStyle.toggleInline",
+        "command": "bananabox.codingStyle.toggleInline",
         "key": "ctrl+alt+l",
         "mac": "cmd+alt+l",
         "when": "editorTextFocus && (editorLangId == c || editorLangId == cpp || editorLangId == makefile)"
       },
       {
-        "command": "epibox.acknowledgeDefense",
+        "command": "bananabox.acknowledgeDefense",
         "key": "ctrl+alt+shift+y",
         "mac": "cmd+alt+shift+y",
-        "when": "epibox.defenseAlertActive"
+        "when": "bananabox.defenseAlertActive"
       }
     ],
     "submenus": [

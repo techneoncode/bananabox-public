@@ -14,6 +14,7 @@ import { renderActivities } from './activities';
 import { renderReadout } from './readout';
 import { renderSummary, sidebarNav, pageHead } from './summary';
 import { renderDock } from './dock';
+import { renderMilestoneStrip, renderPrepare } from './prepare';
 import { projectMidpoint } from '../../domain/activities';
 import { chip, menu, notice, tabs, type MenuItem } from '../ui';
 import { personTag } from '../avatars';
@@ -26,12 +27,15 @@ export function renderProject(ctx: Ctx, p: ProjectVM): HTMLElement {
   const root = h('div.detail', { dataset: { project: String(p.id) } });
 
   root.append(header(ctx, p, isCurrent), renderReadout(ctx, p));
+  const strip = renderMilestoneStrip(ctx, p);
+  if (strip) root.append(strip);
   const separate = separateNotice(ctx, p);
   if (separate) root.append(separate);
 
   const runs = ctx.graders.get(p.id)?.history.length ?? 0;
   root.append(tabs<Tab>([
     { id: 'grader', label: t('tab.grader') },
+    { id: 'prepare', label: t('tab.prepare') },
     { id: 'valgrind', label: t('tab.valgrind'), count: ctx.valgrind?.get(p.id)?.run?.leaks.length ?? 0 },
     { id: 'history', label: t('tab.history'), count: runs },
     { id: 'subject', label: t('tab.subject') },
@@ -74,7 +78,7 @@ function tabBody(ctx: Ctx, p: ProjectVM, tab: Tab): HTMLElement {
     ctx.subjects.set(p.id, { status: 'loading' });
     ctx.post({ type: 'loadSubject', projectId: p.id });
   }
-  return tab === 'grader' ? renderGrader(ctx, p) : tab === 'valgrind' ? renderValgrind(ctx, p) : tab === 'history' ? renderHistory(ctx, p) : tab === 'activities' ? renderActivities(ctx, p) : tab === 'subject' ? renderSubject(ctx, p) : overview(ctx, p);
+  return tab === 'grader' ? renderGrader(ctx, p) : tab === 'prepare' ? renderPrepare(ctx, p) : tab === 'valgrind' ? renderValgrind(ctx, p) : tab === 'history' ? renderHistory(ctx, p) : tab === 'activities' ? renderActivities(ctx, p) : tab === 'subject' ? renderSubject(ctx, p) : overview(ctx, p);
 }
 
 /** Project panel header: breadcrumb, clone/intranet actions and the overflow menu. */

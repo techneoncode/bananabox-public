@@ -46,14 +46,15 @@ export function timelineChart(days: TimelineDay[], labels: TimelineLabels): SVGE
 }
 
 /** Horizontal bars per version: the track is the installations, the fill the active ones. */
-export function versionBars(versions: VersionCount[], aria: string, labels: { active: string; installs: string }): HTMLElement {
+export function versionBars(versions: VersionCount[], aria: string, labels: { active: string; installs: string }, current?: string): HTMLElement {
   const max = Math.max(1, ...versions.map((v) => v.installs));
   const wrap = h('div.adm-versions', { role: 'img', 'aria-label': aria });
   versions.forEach((v, i) => {
     const track = h('div.adm-track', { title: `${labels.installs}: ${v.installs} · ${labels.active}: ${v.active}` },
       h('div.adm-total', { style: { width: `${(v.installs / max) * 100}%`, '--i': i } },
         h('div.adm-fill', { style: { width: `${v.installs ? (v.active / v.installs) * 100 : 0}%` } })));
-    wrap.append(h('div.adm-version', { class: v.obsolete ? 'obsolete' : '' }, h('span.mono.adm-version-name', v.version), track, h('span.adm-version-count', v.installs)));
+    const tone = v.version === current ? 'current' : v.obsolete ? 'obsolete' : '';
+    wrap.append(h('div.adm-version', { class: tone }, h('span.mono.adm-version-name', v.version), track, h('span.adm-version-count', v.installs)));
   });
   return wrap;
 }

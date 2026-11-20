@@ -76,6 +76,19 @@ export interface AdminErrorInfo {
   message: string;
 }
 
+export type ReleaseStep = 'reading' | 'account' | 'creating' | 'uploading' | 'policy' | 'apiJson' | 'done' | 'error';
+
+export interface ReleaseState {
+  step: ReleaseStep;
+  file: string;
+  version?: string;
+  /** The release page, once published. */
+  url?: string;
+  error?: string;
+  /** The step that failed. */
+  failed?: ReleaseStep;
+}
+
 export interface AdminViewState {
   lang: Lang;
   phase: 'loading' | 'login' | 'dashboard';
@@ -84,6 +97,8 @@ export interface AdminViewState {
   error?: AdminErrorInfo;
   /** A request is in flight: the webview disables its controls. */
   busy?: boolean;
+  /** The release being published from a dropped VSIX, or the last one. */
+  release?: ReleaseState;
 }
 
 export type AdminHostMessage = { type: 'state'; state: AdminViewState };
@@ -98,4 +113,5 @@ export type AdminWebviewMessage =
   | { type: 'unban'; id: number }
   | { type: 'authorize'; name: string; reason?: string }
   | { type: 'unauthorize'; id: number }
-  | { type: 'setPolicy'; lens_active?: boolean; my_api_active?: boolean };
+  | { type: 'setPolicy'; lens_active?: boolean; my_api_active?: boolean }
+  | { type: 'publishRelease'; file: string; data: string; notes?: string };

@@ -60,16 +60,16 @@ export class CommitExplorer
         this.trees.clear();
         this.emitter.fire(undefined);
       }),
-      vscode.window.createTreeView('epibox.commits', {
+      vscode.window.createTreeView('bananabox.commits', {
         treeDataProvider: this,
         showCollapseAll: true,
       }),
       vscode.workspace.registerTextDocumentContentProvider(
-        'epibox-commit',
+        'bananabox-commit',
         this,
       ),
       vscode.commands.registerCommand(
-        'epibox.compareCommitFile',
+        'bananabox.compareCommitFile',
         (uri: vscode.Uri) =>
           this.compareFile(uri).catch((error) => {
             void vscode.window.showErrorMessage(`Bananabox: ${error.message}`);
@@ -256,7 +256,7 @@ export class CommitExplorer
     await this.tree(snapshot, sha);
     this.active = snapshot;
     this.emitter.fire(undefined);
-    await vscode.commands.executeCommand('epibox.commits.focus');
+    await vscode.commands.executeCommand('bananabox.commits.focus');
   }
 
   private async tree(snapshot: Snapshot, sha: string): Promise<CommitEntry[]> {
@@ -321,7 +321,7 @@ export class CommitExplorer
     item.tooltip = `${node.snapshot.label}\n${node.path}`;
     if (node.entry.type === 'blob') {
       const uri = vscode.Uri.from({
-        scheme: 'epibox-commit',
+        scheme: 'bananabox-commit',
         authority: node.snapshot.id,
         path: `/${node.path}`,
         query: node.entry.sha,
@@ -329,7 +329,7 @@ export class CommitExplorer
       this.nodes.set(uri.toString(), node);
       item.resourceUri = uri;
       item.command = {
-        command: 'epibox.compareCommitFile',
+        command: 'bananabox.compareCommitFile',
         title: createT(config.language())('commit.diff'),
         arguments: [uri],
       };
@@ -380,7 +380,7 @@ export class CommitExplorer
         if ((error as { code?: string }).code !== 'FileNotFound') throw error;
         missing = true;
         current = vscode.Uri.from({
-          scheme: 'epibox-commit',
+          scheme: 'bananabox-commit',
           authority: node.snapshot.id,
           path: `/${node.path}`,
           query: 'empty',

@@ -211,7 +211,7 @@ file unchanged.
 
 ## Development
 
-The coding-style sources live in `src/codingStyle`. Run `npm run test:coding-style` for their tests, `npm test` for all Bananabox tests, and `npm run package` to create `epibox-<version>.vsix` with both MyEpitech and coding-style features.
+The coding-style sources live in `src/codingStyle`. Run `npm run test:coding-style` for their tests, `npm test` for all Bananabox tests, and `npm run package` to create `bananabox-<version>.vsix` with both MyEpitech and coding-style features.
 
 The original Banana Lens engine is distributed under its [MIT license](../licenses/Banana-Lens.txt).
 

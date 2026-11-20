@@ -158,7 +158,7 @@ export async function cloneProject(c: Controller, projectId?: number) {
 }
 
 /**
- * Opens a cloned (or already present) folder according to `epibox.afterClone`,
+ * Opens a cloned (or already present) folder according to `bananabox.afterClone`,
  * asking in a modal by default.
  */
 export async function afterClone(c: Controller, name: string, folder: string) {

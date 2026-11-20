@@ -357,7 +357,7 @@ class BananaLens implements vscode.Disposable {
             handler: (...args: any[]) => unknown,
         ): void => {
             this.context.subscriptions.push(vscode.commands.registerCommand(
-                `epibox.codingStyle.${name}`,
+                `bananabox.codingStyle.${name}`,
                 (...args: any[]) => {
                     if (!isRemoteLensEnabled()) return;
                     return handler(...args);

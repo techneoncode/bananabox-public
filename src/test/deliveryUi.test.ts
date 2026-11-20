@@ -217,15 +217,15 @@ test('update view shows real download progress and enables Reload VSCode only af
 test('readiness renders clear next actions, handles stale evidence and resumes a paused flow', () => {
   const { ctx, project, messages } = context();
   const vm: ReadinessVM = { projectId: 1, status: 'done', configured: false, detected: true, taskCount: 2, commands: ['make -C task01', 'make -C task02'], stale: false,
-    checks: ['style', 'build', 'tests', 'files', 'functions'].map(id => ({ id: id as any, status: 'pass', detail: 'OK' })), checkedAt: Date.now(), error: null, commit: null };
+    checks: ['style', 'build', 'tests', 'files', 'functions', 'binary'].map(id => ({ id: id as any, status: 'pass', detail: 'OK' })), checkedAt: Date.now(), error: null, commit: null };
   ctx.readiness.set(1, vm);
   const root = renderReadiness(ctx, project) as unknown as DomElement;
   assert.equal(root.tagName, 'section');
   assert.equal(root.dataset.detailId, 'readiness');
-  assert.equal(root.all('button').filter(b => b.className.includes('readiness-check')).length, 9);
+  assert.equal(root.all('button').filter(b => b.className.includes('readiness-check')).length, 10);
   assert.match(root.textContent, /Prêt pour le grader/); assert.match(root.textContent, /Commandes détectées automatiquement/);
   root.all('button').find(b => b.textContent.includes('Préparer le rendu'))!.click();
-  assert.deepEqual(messages[0], { type: 'guidedDelivery', projectId: 1 });
+  assert.deepEqual(messages[0], { type: 'guidedDelivery', projectId: 1, milestone: 'delivery' });
   vm.stale = true;
   ctx.guided.set(1, { projectId: 1, status: 'paused', step: 'check', completed: ['save'], message: null });
   const resumed = renderReadiness(ctx, project) as unknown as DomElement;
@@ -323,7 +323,7 @@ test('inline function input adds lists, rejects invalid names, removes chips and
   assert.deepEqual(messages.at(-1), { type: 'setFunctionRules', projectId: 1, names: ['printf'] });
 });
 
-test('Grader tab pairs the pipeline with the selected run; the readout carries tokens in fixed cells', () => {
+test('Grader tab holds the run control and the selected run, no preparation; the readout carries tokens in fixed cells', () => {
   const { ctx, project, grader } = context();
   grader.history = [1, 2].map(summary);
   ctx.ui.selectedResult[1] = 2;
@@ -334,7 +334,8 @@ test('Grader tab pairs the pipeline with the selected run; the readout carries t
   const loop = root.all('div').find(d => d.className.includes('loop'))!;
   const control = loop.all('div').find(d => d.className.includes('grader-control'))!;
   const report = loop.all('section').find(d => d.dataset.detailId === 'grader-runs')!;
-  assert.ok(control.all('section').some(s => s.dataset.detailId === 'readiness'));
+  assert.equal(control.all('section').some(s => s.dataset.detailId === 'readiness'), false);
+  assert.ok(control.all('button').some(b => b.textContent.includes('Lancer')));
   assert.ok(report.className.includes('inline-result')); assert.match(report.textContent, /Essai/);
   // Two failures: the first opens on its own, the second stays one line.
   assert.deepEqual(report.all('button').filter(b => b.className.includes('task-head')).map(b => b.attrs['aria-expanded']), ['true', 'false']);
@@ -359,10 +360,11 @@ test('project page reads header, readout, tabs; the project style scan sits in t
     ctx.ui.tab = tab;
     const root = renderProject(ctx, project) as unknown as DomElement;
     const children = root.childNodes.filter(n => n instanceof DomElement) as DomElement[];
-    assert.deepEqual(children.slice(0, 3).map(n => n.tagName), ['header', 'section', 'div']);
+    assert.deepEqual(children.slice(0, 4).map(n => n.tagName), ['header', 'section', 'nav', 'div']);
     assert.match(children[1].className, /readout/);
-    assert.match(children[2].className, /tabs/);
-    assert.ok(children[2].all('button').some(n => n.textContent.includes('Activités')));
+    assert.match(children[2].className, /ms-strip/);
+    assert.match(children[3].className, /tabs/);
+    assert.ok(children[3].all('button').some(n => n.textContent.includes('Activités')));
   }
   ctx.ui.pipelineFocus = { 1: 'style' };
   const pipeline = renderReadiness(ctx, project) as unknown as DomElement;
@@ -525,8 +527,8 @@ test('Activities has its own category, with no sessions disclosure left in the m
   assert.match(root.textContent, /Non annoncé/);
   assert.doesNotMatch(root.textContent, /estimée/);
   const nav = root.all('div').find(n => n.className.includes('tabs'))!;
-  assert.deepEqual(nav.all('button').map(b => b.textContent.trim()), ['Grader', 'Valgrind', 'Historique', 'Sujet', 'Activités', 'Détails']);
-  nav.all('button')[4].click();
+  assert.deepEqual(nav.all('button').map(b => b.textContent.trim()), ['Grader', 'Préparer', 'Valgrind', 'Historique', 'Sujet', 'Activités', 'Détails']);
+  nav.all('button')[5].click();
   assert.equal(ctx.ui.tab, 'activities');
   root = renderProject(ctx, project) as unknown as DomElement;
   assert.match(root.textContent, /Aucune activité disponible/);

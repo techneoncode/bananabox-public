@@ -101,7 +101,7 @@ export function browserKind(executable: string): BrowserKind {
 }
 
 /**
- * Returns the browser to drive: the user's `epibox.browserPath` if it exists,
+ * Returns the browser to drive: the user's `bananabox.browserPath` if it exists,
  * else the first installed candidate.
  */
 export function findBrowser(

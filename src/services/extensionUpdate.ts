@@ -65,11 +65,8 @@ function vsixEntries(
   return found;
 }
 
-export function validateVsix(
-  bytes: Buffer,
-  extensionId: string,
-  version: string,
-): void {
+/** The extension manifest (`extension/package.json`) of a VSIX. */
+export function vsixManifest(bytes: Buffer): { publisher?: string; name?: string; version?: string } {
   const content = vsixEntries(
     bytes,
     name => name === 'extension/package.json',
@@ -78,7 +75,15 @@ export function validateVsix(
   if (!content) {
     throw new Error(tr('The VSIX does not contain extension/package.json.'));
   }
-  const manifest = JSON.parse(content.toString('utf8'));
+  return JSON.parse(content.toString('utf8'));
+}
+
+export function validateVsix(
+  bytes: Buffer,
+  extensionId: string,
+  version: string,
+): void {
+  const manifest = vsixManifest(bytes);
   if (`${manifest.publisher}.${manifest.name}` !== extensionId
     || manifest.version !== version) {
     throw new Error(tr('The VSIX extension identity or version does not match the remote configuration.'));

@@ -167,7 +167,7 @@ export function graderWarnings(
 
 /**
  * Confirms a token-consuming grader run. Always shown when local work is not on the remote (the grader would
- * test stale code); otherwise it follows `epibox.confirmGraderRun`. Resolves to `undefined` when cancelled.
+ * test stale code); otherwise it follows `bananabox.confirmGraderRun`. Resolves to `undefined` when cancelled.
  */
 export async function confirmGraderRun(
   gate: GraderGate,

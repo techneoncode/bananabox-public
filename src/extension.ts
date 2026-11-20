@@ -13,12 +13,14 @@ import {
 import { InstallStats } from './services/installStats';
 import { remoteFeatures } from './services/remoteFeatures';
 import { registerAvailabilityActions } from './services/availabilityActions';
+import { migrateLegacyPrefix } from './services/legacyMigration';
 import { tr } from './util/text';
 
 export async function activate(
   context: vscode.ExtensionContext,
   remoteDependencies?: RemoteControlDependencies,
 ): Promise<void> {
+  await migrateLegacyPrefix(context);
   const remote = new RemoteControl(context, remoteDependencies);
   context.subscriptions.push(remote);
   await remote.start();
@@ -50,16 +52,16 @@ export async function activate(
     if (admin === wasAdmin) return;
     const lostAccess = wasAdmin === true && !admin;
     wasAdmin = admin;
-    void vscode.commands.executeCommand('setContext', 'epibox.isAdmin', admin);
+    void vscode.commands.executeCommand('setContext', 'bananabox.isAdmin', admin);
     if (lostAccess) void adminView.revoke();
   };
   syncAdmin();
   context.subscriptions.push(remoteFeatures.onDidChange(syncAdmin));
 
-  await vscode.commands.executeCommand('setContext', 'epibox.signedIn', false);
+  await vscode.commands.executeCommand('setContext', 'bananabox.signedIn', false);
   await vscode.commands.executeCommand(
     'setContext',
-    'epibox.hasCurrentProject',
+    'bananabox.hasCurrentProject',
     false,
   );
 
@@ -68,8 +70,8 @@ export async function activate(
     fn: (...args: any[]) => unknown,
   ) => vscode.commands.registerCommand(id, (...args: any[]) => {
     if (
-      id !== 'epibox.refresh'
-      && id !== 'epibox.signOut'
+      id !== 'bananabox.refresh'
+      && id !== 'bananabox.signOut'
       && !remoteFeatures.status.myApiActive
     ) {
       controller.pushState();
@@ -95,14 +97,14 @@ export async function activate(
       adminView,
       { webviewOptions: { retainContextWhenHidden: true } },
     ),
-    cmd('epibox.signInMicrosoft', () => controller.signInMicrosoft()),
-    cmd('epibox.signIn', () => controller.signIn()),
-    cmd('epibox.signOut', () => controller.signOut()),
-    cmd('epibox.refresh', async () => {
+    cmd('bananabox.signInMicrosoft', () => controller.signInMicrosoft()),
+    cmd('bananabox.signIn', () => controller.signIn()),
+    cmd('bananabox.signOut', () => controller.signOut()),
+    cmd('bananabox.refresh', async () => {
       await remote.refresh();
       await controller.refresh();
     }),
-    cmd('epibox.openProject', async () => {
+    cmd('bananabox.openProject', async () => {
       const pick = await vscode.window.showQuickPick(
         (controller.projects.projects ?? []).map((p) => ({
           label: p.name,
@@ -114,14 +116,14 @@ export async function activate(
       );
       if (pick) controller.openProject(pick.id);
     }),
-    cmd('epibox.openCurrentProject', () => controller.openCurrentProject()),
-    cmd('epibox.openHome', () => controller.home?.show()),
-    cmd('epibox.runGrader', () => controller.runGrader()),
-    cmd('epibox.checkReadiness', () => controller.checkReadiness()),
-    cmd('epibox.guidedDelivery', () => controller.guidedDelivery()),
-    cmd('epibox.cloneProject', () => controller.cloneProject()),
-    cmd('epibox.openSubject', () => controller.openSubjectCommand()),
-    cmd('epibox.openOnIntranet', () => controller.openOnIntranet()),
+    cmd('bananabox.openCurrentProject', () => controller.openCurrentProject()),
+    cmd('bananabox.openHome', () => controller.home?.show()),
+    cmd('bananabox.runGrader', () => controller.runGrader()),
+    cmd('bananabox.checkReadiness', () => controller.checkReadiness()),
+    cmd('bananabox.guidedDelivery', () => controller.guidedDelivery()),
+    cmd('bananabox.cloneProject', () => controller.cloneProject()),
+    cmd('bananabox.openSubject', () => controller.openSubjectCommand()),
+    cmd('bananabox.openOnIntranet', () => controller.openOnIntranet()),
   );
 
   controller.style.api = activateCodingStyle(context, {

@@ -21,4 +21,4 @@ Source assets remain in `images/`. The activity bar and Bananabox view use the m
 
 Keep the direct image URLs up to date if a preview is replaced on Imgur. Network access to `i.imgur.com` is needed to display images in the extension overview; the extension's navigation icons and sign-in logo are local.
 
-The Marketplace identity is `techneoncode.bananabox`. Internal `epibox.*` command, view and setting IDs remain stable for compatibility with existing configurations.
+The Marketplace identity is `techneoncode.bananabox`. Command, view and setting IDs use the `bananabox.*` prefix. Settings, sign-in and stored data saved under the older `epibox.*` IDs are moved over on the first start.

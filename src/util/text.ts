@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import { FR_TEXT } from './textFr';
 
-/** The language of the extension host side (`epibox.language`, else the editor's). */
+/** The language of the extension host side (`bananabox.language`, else the editor's). */
 function french(): boolean {
   try {
-    const v = vscode.workspace.getConfiguration('epibox').get<string>('language') ?? 'auto';
+    const v = vscode.workspace.getConfiguration('bananabox').get<string>('language') ?? 'auto';
     return v === 'fr' || (v !== 'en' && (vscode.env?.language ?? '').toLowerCase().startsWith('fr'));
   } catch {
     return false;

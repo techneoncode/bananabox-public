@@ -46,7 +46,7 @@ Chaque minute, l'extension télécharge la politique (`GET /v1/config`) : les de
 ## Ton contrôle
 
 - Tu peux lire le code : tout ce qui est décrit ici se trouve dans ce dépôt.
-- Désactive l'envoi avec le réglage `epibox.anonymousStatistics`. L'extension demande alors à l'API de supprimer tout ce qui est stocké pour ton installation et oublie l'identifiant.
+- Désactive l'envoi avec le réglage `bananabox.anonymousStatistics`. L'extension demande alors à l'API de supprimer tout ce qui est stocké pour ton installation et oublie l'identifiant.
 - Pour toute autre demande (accès, suppression), ouvre une issue sur https://github.com/techneoncode/bananabox-public.
 - Si tu n'acceptes pas ces conditions, tu ne peux pas te connecter avec Bananabox.
 
