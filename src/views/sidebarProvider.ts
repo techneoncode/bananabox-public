@@ -3,8 +3,8 @@ import type { Controller } from '../controller';
 import { buildHtml } from './webviewHtml';
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
-  static readonly viewType = 'epibox.sidebar';
-  static readonly calendarViewType = 'epibox.calendar';
+  static readonly viewType = 'bananabox.sidebar';
+  static readonly calendarViewType = 'bananabox.calendar';
 
   constructor(
     private readonly extensionUri: vscode.Uri,

@@ -46,7 +46,7 @@ Every minute the extension downloads the policy (`GET /v1/config`): the two feat
 ## Your control
 
 - You can read the code: everything described here is in this repository.
-- Turn it off with the setting `epibox.anonymousStatistics`. The extension then asks the API to delete everything stored for your installation and forgets the ID.
+- Turn it off with the setting `bananabox.anonymousStatistics`. The extension then asks the API to delete everything stored for your installation and forgets the ID.
 - To ask for anything else (access, deletion), open an issue on https://github.com/techneoncode/bananabox-public.
 - If you do not accept these terms, you cannot sign in with Bananabox.
 

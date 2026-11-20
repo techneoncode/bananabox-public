@@ -9,7 +9,8 @@ import { chip, menu, waitLine, type MenuItem, type Tone } from '../ui';
 import { avatarStack } from '../avatars';
 import { readinessVerdict } from '../../domain/readiness';
 import { statusBadge } from './list';
-import { deliveryChecks } from './pipeline';
+import { deliveryChecks, milestoneEvent } from './pipeline';
+import { renderMilestoneStrip } from './prepare';
 import { commitButton, selectResult } from './report';
 import { projectTrack, renderNextUp } from './focus';
 import { columnWidth, graderPending, projectClock, projectSkyline, skylineSkeleton } from './signature';
@@ -22,7 +23,7 @@ type Child = Node | string | number | false | null | undefined | Child[];
  */
 const go = (ctx: Ctx, tab: Tab | null, p: ProjectVM) => () => {
   if (ctx.surface === 'sidebar') { ctx.ui.tab = tab; ctx.rerender(); return; }
-  ctx.post({ type: 'openProject', projectId: p.id, tab: tab === 'details' || tab === null ? 'overview' : tab });
+  ctx.post({ type: 'openProject', projectId: p.id, tab: tab === 'details' || tab === null ? 'overview' : tab === 'prepare' ? `prepare-${ctx.ui.milestone ?? milestoneEvent(ctx, p).kind}` : tab });
 };
 
 /** The sidebar app bar: back, the collapsed title, the overflow menu and "open wide". */
@@ -69,7 +70,7 @@ export function pageHead(ctx: Ctx, p: ProjectVM, tab: Tab): HTMLElement {
 
 /** The project summary: everything that answers "where do I stand", each piece one tap from its page. */
 export function renderSummary(ctx: Ctx, p: ProjectVM): HTMLElement[] {
-  return [title(ctx, p), banner(ctx, p), h('div.sb-tiles', deadlineTile(ctx, p), scoreTile(ctx, p)), stateGroup(ctx, p), nextUp(ctx, p), links(ctx, p)].filter((n): n is HTMLElement => !!n);
+  return [title(ctx, p), banner(ctx, p), h('div.sb-tiles', deadlineTile(ctx, p), scoreTile(ctx, p)), renderMilestoneStrip(ctx, p), stateGroup(ctx, p), nextUp(ctx, p), links(ctx, p)].filter((n): n is HTMLElement => !!n);
 }
 
 function title(ctx: Ctx, p: ProjectVM): HTMLElement {
@@ -164,7 +165,7 @@ function deliveryRow(ctx: Ctx, p: ProjectVM): HTMLElement {
   const failing = checks.filter(c => c.status === 'fail');
   const local = ctx.state.commitStates?.[p.id] !== null;
   const pending = graderPending(ctx, p);
-  return stateRow('checklist', t('sb.delivery'), go(ctx, 'grader', p),
+  return stateRow('checklist', t('sb.delivery'), go(ctx, 'prepare', p),
     pending ? waitLine(t('readout.loading')) : [h('span.num', `${passed}/${checks.length}`), chip(VERDICT_TONE[verdict] ?? '', h('span', { title: t(`delivery.verdict.${verdict}`) }, t(`sb.verdict.${verdict}`)))],
     h('div.sb-meter', { role: 'img', 'aria-label': checks.map(c => `${t(`delivery.check.${c.id}`)}: ${c.status}`).join(', ') },
       checks.map((c, j) => h('i', { class: c.status, title: `${t(`delivery.check.${c.id}`)} · ${c.detail}`, style: { '--j': String(j) } }))),
@@ -204,7 +205,7 @@ function syncRow(ctx: Ctx, p: ProjectVM): HTMLElement {
 function styleRow(ctx: Ctx, p: ProjectVM): HTMLElement {
   const { t, lang } = ctx, scan = ctx.styleScans.get(p.id);
   const local = ctx.state.commitStates?.[p.id] !== null;
-  const open = () => { (ctx.ui.pipelineFocus ??= {})[p.id] = 'style'; go(ctx, 'grader', p)(); };
+  const open = () => { (ctx.ui.pipelineFocus ??= {})[p.id] = 'style'; go(ctx, 'prepare', p)(); };
   const buckets = ['fatal', 'major', 'minor', 'info'] as const;
   if (!scan || scan.status === 'unavailable' || scan.status === 'error') {
     return stateRow('eye', t('sb.style'), open, null,

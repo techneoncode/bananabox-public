@@ -28,7 +28,7 @@ function fakeFirefox(onKill?: () => void): Fake {
   return fake;
 }
 
-const profile = () => join(mkdtempSync(join(tmpdir(), 'epibox-ff-')), 'profile');
+const profile = () => join(mkdtempSync(join(tmpdir(), 'bananabox-ff-')), 'profile');
 const base = { executable: '/usr/bin/firefox', url: 'https://login.microsoftonline.com/x/authorize?a=b', timeoutMs: 5_000, connectTimeoutMs: 1_500 };
 
 /** A minimal WebDriver BiDi endpoint. `onNavigate` decides what Firefox "navigates" to. */
@@ -83,9 +83,9 @@ test('firefox args: separate instance, own profile, BiDi port, starts blank; hea
 
 test('snap-confined browsers get their profile inside ~/snap, others in the extension storage', () => {
   const none = () => false;
-  assert.equal(browserProfileDir('/gs', '/usr/bin/firefox', { platform: 'linux', home: '/home/u', exists: (p) => p === '/home/u/snap/firefox/common' }), '/home/u/snap/firefox/common/epibox-firefox-profile');
-  assert.equal(browserProfileDir('/gs', '/snap/bin/firefox', { platform: 'linux', home: '/home/u', exists: none }), '/home/u/snap/firefox/common/epibox-firefox-profile');
-  assert.equal(browserProfileDir('/gs', '/snap/bin/chromium', { platform: 'linux', home: '/home/u', exists: none }), '/home/u/snap/chromium/common/epibox-chromium-profile');
+  assert.equal(browserProfileDir('/gs', '/usr/bin/firefox', { platform: 'linux', home: '/home/u', exists: (p) => p === '/home/u/snap/firefox/common' }), '/home/u/snap/firefox/common/bananabox-firefox-profile');
+  assert.equal(browserProfileDir('/gs', '/snap/bin/firefox', { platform: 'linux', home: '/home/u', exists: none }), '/home/u/snap/firefox/common/bananabox-firefox-profile');
+  assert.equal(browserProfileDir('/gs', '/snap/bin/chromium', { platform: 'linux', home: '/home/u', exists: none }), '/home/u/snap/chromium/common/bananabox-chromium-profile');
   assert.equal(browserProfileDir('/gs', '/usr/bin/firefox', { platform: 'linux', home: '/home/u', exists: none }), '/gs/browser-profile-firefox');
   assert.equal(browserProfileDir('/gs', '/usr/bin/google-chrome', { platform: 'linux', home: '/home/u', exists: () => true }), '/gs/browser-profile-chromium');
   assert.equal(browserProfileDir('/gs', '/Applications/Firefox.app/Contents/MacOS/firefox', { platform: 'darwin', home: '/Users/u', exists: () => true }), '/gs/browser-profile-firefox');

@@ -24,7 +24,7 @@ import type { ProjectService } from './projectService';
 import { tr } from '../util/text';
 
 const MAX_POLL_MS = 10 * 60_000;
-const CACHE_KEY = 'epibox.graderCache.v1';
+const CACHE_KEY = 'bananabox.graderCache.v1';
 const RESULTS_MAX_AGE = 30 * 60_000;
 const MAX_CACHED_PROJECTS = 80;
 

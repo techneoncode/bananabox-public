@@ -89,7 +89,7 @@ export async function gitClone(
 
 function friendlyGitError(stderr: string): string {
   if (/permission denied \(publickey\)|could not read from remote repository/i.test(stderr)) {
-    return 'Git could not authenticate. Make sure your SSH key is added to your GitHub account (or switch "epibox.cloneProtocol" to https).';
+    return 'Git could not authenticate. Make sure your SSH key is added to your GitHub account (or switch "bananabox.cloneProtocol" to https).';
   }
   if (/already exists and is not an empty directory/i.test(stderr)) {
     return tr('The destination folder already exists and is not empty.');

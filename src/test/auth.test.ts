@@ -57,26 +57,26 @@ test('signing in with a Microsoft ID token exchanges it and stores the Microsoft
   await auth.signIn(msIdToken(), { msRefresh: 'MS-RT' });
   assert.equal(auth.snapshot.status, 'signedIn');
   assert.equal(auth.accessToken, fresh);
-  assert.equal(saved.get('epibox.msRefreshToken'), 'MS-RT');
+  assert.equal(saved.get('bananabox.msRefreshToken'), 'MS-RT');
   assert.equal(auth.snapshot.pending, null);
   auth.dispose();
 });
 
 test('an expired stored session is renewed silently through the Microsoft refresh token', async () => {
-  const { saved, secrets } = memorySecrets({ 'epibox.accessToken': epitechToken(-60), 'epibox.msRefreshToken': 'MS-RT-1' });
+  const { saved, secrets } = memorySecrets({ 'bananabox.accessToken': epitechToken(-60), 'bananabox.msRefreshToken': 'MS-RT-1' });
   const fresh = epitechToken(3600);
   const auth = new AuthManager(secrets, { refresh: async (rt) => (assert.equal(rt, 'MS-RT-1'), { idToken: msIdToken(), refreshToken: 'MS-RT-2' }) });
   auth.client = { exchangeMicrosoftToken: async () => ({ access_token: fresh }), verify: async () => ({ login: 'demo@example.invalid' }) } as unknown as EpitechClient;
   await auth.restore();
   assert.equal(auth.snapshot.status, 'signedIn');
   assert.equal(auth.accessToken, fresh);
-  assert.equal(saved.get('epibox.msRefreshToken'), 'MS-RT-2'); // rotated token is persisted
+  assert.equal(saved.get('bananabox.msRefreshToken'), 'MS-RT-2'); // rotated token is persisted
   auth.dispose();
 });
 
 test('a server 401 triggers one renewal; a lost Microsoft session ends in "expired" and drops the refresh token', async () => {
   const { MicrosoftAuthError } = await import('../auth/microsoft');
-  const { saved, secrets } = memorySecrets({ 'epibox.accessToken': epitechToken(3600), 'epibox.msRefreshToken': 'MS-RT' });
+  const { saved, secrets } = memorySecrets({ 'bananabox.accessToken': epitechToken(3600), 'bananabox.msRefreshToken': 'MS-RT' });
   let refreshes = 0;
   const auth = new AuthManager(secrets, { refresh: async () => { refreshes++; throw new MicrosoftAuthError('reauth', 'again'); } });
   auth.client = { verify: async () => ({ login: 'demo@example.invalid' }) } as unknown as EpitechClient;
@@ -87,12 +87,12 @@ test('a server 401 triggers one renewal; a lost Microsoft session ends in "expir
   await new Promise((r) => setTimeout(r, 20));
   assert.equal(refreshes, 1);
   assert.equal(auth.snapshot.status, 'expired');
-  assert.equal(saved.has('epibox.msRefreshToken'), false);
+  assert.equal(saved.has('bananabox.msRefreshToken'), false);
   auth.dispose();
 });
 
 test('without a Microsoft refresh token, an expired session simply asks to sign in again', async () => {
-  const { secrets } = memorySecrets({ 'epibox.accessToken': epitechToken(-60) });
+  const { secrets } = memorySecrets({ 'bananabox.accessToken': epitechToken(-60) });
   const auth = new AuthManager(secrets);
   auth.client = {} as unknown as EpitechClient;
   await auth.restore();
@@ -118,7 +118,7 @@ test('pending browser step is published, keeps the page on a bad paste, and is c
 // ───────── invisible renewal through the Bananabox browser profile ─────────
 
 test('when the Microsoft refresh token is gone, a browser-signed-in user is renewed invisibly', async () => {
-  const { saved, secrets } = memorySecrets({ 'epibox.accessToken': epitechToken(-60), 'epibox.browserSession': '1' });
+  const { saved, secrets } = memorySecrets({ 'bananabox.accessToken': epitechToken(-60), 'bananabox.browserSession': '1' });
   const fresh = epitechToken(3600);
   let silent = 0;
   const auth = new AuthManager(secrets, { silentLogin: async () => (silent++, { idToken: msIdToken(), refreshToken: 'MS-RT-NEW' }) });
@@ -126,26 +126,26 @@ test('when the Microsoft refresh token is gone, a browser-signed-in user is rene
   await auth.restore();
   assert.equal(silent, 1);
   assert.equal(auth.snapshot.status, 'signedIn');
-  assert.equal(saved.get('epibox.msRefreshToken'), 'MS-RT-NEW');
-  assert.equal(saved.get('epibox.browserSession'), '1');
+  assert.equal(saved.get('bananabox.msRefreshToken'), 'MS-RT-NEW');
+  assert.equal(saved.get('bananabox.browserSession'), '1');
   auth.dispose();
 });
 
 test('a lost refresh token (reauth) falls through to the invisible renewal; if that needs the user, the session is "expired"', async () => {
   const { MicrosoftAuthError } = await import('../auth/microsoft');
-  const { saved, secrets } = memorySecrets({ 'epibox.accessToken': epitechToken(-60), 'epibox.msRefreshToken': 'MS-RT', 'epibox.browserSession': '1' });
+  const { saved, secrets } = memorySecrets({ 'bananabox.accessToken': epitechToken(-60), 'bananabox.msRefreshToken': 'MS-RT', 'bananabox.browserSession': '1' });
   let silent = 0;
   const auth = new AuthManager(secrets, { refresh: async () => { throw new MicrosoftAuthError('reauth', 'again'); }, silentLogin: async () => (silent++, null) });
   auth.client = {} as unknown as EpitechClient;
   await auth.restore();
   assert.equal(silent, 1);
   assert.equal(auth.snapshot.status, 'expired');
-  assert.equal(saved.has('epibox.msRefreshToken'), false);
+  assert.equal(saved.has('bananabox.msRefreshToken'), false);
   auth.dispose();
 });
 
 test('the invisible renewal is only attempted for users who signed in through the browser window', async () => {
-  const { secrets } = memorySecrets({ 'epibox.accessToken': epitechToken(-60) });
+  const { secrets } = memorySecrets({ 'bananabox.accessToken': epitechToken(-60) });
   let silent = 0;
   const auth = new AuthManager(secrets, { silentLogin: async () => (silent++, null) });
   auth.client = {} as unknown as EpitechClient;
@@ -161,9 +161,9 @@ test('signing in through the browser remembers it; signing out forgets it', asyn
   const auth = new AuthManager(secrets);
   auth.client = { exchangeMicrosoftToken: async () => ({ access_token: fresh }), verify: async () => ({ login: 'demo@example.invalid' }) } as unknown as EpitechClient;
   await auth.signIn(msIdToken(), { msRefresh: 'RT', viaBrowser: true });
-  assert.equal(saved.get('epibox.browserSession'), '1');
+  assert.equal(saved.get('bananabox.browserSession'), '1');
   await auth.signOut();
-  assert.equal(saved.has('epibox.browserSession'), false);
+  assert.equal(saved.has('bananabox.browserSession'), false);
   auth.dispose();
 });
 
@@ -185,7 +185,7 @@ test('signIn works while the controller holds the busy flag (no "already in prog
 // ───────── MyEpitech rotating refresh token (POST /api/auth/refresh) ─────────
 
 test('an expired session is renewed with the MyEpitech refresh token, which is rotated and keeps the Microsoft one', async () => {
-  const { saved, secrets } = memorySecrets({ 'epibox.accessToken': epitechToken(-60), 'epibox.refreshToken': 'MY-RT-1', 'epibox.msRefreshToken': 'MS-RT' });
+  const { saved, secrets } = memorySecrets({ 'bananabox.accessToken': epitechToken(-60), 'bananabox.refreshToken': 'MY-RT-1', 'bananabox.msRefreshToken': 'MS-RT' });
   const fresh = epitechToken(3600);
   const used: string[] = [];
   const auth = new AuthManager(secrets, { refresh: async () => { throw new Error('Microsoft must not be needed'); } });
@@ -194,27 +194,27 @@ test('an expired session is renewed with the MyEpitech refresh token, which is r
   assert.deepEqual(used, ['MY-RT-1']);
   assert.equal(auth.snapshot.status, 'signedIn');
   assert.equal(auth.accessToken, fresh);
-  assert.equal(saved.get('epibox.refreshToken'), 'MY-RT-2');
-  assert.equal(saved.get('epibox.msRefreshToken'), 'MS-RT');
+  assert.equal(saved.get('bananabox.refreshToken'), 'MY-RT-2');
+  assert.equal(saved.get('bananabox.msRefreshToken'), 'MS-RT');
   auth.dispose();
 });
 
 test('a refused MyEpitech refresh token is dropped and Microsoft takes over; a network failure keeps it', async () => {
   const { ApiError } = await import('../api/client');
-  const { saved, secrets } = memorySecrets({ 'epibox.accessToken': epitechToken(-60), 'epibox.refreshToken': 'BAD', 'epibox.msRefreshToken': 'MS-RT' });
+  const { saved, secrets } = memorySecrets({ 'bananabox.accessToken': epitechToken(-60), 'bananabox.refreshToken': 'BAD', 'bananabox.msRefreshToken': 'MS-RT' });
   const fresh = epitechToken(3600);
   const auth = new AuthManager(secrets, { refresh: async () => ({ idToken: msIdToken(), refreshToken: 'MS-RT-2' }) });
   auth.client = { refreshSession: async () => { throw new ApiError('invalid', 401, '/api/auth/refresh'); }, exchangeMicrosoftToken: async () => ({ access_token: fresh, refresh_token: 'MY-NEW' }), verify: async () => ({ login: 'demo@example.invalid' }) } as unknown as EpitechClient;
   await auth.restore();
   assert.equal(auth.snapshot.status, 'signedIn');
-  assert.equal(saved.get('epibox.refreshToken'), 'MY-NEW'); // re-issued by the Microsoft exchange
+  assert.equal(saved.get('bananabox.refreshToken'), 'MY-NEW'); // re-issued by the Microsoft exchange
   auth.dispose();
 
-  const offline = memorySecrets({ 'epibox.accessToken': epitechToken(-60), 'epibox.refreshToken': 'KEEP' });
+  const offline = memorySecrets({ 'bananabox.accessToken': epitechToken(-60), 'bananabox.refreshToken': 'KEEP' });
   const a2 = new AuthManager(offline.secrets);
   a2.client = { refreshSession: async () => { throw new ApiError('Network error', 0, '/api/auth/refresh'); } } as unknown as EpitechClient;
   await a2.restore();
   assert.equal(a2.snapshot.status, 'expired');
-  assert.equal(offline.saved.get('epibox.refreshToken'), 'KEEP');
+  assert.equal(offline.saved.get('bananabox.refreshToken'), 'KEEP');
   a2.dispose();
 });

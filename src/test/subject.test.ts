@@ -13,7 +13,7 @@ test('direct PDF can be viewed, opened online, and saved for the system viewer',
   const opened: string[] = [];
   let saved: Uint8Array | undefined;
   (vscode.env as any).openExternal = async (uri: vscode.Uri) => { opened.push(uri.toString()); return true; };
-  (vscode.window as any).showSaveDialog = async () => vscode.Uri.file('/tmp/epibox-subject-test.pdf');
+  (vscode.window as any).showSaveDialog = async () => vscode.Uri.file('/tmp/bananabox-subject-test.pdf');
   (vscode.workspace as any).fs = { writeFile: async (_uri: vscode.Uri, data: Uint8Array) => { saved = data; } };
   const state = await service.load(project);
   assert.equal(state.status, 'ready');
@@ -21,7 +21,7 @@ test('direct PDF can be viewed, opened online, and saved for the system viewer',
   assert.equal(opened[0], 'https://my.epitech.eu/subject.pdf');
   await service.openOnComputer(project);
   assert.deepEqual(saved, bytes);
-  assert.equal(opened[1], 'file:///tmp/epibox-subject-test.pdf');
+  assert.equal(opened[1], 'file:///tmp/bananabox-subject-test.pdf');
   assert.equal(downloads, 1);
   (vscode.window as any).showSaveDialog = async () => undefined;
   await service.openOnComputer(project);

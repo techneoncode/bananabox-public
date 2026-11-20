@@ -6,6 +6,7 @@ import { chip } from '../ui';
 import { projectBrowser, statusBadge } from './list';
 import { renderSeason } from './season';
 import { banner, deadlineTile, openButtons, scoreTile, stateGroup, tileLabel } from './summary';
+import { renderMilestoneStrip } from './prepare';
 import { enterPart } from '../motion';
 import { projectMidpoint } from '../../domain/activities';
 import { avatarStack } from '../avatars';
@@ -76,6 +77,7 @@ function projectCard(ctx: Ctx, p: ProjectVM): HTMLElement {
         h('button.icon-btn', { type: 'button', title: t('action.intranet'), 'aria-label': t('action.intranet'), onclick: () => ctx.post({ type: 'openExternal', url: p.intranetUrl }) }, icon('link-external')))),
     banner(ctx, p, cardWidth() - 30, 76, 34),
     h('div.sb-tiles.home-tiles', deadlineTile(ctx, p), scoreTile(ctx, p), groupTile(ctx, p)),
+    renderMilestoneStrip(ctx, p),
     stateGroup(ctx, p));
   // Picking another project on the timeline re-plays the card's entrance, not the whole page's.
   return enterPart(card, 'home-card', String(p.id));

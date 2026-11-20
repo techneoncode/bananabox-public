@@ -6,7 +6,7 @@ test('API contract: auth, pagination beyond ten pages, grader and credential bou
   const original = globalThis.fetch;
   let unauthorized = 0;
   const calls: Array<{ url: URL; init?: RequestInit }> = [];
-  const client = new EpitechClient({ baseUrl: () => 'https://my.epitech.eu', token: () => 'test-only', onUnauthorized: () => unauthorized++, userAgent: 'epibox-test' });
+  const client = new EpitechClient({ baseUrl: () => 'https://my.epitech.eu', token: () => 'test-only', onUnauthorized: () => unauthorized++, userAgent: 'bananabox-test' });
   globalThis.fetch = async (input, init) => {
     const url = new URL(String(input)); calls.push({ url, init });
     if (url.pathname.endsWith('/projects')) {

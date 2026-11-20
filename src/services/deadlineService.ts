@@ -2,7 +2,7 @@ import type * as vscode from 'vscode';
 import { REMINDER_HOURS, dueReminder, reminderKey } from '../domain/deadlines';
 import type { ProjectVM } from '../shared/types';
 
-const KEY = 'epibox.deadlineShown.v1';
+const KEY = 'bananabox.deadlineShown.v1';
 const KEEP_MS = 14 * 86_400_000;
 
 /**

@@ -25,8 +25,8 @@ test('Bananabox navigation uses a local SVG box and the commit icon keeps its al
   const manifest = JSON.parse(readFileSync('package.json', 'utf8'));
   const icons = [
     manifest.contributes.viewsContainers.activitybar[0].icon,
-    manifest.contributes.views.epibox[0].icon,
-    manifest.contributes.views.explorer.find((view: { id: string }) => view.id === 'epibox.commits').icon,
+    manifest.contributes.views.bananabox[0].icon,
+    manifest.contributes.views.explorer.find((view: { id: string }) => view.id === 'bananabox.commits').icon,
   ];
   assert.equal(icons[0], 'media/activity.svg');
   assert.equal(icons[1], 'media/activity.svg');

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
+import type { DisabledChecks } from '../domain/milestones';
 
-const cfg = () => vscode.workspace.getConfiguration('epibox');
+const cfg = () => vscode.workspace.getConfiguration('bananabox');
 
 export const config = {
   apiBaseUrl: (): string =>
@@ -30,6 +31,12 @@ export const config = {
     cfg().get<boolean>('deadlineNotifications') ?? true,
   disableGraderConfirmation: (): Thenable<void> =>
     cfg().update('confirmGraderRun', false, vscode.ConfigurationTarget.Global),
+  disabledChecks: (): DisabledChecks => {
+    const v = cfg().get<unknown>('disabledChecks');
+    return v && typeof v === 'object' ? v as DisabledChecks : {};
+  },
+  setDisabledChecks: (value: DisabledChecks): Thenable<void> =>
+    cfg().update('disabledChecks', value, vscode.ConfigurationTarget.Global),
   autoOpenInEditor: (): boolean =>
     cfg().get<boolean>('autoOpenProjectInEditor') ?? false,
   pollIntervalMs: (): number =>

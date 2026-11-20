@@ -9,10 +9,10 @@ import {
 } from './microsoft';
 import { tr } from '../util/text';
 
-const TOKEN_KEY = 'epibox.accessToken';
-const REFRESH_KEY = 'epibox.refreshToken';
-const MS_REFRESH_KEY = 'epibox.msRefreshToken';
-const BROWSER_KEY = 'epibox.browserSession';
+const TOKEN_KEY = 'bananabox.accessToken';
+const REFRESH_KEY = 'bananabox.refreshToken';
+const MS_REFRESH_KEY = 'bananabox.msRefreshToken';
+const BROWSER_KEY = 'bananabox.browserSession';
 const RENEW_MARGIN_MS = 5 * 60_000;
 const RENEW_COOLDOWN_MS = 15_000;
 
@@ -83,7 +83,7 @@ export class AuthManager implements vscode.Disposable {
       });
       await vscode.commands.executeCommand(
         'setContext',
-        'epibox.signedIn',
+        'bananabox.signedIn',
         false,
       );
       return;
@@ -97,7 +97,7 @@ export class AuthManager implements vscode.Disposable {
     });
     await vscode.commands.executeCommand(
       'setContext',
-      'epibox.signedIn',
+      'bananabox.signedIn',
       true,
     );
     this.scheduleRenewal(info.expiresAt);
@@ -185,7 +185,7 @@ export class AuthManager implements vscode.Disposable {
       });
       await vscode.commands.executeCommand(
         'setContext',
-        'epibox.signedIn',
+        'bananabox.signedIn',
         true,
       );
       this.scheduleRenewal(expiry);
@@ -209,7 +209,7 @@ export class AuthManager implements vscode.Disposable {
     this.set(blank('signedOut'));
     await vscode.commands.executeCommand(
       'setContext',
-      'epibox.signedIn',
+      'bananabox.signedIn',
       false,
     );
     await this.persist(async () => {
@@ -228,7 +228,7 @@ export class AuthManager implements vscode.Disposable {
     clearTimeout(this.renewalTimer);
     this.token = undefined;
     this.set(blank('signedOut'));
-    void vscode.commands.executeCommand('setContext', 'epibox.signedIn', false);
+    void vscode.commands.executeCommand('setContext', 'bananabox.signedIn', false);
   }
 
   /**
@@ -254,7 +254,7 @@ export class AuthManager implements vscode.Disposable {
         });
         void vscode.commands.executeCommand(
           'setContext',
-          'epibox.signedIn',
+          'bananabox.signedIn',
           false,
         );
       }

@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import * as vscode from 'vscode';
 import { RequestGuard } from './api/requestGuard';
 import { PALETTE_KEY, sanitizePalette, type Palette } from './shared/palette';
+import type { Milestone } from './domain/milestones';
 import { EpitechClient } from './api/client';
 import { AuthManager } from './auth/authManager';
 import type { AuthRequest } from './auth/microsoft';
@@ -197,7 +198,7 @@ export class Controller implements vscode.Disposable {
       baseUrl: () => config.apiBaseUrl(),
       token: () => this.auth.accessToken,
       onUnauthorized: () => this.auth.markExpired(),
-      userAgent: `epibox-vscode/${context.extension.packageJSON.version}`,
+      userAgent: `bananabox-vscode/${context.extension.packageJSON.version}`,
       isEnabled: () => remoteFeatures.status.myApiActive,
       signal: () => remoteFeatures.apiSignal,
       onActivityChange: () => this.schedulePush(),
@@ -264,7 +265,7 @@ export class Controller implements vscode.Disposable {
       vscode.StatusBarAlignment.Left,
       50,
     );
-    this.statusItem.command = 'epibox.openCurrentProject';
+    this.statusItem.command = 'bananabox.openCurrentProject';
 
     const gitConfigWatcher = vscode.workspace.createFileSystemWatcher(
       '**/.git/config',
@@ -335,7 +336,7 @@ export class Controller implements vscode.Disposable {
         void this.projects.detectCurrent(),
       ),
       vscode.workspace.onDidChangeConfiguration((e) => {
-        if (e.affectsConfiguration('epibox')) {
+        if (e.affectsConfiguration('bananabox')) {
           updateStatusBar(this);
           this.schedulePush();
         }
@@ -398,6 +399,7 @@ export class Controller implements vscode.Disposable {
       network: this.client.guard.snapshot(),
       localProjects: this.localProjects(),
       palette: this.palette(),
+      disabledChecks: config.disabledChecks(),
     };
   }
 
@@ -526,8 +528,8 @@ export class Controller implements vscode.Disposable {
     return checkReadiness(this, projectId);
   }
 
-  guidedDelivery(projectId?: number) {
-    return guidedDelivery(this, projectId);
+  guidedDelivery(projectId?: number, milestone?: Milestone) {
+    return guidedDelivery(this, projectId, milestone);
   }
 
   cloneProject(projectId?: number) {

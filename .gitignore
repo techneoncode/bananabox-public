@@ -5,6 +5,6 @@ dist-tsc/
 *.vsix
 *.zip
 *.har
-.epibox-inspect/
+.bananabox-inspect/
 .wrangler/
 .admin_token

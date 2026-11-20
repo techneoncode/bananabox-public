@@ -73,7 +73,7 @@ if (watch) {
   const e = await esbuild.context(admin);
   await esbuild.build(pdftext);
   await Promise.all([a.watch(), b.watch(), c.watch(), d.watch(), e.watch()]);
-  console.log('[epibox] watching…');
+  console.log('[bananabox] watching…');
 } else {
   await Promise.all([esbuild.build(extension), esbuild.build(webview), esbuild.build(pdfviewer), esbuild.build(reminder), esbuild.build(admin), esbuild.build(pdftext)]);
 }

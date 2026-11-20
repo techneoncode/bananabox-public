@@ -43,7 +43,7 @@ export function browserProfileDir(
     if (name) {
       const common = join(home, 'snap', name, 'common');
       if (executable.startsWith('/snap/') || exists(common)) {
-        return join(common, `epibox-${name}-profile`);
+        return join(common, `bananabox-${name}-profile`);
       }
     }
   }

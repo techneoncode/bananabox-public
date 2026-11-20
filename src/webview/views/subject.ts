@@ -30,7 +30,7 @@ function loadViewer(): Promise<PdfApi> {
     const s = document.createElement('script');
     s.src = document.body.dataset.pdfViewer ?? '';
     s.nonce = main?.nonce ?? '';
-    s.onload = () => ((window as any).__epiboxPdf ? resolve((window as any).__epiboxPdf) : reject(new Error('PDF viewer unavailable')));
+    s.onload = () => ((window as any).__bananaboxPdf ? resolve((window as any).__bananaboxPdf) : reject(new Error('PDF viewer unavailable')));
     s.onerror = () => reject(new Error('Could not load the PDF viewer'));
     document.head.append(s);
   });

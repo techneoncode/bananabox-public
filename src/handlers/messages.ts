@@ -7,6 +7,7 @@ import { describe } from '../services/graderService';
 import { remoteFeatures } from '../services/remoteFeatures';
 import { validateFunctionNames } from '../domain/functionRules';
 import { createT } from '../shared/i18n';
+import { MILESTONES, milestoneCheckIds } from '../domain/milestones';
 import type { PanelTab, WebviewMessage } from '../shared/protocol';
 import { config } from '../util/config';
 import type { Controller, Surface } from '../controller';
@@ -37,6 +38,9 @@ const PANEL_TABS: PanelTab[] = [
   'history',
   'subject',
   'activities',
+  'prepare-followup',
+  'prepare-midterm',
+  'prepare-delivery',
 ];
 
 export async function handleMessage(
@@ -52,7 +56,7 @@ export async function handleMessage(
     m.type === 'reloadVSCode' ||
     m.type === 'refreshVSCode'
   ) {
-    return void (await vscode.commands.executeCommand(`epibox.${m.type}`));
+    return void (await vscode.commands.executeCommand(`bananabox.${m.type}`));
   }
   if (m.type === 'setPalette') return c.setPalette(m.palette);
   if (
@@ -100,7 +104,7 @@ export async function handleMessage(
     case 'acceptTerms':
       return c.acceptTerms();
     case 'signIn':
-      return void (await vscode.commands.executeCommand('epibox.signIn'));
+      return void (await vscode.commands.executeCommand('bananabox.signIn'));
     case 'signInMicrosoft':
       return c.signInMicrosoft();
     case 'signInPaste':
@@ -110,9 +114,9 @@ export async function handleMessage(
     case 'cancelSignIn':
       return c.cancelSignIn();
     case 'signOut':
-      return void (await vscode.commands.executeCommand('epibox.signOut'));
+      return void (await vscode.commands.executeCommand('bananabox.signOut'));
     case 'refresh':
-      return void (await vscode.commands.executeCommand('epibox.refresh'));
+      return void (await vscode.commands.executeCommand('bananabox.refresh'));
     case 'loadAvatars':
       return c.loadAvatars(m.logins, surface);
     case 'openHome':
@@ -472,7 +476,14 @@ export async function handleMessage(
       c.guided.pause(m.projectId);
       return;
     case 'guidedDelivery':
-      return c.guidedDelivery(m.projectId);
+      return c.guidedDelivery(m.projectId, m.milestone === 'followup' || m.milestone === 'midterm' ? m.milestone : 'delivery');
+    case 'setPrepareCheck': {
+      if (!MILESTONES.includes(m.milestone) || !milestoneCheckIds(m.milestone).includes(m.check as never)) return;
+      const all = config.disabledChecks();
+      const off = new Set(all[m.milestone] ?? []);
+      if (m.enabled === true) off.delete(m.check); else off.add(m.check);
+      return config.setDisabledChecks({ ...all, [m.milestone]: [...off] });
+    }
     case 'reviewChanges': {
       const p = c.projects.get(m.projectId);
       const root = p && await c.localRoot(p);

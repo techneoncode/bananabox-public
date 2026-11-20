@@ -140,12 +140,12 @@ export function translateMessage(message: string, language: 'en' | 'fr'): string
     return message;
 }
 
-/** The message in the language of the extension (`epibox.language`, else the editor's). */
+/** The message in the language of the extension (`bananabox.language`, else the editor's). */
 export function styleLanguage(): 'en' | 'fr' {
     try {
         // Loaded on demand so pure helpers stay usable without the editor.
         const vscode = require('vscode') as typeof import('vscode');
-        const setting = vscode.workspace.getConfiguration?.('epibox')
+        const setting = vscode.workspace.getConfiguration?.('bananabox')
             ?.get?.<string>('language') ?? 'auto';
         return setting === 'fr'
             || (setting !== 'en'

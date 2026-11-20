@@ -3,7 +3,6 @@ import { graderGroupRestriction } from '../../domain/projects';
 import type { Ctx } from '../ctx';
 import type { GraderRun, GraderVM, ProjectVM } from '../../shared/types';
 import { relative } from '../format';
-import { renderPipeline } from './pipeline';
 import { renderReproduction } from './reproduction';
 import { renderReport } from './report';
 import { notice, waitBlock } from '../ui';
@@ -22,7 +21,7 @@ export function runState(ctx: Ctx, p: ProjectVM, g: GraderVM): RunState {
   return { noTokens, groupReason, leaderWarning, disabled, hint, active };
 }
 
-/** Grader tab: the pipeline on the left, the selected run on the right. One loop, one screen. */
+/** Grader tab: the run control on the left, the selected run on the right. */
 export function renderGrader(ctx: Ctx, p: ProjectVM): HTMLElement {
   const { t } = ctx;
   const g = ctx.graders.get(p.id);
@@ -37,11 +36,11 @@ export function renderGrader(ctx: Ctx, p: ProjectVM): HTMLElement {
   }
 
   const { noTokens, groupReason, leaderWarning, disabled: runDisabled, hint: runHint, active } = runState(ctx, p, g);
-  const run = h('button.btn', { disabled: runDisabled, title: runHint, onclick: () => ctx.post({ type: 'runGrader', projectId: p.id }) },
+  const run = h('button.btn.primary', { disabled: runDisabled, title: runHint, onclick: () => ctx.post({ type: 'runGrader', projectId: p.id }) },
     g.running ? icon('loading', 'spin') : icon('play'), g.running ? t('grader.running') : t('grader.run'));
 
   const left = h('div.pipeline-col.grader-control',
-    renderPipeline(ctx, p, run),
+    h('div.run-cta', run),
     leaderWarning && h('div.grader-reason.grader-run-warning', icon('warning'), h('span', t('grader.reason.leader_only'))),
     !leaderWarning && (groupReason || !g.canRun || noTokens) && h('p.run-hint', icon('info'), ' ', runHint),
     active && runBanner(ctx, active));

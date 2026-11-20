@@ -22,6 +22,7 @@ async function fixture(automatic = false) {
   await gitBytes(root, ['config', 'user.name', 'Bananabox tests']); await gitBytes(root, ['config', 'user.email', 'tests@example.invalid']);
   await writeFile(join(root, 'main.c'), 'int main(void) { return 0; }\n');
   if (automatic) await writeFile(join(root, 'Makefile'), 'NAME = my_program\nSRC = main.c\nall: $(NAME)\n$(NAME): $(SRC)\n\tcc main.c -o $(NAME)\n');
+  if (automatic) await writeFile(join(root, '.gitignore'), 'my_program\n');
   else await saveDeliveryConfig(root, { version: 1, build: { command: [process.execPath, '-e', 'process.exit(0)'] }, tests: { command: [process.execPath, '-e', 'process.exit(0)'] }, requiredFiles: ['main.c'], forbiddenFunctions: ['system'], recipes: {} });
   await gitBytes(root, ['add', '.']); await gitBytes(root, ['commit', '-m', 'initial']); await gitBytes(root, ['remote', 'add', 'origin', remote]); await gitBytes(root, ['push', '-u', 'origin', 'main']);
   return { base, root, remote };

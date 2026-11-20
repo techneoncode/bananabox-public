@@ -27,3 +27,5 @@ export const FileSystemError = { FileNotFound: () => new Error('File not found')
 export const FileType = { File: 1, Directory: 2, SymbolicLink: 64 };
 
 export const ViewColumn = { Active: -1, One: 1 };
+
+export const ConfigurationTarget = { Global: 1, Workspace: 2, WorkspaceFolder: 3 };

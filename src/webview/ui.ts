@@ -18,6 +18,8 @@ export interface TabSpec<T extends string> {
   id: T;
   label: string;
   count?: number;
+  /** Codicon drawn before the label. */
+  icon?: string;
 }
 
 /** Underlined tabs with arrow-key navigation (WAI-ARIA tabs pattern, automatic activation). */
@@ -38,7 +40,7 @@ export function tabs<T extends string>(items: TabSpec<T>[], active: T, onSelect:
         focusTab = items[next].id;
         onSelect(items[next].id);
       },
-    }, item.label, item.count ? h('span.counter', item.count) : null);
+    }, item.icon ? [icon(item.icon), h('span.tab-label', item.label)] : item.label, item.count ? h('span.counter', item.count) : null);
     buttons.push(button);
     list.append(button);
     if (focusTab === item.id) {

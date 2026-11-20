@@ -219,7 +219,7 @@ export type SubjectState =
 export interface ActivityVM {
   id: number;
   name: string;
-  kind: 'kickoff' | 'bootstrap' | 'midterm' | 'defense' | 'susie' | 'activity';
+  kind: 'kickoff' | 'bootstrap' | 'midterm' | 'followup' | 'defense' | 'susie' | 'activity';
   startDate: string;
   endDate: string;
   mandatory: boolean;

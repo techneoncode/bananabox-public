@@ -22,7 +22,7 @@ export class ProjectPanels {
     }
 
     const panel = vscode.window.createWebviewPanel(
-      'epibox.project',
+      'bananabox.project',
       title,
       vscode.ViewColumn.Active,
       {

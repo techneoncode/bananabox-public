@@ -105,7 +105,7 @@ export class AdminService {
   }
 
   /** The endpoint replaces the whole policy, so the current one is read first. */
-  async setPolicy(change: Partial<Pick<AdminPolicy, 'lens_active' | 'my_api_active'>>): Promise<AdminPolicy> {
+  async setPolicy(change: Partial<AdminPolicy>): Promise<AdminPolicy> {
     const current = await this.authed<AdminPolicy>('GET', '/v1/policy');
     return this.authed('PUT', '/v1/policy', { ...current, ...change });
   }

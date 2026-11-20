@@ -42,7 +42,7 @@ export class DefenseReminderService implements vscode.Disposable {
         }
       }),
       vscode.commands.registerCommand(
-        'epibox.acknowledgeDefense',
+        'bananabox.acknowledgeDefense',
         () => this.acknowledge(),
       ),
     );
@@ -89,7 +89,7 @@ export class DefenseReminderService implements vscode.Disposable {
   }
 
   private storageKey(): string {
-    return `epibox.defenseReminders.v1:${this.login?.toLowerCase()}`;
+    return `bananabox.defenseReminders.v1:${this.login?.toLowerCase()}`;
   }
 
   private check(): void {
@@ -113,7 +113,7 @@ export class DefenseReminderService implements vscode.Disposable {
     this.nonce = randomUUID();
     void vscode.commands.executeCommand(
       'setContext',
-      'epibox.defenseAlertActive',
+      'bananabox.defenseAlertActive',
       true,
     );
     this.show();
@@ -128,7 +128,7 @@ export class DefenseReminderService implements vscode.Disposable {
     }
 
     const panel = vscode.window.createWebviewPanel(
-      'epibox.defenseReminder',
+      'bananabox.defenseReminder',
       createT(this.language())('defense.title'),
       vscode.ViewColumn.Active,
       {
@@ -230,7 +230,7 @@ export class DefenseReminderService implements vscode.Disposable {
     panel?.dispose();
     void vscode.commands.executeCommand(
       'setContext',
-      'epibox.defenseAlertActive',
+      'bananabox.defenseAlertActive',
       false,
     );
   }

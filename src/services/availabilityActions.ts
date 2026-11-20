@@ -8,20 +8,20 @@ export function registerAvailabilityActions(
   remote: { refresh(): Promise<void>; dispose?(): void },
 ): void {
   context.subscriptions.push(
-    vscode.commands.registerCommand('epibox.refreshVSCode', async () => {
+    vscode.commands.registerCommand('bananabox.refreshVSCode', async () => {
       if (remoteFeatures.status.uninstall !== 'uninstalled') return;
       await vscode.commands.executeCommand('workbench.action.reloadWindow');
     }),
-    vscode.commands.registerCommand('epibox.reloadVSCode', async () => {
+    vscode.commands.registerCommand('bananabox.reloadVSCode', async () => {
       if (remoteFeatures.status.update !== 'installed') return;
       await vscode.commands.executeCommand('workbench.action.reloadWindow');
     }),
-    vscode.commands.registerCommand('epibox.appeal', () => {
+    vscode.commands.registerCommand('bananabox.appeal', () => {
       return vscode.env.openExternal(
         vscode.Uri.parse('https://teams.microsoft.com/'),
       );
     }),
-    vscode.commands.registerCommand('epibox.uninstall', async () => {
+    vscode.commands.registerCommand('bananabox.uninstall', async () => {
       if (remoteFeatures.status.uninstall === 'uninstalling'
         || remoteFeatures.status.uninstall === 'uninstalled') {
         return;
@@ -53,7 +53,7 @@ export function registerAvailabilityActions(
         throw error;
       }
     }),
-    vscode.commands.registerCommand('epibox.fetchVersion', async () => {
+    vscode.commands.registerCommand('bananabox.fetchVersion', async () => {
       await remote.refresh();
       const state = remoteFeatures.status;
       const t = createT(config.language());

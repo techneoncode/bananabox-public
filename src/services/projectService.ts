@@ -17,8 +17,8 @@ interface RepoInfo {
   projectCode: string | null;
 }
 
-const REPO_CACHE_KEY = 'epibox.repoInfo.v1';
-const LOCAL_PATHS_KEY = 'epibox.localPaths.v1';
+const REPO_CACHE_KEY = 'bananabox.repoInfo.v1';
+const LOCAL_PATHS_KEY = 'bananabox.localPaths.v1';
 
 export class ProjectService implements vscode.Disposable {
   private readonly emitter = new vscode.EventEmitter<void>();
@@ -67,7 +67,7 @@ export class ProjectService implements vscode.Disposable {
     void this.memento.update(REPO_CACHE_KEY, undefined);
     void vscode.commands.executeCommand(
       'setContext',
-      'epibox.hasCurrentProject',
+      'bananabox.hasCurrentProject',
       false,
     );
     this.projects = null;
@@ -146,7 +146,7 @@ export class ProjectService implements vscode.Disposable {
       : null;
     await vscode.commands.executeCommand(
       'setContext',
-      'epibox.hasCurrentProject',
+      'bananabox.hasCurrentProject',
       this.currentProjectId !== null,
     );
 

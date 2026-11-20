@@ -168,33 +168,33 @@ export class Corrections
                 event => this.follow(event.textEditor),
             ) ?? { dispose() {} },
             vscode.commands.registerCommand(
-                'epibox.codingStyle.configureCorrections',
+                'bananabox.codingStyle.configureCorrections',
                 (uri?: vscode.Uri) =>
                     readSettings(uri).enabled ? this.configure(uri) : undefined,
             ),
             vscode.commands.registerCommand(
-                'epibox.codingStyle.previewCorrections',
+                'bananabox.codingStyle.previewCorrections',
                 (uri?: vscode.Uri) => this.preview(uri),
             ),
             vscode.commands.registerCommand(
-                'epibox.codingStyle.acceptCorrections',
+                'bananabox.codingStyle.acceptCorrections',
                 (uri?: vscode.Uri) => this.accept(uri),
             ),
             vscode.commands.registerCommand(
-                'epibox.codingStyle.acceptCorrection',
+                'bananabox.codingStyle.acceptCorrection',
                 (uri?: vscode.Uri, index?: number) =>
                     this.acceptOne(uri, index),
             ),
             vscode.commands.registerCommand(
-                'epibox.codingStyle.nextCorrection',
+                'bananabox.codingStyle.nextCorrection',
                 (uri?: vscode.Uri) => this.move(uri, 1),
             ),
             vscode.commands.registerCommand(
-                'epibox.codingStyle.previousCorrection',
+                'bananabox.codingStyle.previousCorrection',
                 (uri?: vscode.Uri) => this.move(uri, -1),
             ),
             vscode.commands.registerCommand(
-                'epibox.codingStyle.dismissCorrections',
+                'bananabox.codingStyle.dismissCorrections',
                 (uri?: vscode.Uri) => {
                     const target = uri
                         ?? vscode.window.activeTextEditor?.document.uri;
@@ -221,7 +221,7 @@ export class Corrections
             ui('$(sync~spin) Bananabox Coding Style: preparing corrections');
         this.setupStatus.tooltip =
             ui('Preparing the formatter automatically. Editing and saving remain available.');
-        this.setupStatus.command = 'epibox.codingStyle.showOutput';
+        this.setupStatus.command = 'bananabox.codingStyle.showOutput';
         this.setupStatus.show();
         void this.toolchain
             .prepare(this.executable(document))
@@ -479,7 +479,7 @@ export class Corrections
             new vscode.CodeLens(range, {
                 title,
                 tooltip,
-                command: `epibox.codingStyle.${command}`,
+                command: `bananabox.codingStyle.${command}`,
                 arguments: [document.uri, ...extra],
             });
         return [
@@ -716,12 +716,12 @@ export class Corrections
         }
         void vscode.commands.executeCommand(
             'setContext',
-            'epibox.codingStyle.hasCorrections',
+            'bananabox.codingStyle.hasCorrections',
             !!proposal,
         );
         void vscode.commands.executeCommand(
             'setContext',
-            'epibox.codingStyle.correctionAtCursor',
+            'bananabox.codingStyle.correctionAtCursor',
             atCursor,
         );
     }

@@ -349,6 +349,7 @@ window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
   switch (m.type) {
     case 'selectTab':
       pendingTab = hostTab(m.tab);
+      if (m.tab.startsWith('prepare-')) ui.milestone = m.tab.slice('prepare-'.length) as UiState['milestone'];
       schedule();
       break;
     case 'state': {

@@ -18,7 +18,7 @@ export class HomePanel {
     }
 
     const panel = vscode.window.createWebviewPanel(
-      'epibox.home',
+      'bananabox.home',
       'Bananabox',
       vscode.ViewColumn.Active,
       {

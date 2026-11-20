@@ -1,21 +1,23 @@
 import * as vscode from 'vscode';
 import type { RemoteFeature } from '../domain/remotePolicy';
 import { AdminError, type AdminService } from '../services/adminService';
-import type { AdminViewState, AdminWebviewMessage } from '../shared/adminTypes';
+import { publishRelease } from '../services/releasePublisher';
+import type { AdminViewState, AdminWebviewMessage, ReleaseStep } from '../shared/adminTypes';
 import { config } from '../util/config';
 import { buildAdminHtml } from './webviewHtml';
 
 const FEATURES: readonly RemoteFeature[] = ['lens_active', 'my_api_active'];
 const STALE_MS = 60_000;
+const MAX_VSIX_BASE64 = Math.ceil((100 * 1024 * 1024) / 3) * 4;
 
 const isFeatures = (value: unknown): value is RemoteFeature[] =>
   Array.isArray(value) && value.length > 0 && value.every((f) => FEATURES.includes(f));
 const isText = (value: unknown, max: number): value is string =>
   typeof value === 'string' && value.length <= max;
 
-/** The admin dashboard of the sidebar; shown by `epibox.isAdmin`, usable after an admin login. */
+/** The admin dashboard of the sidebar; shown by `bananabox.isAdmin`, usable after an admin login. */
 export class AdminView implements vscode.WebviewViewProvider {
-  static readonly viewType = 'epibox.admin';
+  static readonly viewType = 'bananabox.admin';
 
   private webview?: vscode.Webview;
   private state: AdminViewState = { lang: config.language(), phase: 'loading' };
@@ -86,6 +88,21 @@ export class AdminView implements vscode.WebviewViewProvider {
     }
   }
 
+  private async publish(file: string, bytes: Buffer, notes: string): Promise<void> {
+    if (this.state.release && !['done', 'error'].includes(this.state.release.step)) return;
+    const current = this.state.snapshot?.policy.version;
+    if (!current) return;
+    const release = (step: ReleaseStep, version?: string) => this.set({ release: { file, step, version } });
+    try {
+      const published = await publishRelease(bytes, notes, current, (version, latest) => this.service.setPolicy({ version, latest }), release);
+      this.set({ release: { file, step: 'done', version: published.version, url: published.url } });
+      await this.run(async () => undefined);
+    } catch (error) {
+      const last = this.state.release!;
+      this.set({ release: { ...last, step: 'error', failed: last.step, error: error instanceof Error ? error.message : String(error) } });
+    }
+  }
+
   private async handle(message: AdminWebviewMessage): Promise<void> {
     switch (message?.type) {
       case 'ready':
@@ -133,6 +150,10 @@ export class AdminView implements vscode.WebviewViewProvider {
         }
         return this.run(() => this.service.setPolicy(change));
       }
+      case 'publishRelease':
+        if (!isText(message.file, 200) || typeof message.data !== 'string' || message.data.length > MAX_VSIX_BASE64) return;
+        if (message.notes !== undefined && !isText(message.notes, 20_000)) return;
+        return this.publish(message.file, Buffer.from(message.data, 'base64'), message.notes ?? '');
     }
   }
 }

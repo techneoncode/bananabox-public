@@ -1,13 +1,14 @@
 import type { Palette } from '../shared/palette';
-import type { HostMessage, StateSnapshot, WebviewMessage } from '../shared/protocol';
+import type { HostMessage, PanelTab, StateSnapshot, WebviewMessage } from '../shared/protocol';
+import type { Milestone } from '../domain/milestones';
 import type { ActivityLimitsVM, ActivitySlotVM, ActivityVM, CalendarVM, Person, GraderVM, StyleScanVM, SubjectState, ValgrindVM, TestResultDetail } from '../shared/types';
 import type { Lang } from './format';
 import type { GuidedVM, ReadinessVM, ReproductionVM, SubjectFunctionsVM } from '../shared/deliveryTypes';
 
-export type Tab = 'grader' | 'valgrind' | 'history' | 'subject' | 'activities' | 'details';
+export type Tab = 'grader' | 'valgrind' | 'history' | 'subject' | 'activities' | 'details' | 'prepare';
 /** Tabs the host may request (protocol names). */
-export type HostTab = 'overview' | 'grader' | 'valgrind' | 'history' | 'subject' | 'activities';
-export const hostTab = (tab: HostTab): Tab => (tab === 'overview' ? 'details' : tab);
+export type HostTab = PanelTab;
+export const hostTab = (tab: HostTab): Tab => (tab === 'overview' ? 'details' : tab.startsWith('prepare-') ? 'prepare' : tab as Tab);
 export type Filter = 'all' | 'ongoing' | 'upcoming' | 'past';
 
 export interface ResultEntry {
@@ -47,6 +48,8 @@ export interface UiState {
   valgrindAllChecks?: Set<number>;
   /** Pipeline stage whose drawer is open, per project; undefined follows the first failing stage. */
   pipelineFocus?: Record<number, string | null>;
+  /** The event the Prepare page checks; unset follows the nearest one. */
+  milestone?: Milestone;
   /** Passed tasks the user unfolded, per result. */
   showPassed?: Set<number>;
   /** Home: timeline window and the project shown in the detail card. */

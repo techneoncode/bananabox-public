@@ -109,9 +109,9 @@ test('extension activates, lints a document and publishes underlined diagnostics
     const ext = require('../../dist-test/codingStyle/extension.js');
     const context = { subscriptions: [], globalStorageUri: { fsPath: path.join(root, 'storage') } };
     const api = ext.activate(context);
-    assert.ok(registered['epibox.codingStyle.run'] && registered['epibox.codingStyle.runWorkspace'] && registered['epibox.codingStyle.showIssues']);
+    assert.ok(registered['bananabox.codingStyle.run'] && registered['bananabox.codingStyle.runWorkspace'] && registered['bananabox.codingStyle.showIssues']);
 
-    await registered['epibox.codingStyle.run']();
+    await registered['bananabox.codingStyle.run']();
     const [, published] = diagSets.at(-1);
     assert.equal(published.length, 1);
     assert.equal(published[0].message, '[Major] nested while statement at depth 3');
@@ -125,7 +125,7 @@ test('extension activates, lints a document and publishes underlined diagnostics
     assert.equal(lenses[0].range.start.line, 3);
     assert.equal(lenses[0].command.title, 'Bananabox Coding Style');
     assert.match(lenses[0].command.tooltip, /1 major/);
-    assert.equal(lenses[0].command.command, 'epibox.codingStyle.showIssues');
+    assert.equal(lenses[0].command.command, 'bananabox.codingStyle.showIssues');
     assert.ok(lenses.some((l) => /Recheck/.test(l.command.title)));
 
     // A whole-project scan returns fresh findings even while an editor owns diagnostics.
@@ -188,8 +188,8 @@ test('save corrections: off, suggest, preview, accept, stale edit, onSave and ex
     };
     const context = { subscriptions: [], globalStorageUri: { fsPath: path.join(root, 'storage') } };
     require('../../dist-test/codingStyle/extension').activate(context);
-    const allLenses = () => codeLensProviders.flatMap(p => p.provideCodeLenses(doc)).filter(l => /Correction/.test(l.command.command) && l.command.command !== 'epibox.codingStyle.configureCorrections');
-    const lenses = () => allLenses().filter(l => l.command.command === 'epibox.codingStyle.acceptCorrection');
+    const allLenses = () => codeLensProviders.flatMap(p => p.provideCodeLenses(doc)).filter(l => /Correction/.test(l.command.command) && l.command.command !== 'bananabox.codingStyle.configureCorrections');
+    const lenses = () => allLenses().filter(l => l.command.command === 'bananabox.codingStyle.acceptCorrection');
     const titles = () => allLenses().map(l => l.command.title);
     const save = async () => { fire('save', doc); await delay(100); };
     await save();
@@ -204,33 +204,33 @@ test('save corrections: off, suggest, preview, accept, stale edit, onSave and ex
     assert.ok(titles().includes(`Accept all 2 (${process.platform === 'darwin' ? 'Cmd' : 'Ctrl'} + Alt + Enter)`));
     assert.ok(titles().includes('‹ 1/2 ›'));
     assert.ok(suggestions.some(s => /Epitech header/.test(s.renderOptions?.after?.contentText ?? '')));
-    assert.ok(commands.some(c => c[0] === 'setContext' && c[1] === 'epibox.codingStyle.hasCorrections' && c[2] === true));
-    await registered['epibox.codingStyle.nextCorrection']();
+    assert.ok(commands.some(c => c[0] === 'setContext' && c[1] === 'bananabox.codingStyle.hasCorrections' && c[2] === true));
+    await registered['bananabox.codingStyle.nextCorrection']();
     assert.equal(titles()[0], '$(sparkle) Put the brace on its own line');
     assert.ok(suggestions.some(s => /⟶ int f\(void\) ⏎ \{ ⏎ return \(0\); ⏎ \}/.test(s.renderOptions?.after?.contentText ?? '')));
-    await registered['epibox.codingStyle.dismissCorrections']();
+    await registered['bananabox.codingStyle.dismissCorrections']();
     assert.equal(lenses().length, 0);
     assert.equal(applied, 0);
-    assert.ok(commands.some(c => c[0] === 'setContext' && c[1] === 'epibox.codingStyle.hasCorrections' && c[2] === false));
+    assert.ok(commands.some(c => c[0] === 'setContext' && c[1] === 'bananabox.codingStyle.hasCorrections' && c[2] === false));
     await save();
-    await registered['epibox.codingStyle.previewCorrections']();
+    await registered['bananabox.codingStyle.previewCorrections']();
     assert.ok(commands.some(c => c[0] === 'vscode.diff'));
     // Accepting one hunk keeps the other one proposed, re-anchored on the new text.
-    await registered['epibox.codingStyle.acceptCorrection']();
+    await registered['bananabox.codingStyle.acceptCorrection']();
     assert.equal(applied, 1);
     assert.match(doc.getText(), /^\/\*\n\*\* EPITECH PROJECT, \d{4}\n/);
     assert.ok(doc.getText().endsWith('int f(void){return(0);}'));
     assert.equal(titles()[0], '$(sparkle) Put the brace on its own line');
     assert.ok(!titles().some(t => t.startsWith('Accept all')));
-    await registered['epibox.codingStyle.acceptCorrection']();
+    await registered['bananabox.codingStyle.acceptCorrection']();
     assert.equal(applied, 2);
     assert.ok(doc.getText().endsWith('int f(void)\n{\n    return (0);\n}\n'));
     assert.equal(lenses().length, 0);
     doc.change('int g(void){return 2;}');
     await save();
     doc.change('int g(void){return 3;}');
-    await registered['epibox.codingStyle.acceptCorrections']();
-    await registered['epibox.codingStyle.acceptCorrection']();
+    await registered['bananabox.codingStyle.acceptCorrections']();
+    await registered['bananabox.codingStyle.acceptCorrection']();
     assert.equal(applied, 2);
     settings['corrections.mode'] = 'onSave';
     fire('config', { affectsConfiguration: () => true });
@@ -632,7 +632,7 @@ test('historical commit documents do not expose coding-style lenses', () => {
     const { SummaryLensProvider } = require('../../dist-test/codingStyle/ui');
     const { DEFAULT_SETTINGS } = require('../../dist-test/codingStyle/types');
     const doc = mutableDocument('/tmp/historical.c', 'int x;\n');
-    doc.uri = { ...doc.uri, scheme: 'epibox-commit' };
+    doc.uri = { ...doc.uri, scheme: 'bananabox-commit' };
     const provider = new SummaryLensProvider(() => undefined, () => DEFAULT_SETTINGS);
     try { assert.deepEqual(provider.provideCodeLenses(doc), []); }
     finally { provider.dispose(); }
@@ -654,11 +654,11 @@ test('inline lens shortcut restores compact mode without disabling diagnostics',
     const context = { subscriptions: [], globalStorageUri: { fsPath: os.tmpdir() } };
     try {
         require('../../dist-test/codingStyle/extension').activate(context);
-        await registered['epibox.codingStyle.toggleInline']();
-        await registered['epibox.codingStyle.toggleInline']();
+        await registered['bananabox.codingStyle.toggleInline']();
+        await registered['bananabox.codingStyle.toggleInline']();
         assert.deepEqual(updates, [{ key: 'inline.mode', value: 'off', target: 2 }, { key: 'inline.mode', value: 'compact', target: 2 }]);
         const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '../../package.json'), 'utf8')).contributes;
-        assert.ok(manifest.keybindings.some(k => k.command === 'epibox.codingStyle.toggleInline' && k.key === 'ctrl+alt+l' && k.mac === 'cmd+alt+l'));
+        assert.ok(manifest.keybindings.some(k => k.command === 'bananabox.codingStyle.toggleInline' && k.key === 'ctrl+alt+l' && k.mac === 'cmd+alt+l'));
     } finally {
         context.subscriptions.forEach(s => s.dispose?.());
         vscode.workspace.getConfiguration = previous;
@@ -691,20 +691,20 @@ test('remote disable clears existing diagnostics, blocks commands and project sc
             enabled: () => enabled,
             onDidChange: callback => { changed = callback; return disposable(); },
         });
-        await registered['epibox.codingStyle.run']();
+        await registered['bananabox.codingStyle.run']();
         assert.ok(state.collection.get(doc.uri.fsPath).length > 0);
         const before = fs.readFileSync(log, 'utf8');
         enabled = false; changed();
         assert.equal(api.isEnabled(), false);
         assert.equal(state.collection.size, 0);
-        await registered['epibox.codingStyle.run']();
-        await registered['epibox.codingStyle.toggle']();
+        await registered['bananabox.codingStyle.run']();
+        await registered['bananabox.codingStyle.toggle']();
         assert.equal((await api.scanProject(root)).error.notFound, false);
         assert.equal(fs.readFileSync(log, 'utf8'), before);
         assert.equal(updates, 0);
         enabled = true; changed();
         assert.equal(api.isEnabled(), true);
-        await registered['epibox.codingStyle.run']();
+        await registered['bananabox.codingStyle.run']();
         assert.ok(state.collection.get(doc.uri.fsPath).length > 0);
     } finally {
         context.subscriptions.forEach(subscription => subscription.dispose());
@@ -741,7 +741,7 @@ test('Makefiles and unauthorized functions are checked without epiclang, with th
         api.useProjectRules(file => file.startsWith(root) ? { root, allowedFunctions: ['write'], makefile: { rules: ['tests_run'], binary: 'my_ls' }, source: 'my_ls.pdf' } : undefined);
 
         state.active = { document: mk, setDecorations: noop, selection: { active: new Position(0, 0) }, revealRange: noop };
-        await registered['epibox.codingStyle.run']();
+        await registered['bananabox.codingStyle.run']();
         const codes = state.collection.get(makefile).map(d => d.code).sort();
         assert.deepEqual(codes, ['C-G1', 'M-P1', 'M-R1', 'M-R2']);
         assert.ok(state.collection.get(makefile).every(d => d.source === 'Banana'));
@@ -749,7 +749,7 @@ test('Makefiles and unauthorized functions are checked without epiclang, with th
 
         // epiclang is missing: the unauthorized call is still reported.
         state.active = { document: c, setDecorations: noop, selection: { active: new Position(0, 0) }, revealRange: noop };
-        await registered['epibox.codingStyle.run']();
+        await registered['bananabox.codingStyle.run']();
         const found = state.collection.get(source);
         assert.equal(found.length, 1);
         assert.equal(found[0].code, 'unauthorized-function');

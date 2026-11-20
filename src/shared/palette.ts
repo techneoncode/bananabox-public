@@ -4,7 +4,7 @@
  * and the webviews (CSS).
  */
 
-export const PALETTE_KEY = 'epibox.palette.v1';
+export const PALETTE_KEY = 'bananabox.palette.v1';
 
 export const PALETTE_KEYS = [
   'accent',
