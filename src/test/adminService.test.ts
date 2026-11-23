@@ -161,3 +161,22 @@ test('root endpoints send the root token given for the call, and never store it'
   assert.ok(calls.every((c) => c.auth === 'Bearer root-secret'));
   assert.equal(store.size, 0);
 });
+
+test('temporary bans send expires_at; an update can set, keep or clear the end', async () => {
+  const { service, calls } = setup((call) => login(call) ?? ok({ id: 7 }));
+  await service.login('a@epitech.eu', 'a long password');
+  calls.length = 0;
+  const end = Date.now() + 86_400_000;
+  await service.ban({ name: 'Paris', scope: 'campus', features: ['lens_active'], expiresAt: end });
+  await service.ban({ name: 'Lyon', scope: 'campus', features: ['lens_active'], expiresAt: null });
+  await service.updateBan(7, { expiresAt: end });
+  await service.updateBan(7, { expiresAt: null });
+  await service.updateBan(7, { reason: 'x' });
+  assert.deepEqual(calls.map((c) => c.body), [
+    { name: 'Paris', scope: 'campus', features: ['lens_active'], expires_at: end },
+    { name: 'Lyon', scope: 'campus', features: ['lens_active'] },
+    { expires_at: end },
+    { expires_at: null },
+    { reason: 'x' },
+  ]);
+});

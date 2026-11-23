@@ -13,6 +13,9 @@ const MAX_VSIX_BASE64 = Math.ceil((100 * 1024 * 1024) / 3) * 4;
 const isFeatures = (value: unknown): value is RemoteFeature[] =>
   Array.isArray(value) && value.length > 0 && value.every((f) => FEATURES.includes(f));
 const SCOPES = ['uid', 'promotion', 'campus'];
+/** A temporary ban ends in the future; null means permanent. The Worker also caps it at 366 days. */
+const isExpiry = (value: unknown): value is number | null =>
+  value === null || (Number.isInteger(value) && (value as number) > Date.now());
 const isText = (value: unknown, max: number): value is string =>
   typeof value === 'string' && value.length <= max;
 
@@ -166,13 +169,15 @@ export class AdminView implements vscode.WebviewViewProvider {
         if (!isText(message.name, 64) || !SCOPES.includes(message.scope) || !isFeatures(message.features) || (message.reason !== undefined && !isText(message.reason, 200))) return;
         if (message.anonymous !== undefined && typeof message.anonymous !== 'boolean') return;
         if (message.label !== undefined && !isText(message.label, 64)) return;
-        return this.run(() => this.service.ban({ name: message.name, scope: message.scope, features: message.features, reason: message.reason, anonymous: message.anonymous, label: message.label }));
+        if (message.expiresAt !== undefined && !isExpiry(message.expiresAt)) return;
+        return this.run(() => this.service.ban({ name: message.name, scope: message.scope, features: message.features, reason: message.reason, anonymous: message.anonymous, label: message.label, expiresAt: message.expiresAt }));
       case 'updateBan':
         if (!Number.isInteger(message.id)) return;
         if (message.features !== undefined && !isFeatures(message.features)) return;
         if (message.reason !== undefined && !isText(message.reason, 200)) return;
         if (message.anonymous !== undefined && typeof message.anonymous !== 'boolean') return;
-        return this.run(() => this.service.updateBan(message.id, { features: message.features, reason: message.reason, anonymous: message.anonymous }));
+        if (message.expiresAt !== undefined && !isExpiry(message.expiresAt)) return;
+        return this.run(() => this.service.updateBan(message.id, { features: message.features, reason: message.reason, anonymous: message.anonymous, expiresAt: message.expiresAt }));
       case 'unban':
         if (!Number.isInteger(message.id)) return;
         return this.run(() => this.service.unban(message.id));

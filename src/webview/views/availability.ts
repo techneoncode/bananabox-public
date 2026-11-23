@@ -6,6 +6,7 @@ import { renderVersionUpdate } from './versionUpdate';
 import { uninstallControls } from './uninstallControls';
 import { renderEndpointActivity } from './endpointActivity';
 import { chip } from '../ui';
+import { relative } from '../format';
 
 /** Brand line shared by every status page. */
 export function statusHeading(ctx: Ctx, badge: HTMLElement): HTMLElement {
@@ -41,6 +42,12 @@ function banCard(ctx: Ctx, restriction: Restriction): HTMLElement {
     [t('availability.by'), restriction.by || t('availability.byTeam')],
   ];
   if (restriction.since) facts.push([t('availability.since'), new Date(restriction.since).toLocaleDateString(ctx.lang, { dateStyle: 'long' })]);
+  facts.push([t('availability.duration'), restriction.until
+    ? t('availability.untilValue', {
+      date: new Date(restriction.until).toLocaleString(ctx.lang, { dateStyle: 'long', timeStyle: 'short' }),
+      when: relative(new Date(restriction.until).toISOString(), ctx.lang),
+    })
+    : t('availability.permanent')]);
   return h('article.ban-card',
     h('header.ban-card-head',
       icon(SCOPE_ICON[restriction.scope]),

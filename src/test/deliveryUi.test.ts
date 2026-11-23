@@ -15,6 +15,7 @@ import type { ProjectVM, GraderVM, TestResultDetail, TestResultSummary } from '.
 import type { ReadinessVM } from '../shared/deliveryTypes';
 import { renderOutputDiff } from '../webview/views/graderAnalysis';
 import { renderAvailability, renderLensRestriction } from '../webview/views/availability';
+import { expiryOf } from '../webview/format';
 import { remoteStatus, type RemoteConfig } from '../domain/remotePolicy';
 
 /** Test the rendered controls and their host messages without requiring a browser server. */
@@ -86,8 +87,35 @@ test('a promotion ban says whom it targets, why, who decided and what still work
   ctx.state.availability = remoteStatus(policy, '0.5.3', 'zoe', false, { promotion: 2027, cursus: 'pge', campus: 'Paris' });
   const text = (renderAvailability(ctx)!.node as unknown as DomElement).textContent;
   for (const expected of [/Your promotion/, /pge:2027/, /API abuse/, /admin\.one/, /2026/, /Lens \(coding style\)\s*Available/, /My interface \(MyEpitech\)\s*Restricted/]) assert.match(text, expected);
+  assert.match(text, /Duration\s*Permanent, until an admin lifts it/, 'a ban without an end says it is permanent');
   ctx.state.availability = remoteStatus(policy, '0.5.3', 'zoe', false, { promotion: 2027, cursus: 'bachelor', campus: 'Paris' });
   assert.equal(renderAvailability(ctx), null, 'another cursus of the same year is not concerned');
+});
+
+test('a temporary ban gives its end date and the time left', () => {
+  const { ctx } = context();
+  ctx.t = createT('en');
+  ctx.lang = 'en';
+  const until = Date.now() + 3 * 86_400_000 + 60_000;
+  const policy: RemoteConfig = {
+    lens_active: true, my_api_active: true, version: '0.5.3', latest: '', authorized: [], banned: [],
+    banned_groups: [{ scope: 'uid', value: 'a'.repeat(32), features: ['my_api_active'], reason: 'spam', by: null, until }],
+  };
+  ctx.state.availability = remoteStatus(policy, '0.5.3', 'zoe', false, { userId: 'a'.repeat(32), promotion: null, cursus: null, campus: null });
+  const text = (renderAvailability(ctx)!.node as unknown as DomElement).textContent;
+  assert.match(text, /Duration\s*Until .+\(in 3 days\)/);
+  assert.doesNotMatch(text, /Permanent/);
+});
+
+test('the dashboard turns a duration choice into an end date, and refuses a custom date in the past or too far', () => {
+  const now = Date.UTC(2026, 10, 23, 12);
+  assert.equal(expiryOf('permanent', '', now), null);
+  assert.equal(expiryOf('1h', '', now), now + 3_600_000);
+  assert.equal(expiryOf('7d', '', now), now + 7 * 86_400_000);
+  assert.equal(expiryOf('custom', new Date(now + 86_400_000).toISOString(), now), now + 86_400_000);
+  for (const bad of ['', 'soon', new Date(now - 1).toISOString(), new Date(now + 367 * 86_400_000).toISOString()]) {
+    assert.equal(expiryOf('custom', bad, now), undefined, bad);
+  }
 });
 
 test('a campus ban hides the banner name when anonymous and only shows the Lens notice for Lens bans', () => {

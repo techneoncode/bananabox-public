@@ -74,3 +74,16 @@ export function progress(startIso: string, endIso: string, now = Date.now()): nu
 }
 
 export const shortSha = (sha: string | null): string => (sha ? sha.slice(0, 7) : '—');
+
+export type BanDuration = 'permanent' | '1h' | '24h' | '7d' | '30d' | 'custom';
+const BAN_SPAN: Record<Exclude<BanDuration, 'permanent' | 'custom'>, number> = { '1h': 3_600_000, '24h': 86_400_000, '7d': 7 * 86_400_000, '30d': 30 * 86_400_000 };
+/** The Worker refuses a ban that ends further ahead than this. */
+export const BAN_MAX_AHEAD = 366 * 86_400_000;
+
+/** End of a ban picked in the dashboard, at submit time: null when permanent, undefined when the custom date is unusable. */
+export function expiryOf(choice: BanDuration, custom: string, now = Date.now()): number | null | undefined {
+  if (choice === 'permanent') return null;
+  if (choice !== 'custom') return now + BAN_SPAN[choice];
+  const at = Date.parse(custom);
+  return Number.isFinite(at) && at > now && at <= now + BAN_MAX_AHEAD ? at : undefined;
+}

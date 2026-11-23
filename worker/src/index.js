@@ -70,6 +70,7 @@ const publicBan = u => ({
   reason: u.reason,
   by: u.anonymous ? null : displayName(u.banned_by),
   since: u.created_at,
+  until: u.expires_at,
 });
 
 // Public configuration read by the extension. `admins` only decides whether the extension shows the
@@ -77,7 +78,8 @@ const publicBan = u => ({
 async function config(env) {
   const [policy, users, admins] = await Promise.all([
     readPolicy(env),
-    env.DB.prepare('SELECT kind, scope, name, features, reason, banned_by, anonymous, created_at FROM users ORDER BY id').all(),
+    // An expired temporary ban leaves the config at once; the daily task deletes it later.
+    env.DB.prepare('SELECT kind, scope, name, features, reason, banned_by, anonymous, created_at, expires_at FROM users WHERE expires_at IS NULL OR expires_at > ? ORDER BY id').bind(Date.now()).all(),
     env.DB.prepare('SELECT DISTINCT whoami FROM admins WHERE whoami IS NOT NULL ORDER BY whoami').all(),
   ]);
   return {
@@ -91,7 +93,7 @@ async function config(env) {
   };
 }
 
-const COLUMNS = 'id, scope, name, label, reason, features, banned_by, anonymous, created_at';
+const COLUMNS = 'id, scope, name, label, reason, features, banned_by, anonymous, created_at, expires_at';
 const entry = row => ({ ...row, features: JSON.parse(row.features), anonymous: !!row.anonymous });
 
 function userRoutes(kind) {
@@ -107,21 +109,22 @@ function userRoutes(kind) {
     const reason = v.reason(body.reason);
     const features = withFeatures ? v.features(body.features) : v.features(undefined);
     const anonymous = withFeatures && v.anonymous(body.anonymous);
+    const expires = withFeatures ? v.expiresAt(body.expires_at, Date.now()) ?? null : null;
     const by = withFeatures ? (actor.type === 'root' ? 'root' : actor.email) : null;
     const taken = () => new HttpError(409, 'conflict', `"${name}" is already in ${kind}.`);
     // The key is case-sensitive, so "Paris" and "paris" would both fit: compare them here.
     if (scope !== 'user' && await env.DB.prepare('SELECT 1 FROM users WHERE kind = ? AND scope = ? AND lower(name) = lower(?)').bind(kind, scope, name).first()) throw taken();
     const [inserted] = await env.DB.batch([
-      env.DB.prepare(`INSERT INTO users (kind, scope, name, label, reason, features, banned_by, anonymous, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING RETURNING ${COLUMNS}`)
-        .bind(kind, scope, name, label, reason, JSON.stringify(features), by, +anonymous, Date.now()),
-      audit(env, actor, `${kind}.add`, name, { scope, reason, ...(withFeatures && { features, anonymous }), ...(label && { label }) }, true),
+      env.DB.prepare(`INSERT INTO users (kind, scope, name, label, reason, features, banned_by, anonymous, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING RETURNING ${COLUMNS}`)
+        .bind(kind, scope, name, label, reason, JSON.stringify(features), by, +anonymous, Date.now(), expires),
+      audit(env, actor, `${kind}.add`, name, { scope, reason, ...(withFeatures && { features, anonymous }), ...(label && { label }), ...(expires && { expires_at: expires }) }, true),
     ]);
     if (!inserted.results.length) throw taken();
     return ok(entry(inserted.results[0]), 201);
   };
 
   const find = async (env, id) => {
-    const row = await env.DB.prepare('SELECT id, scope, name, reason, features, anonymous FROM users WHERE kind = ? AND id = ?').bind(kind, Number(id)).first();
+    const row = await env.DB.prepare('SELECT id, scope, name, reason, features, anonymous, expires_at FROM users WHERE kind = ? AND id = ?').bind(kind, Number(id)).first();
     if (!row) throw new HttpError(404, 'not_found', `No ${kind} entry with id ${id}.`);
     return row;
   };
@@ -135,16 +138,21 @@ function userRoutes(kind) {
     return ok({ deleted: row.id });
   };
 
-  // Changes the restricted features, the reason and/or the anonymity of a ban.
+  // Changes the restricted features, the reason, the anonymity and/or the end of a ban (null: permanent).
   const update = async (request, env, id, actor) => {
     const body = await readBody(request);
     const row = await find(env, id);
     const features = body.features === undefined ? JSON.parse(row.features) : v.features(body.features);
     const reason = body.reason === undefined ? row.reason : v.reason(body.reason);
     const anonymous = body.anonymous === undefined ? !!row.anonymous : v.anonymous(body.anonymous);
+    const given = v.expiresAt(body.expires_at, Date.now());
+    const expires = given === undefined ? row.expires_at : given;
     await env.DB.batch([
-      env.DB.prepare('UPDATE users SET features = ?, reason = ?, anonymous = ? WHERE id = ?').bind(JSON.stringify(features), reason, +anonymous, row.id),
-      audit(env, actor, `${kind}.update`, row.name, { from: { features: JSON.parse(row.features), reason: row.reason, anonymous: !!row.anonymous }, to: { features, reason, anonymous } }, true),
+      env.DB.prepare('UPDATE users SET features = ?, reason = ?, anonymous = ?, expires_at = ? WHERE id = ?').bind(JSON.stringify(features), reason, +anonymous, expires, row.id),
+      audit(env, actor, `${kind}.update`, row.name, {
+        from: { features: JSON.parse(row.features), reason: row.reason, anonymous: !!row.anonymous, ...(expires !== row.expires_at && { expires_at: row.expires_at }) },
+        to: { features, reason, anonymous, ...(expires !== row.expires_at && { expires_at: expires }) },
+      }, true),
     ]);
     return ok(entry(await env.DB.prepare(`SELECT ${COLUMNS} FROM users WHERE id = ?`).bind(row.id).first()));
   };
@@ -479,6 +487,11 @@ export default {
   async scheduled(_event, env) {
     const now = Date.now();
     await env.DB.batch([
+      // Expired temporary bans: one audit row each (same detail as banned.delete), then the deletion.
+      env.DB.prepare(`INSERT INTO audit_log (at, actor_type, action, target, detail)
+        SELECT ?1, 'root', 'banned.expire', name, json_object('scope', scope, 'reason', reason, 'features', json(features))
+        FROM users WHERE kind = 'banned' AND expires_at IS NOT NULL AND expires_at <= ?1`).bind(now),
+      env.DB.prepare("DELETE FROM users WHERE kind = 'banned' AND expires_at IS NOT NULL AND expires_at <= ?").bind(now),
       env.DB.prepare('DELETE FROM nonces WHERE expires_at <= ?').bind(now),
       env.DB.prepare('DELETE FROM sessions WHERE expires_at <= ?').bind(now),
       env.DB.prepare('DELETE FROM installs WHERE last_seen < ?').bind(now - INSTALL_RETENTION_MS),

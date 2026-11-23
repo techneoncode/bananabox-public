@@ -21,6 +21,8 @@ export interface BanDetail {
   by?: string | null;
   /** When the ban started, in epoch milliseconds. */
   since?: number;
+  /** When a temporary ban ends, in epoch milliseconds; null or absent for a permanent ban. */
+  until?: number | null;
 }
 
 /** An account-name fragment and the features it loses. */
@@ -177,7 +179,8 @@ const isBanDetail = (value: Partial<BanDetail> | null): boolean =>
   && value.features.every(isFeature)
   && (value.reason == null || typeof value.reason === 'string')
   && (value.by == null || typeof value.by === 'string')
-  && (value.since === undefined || typeof value.since === 'number');
+  && (value.since === undefined || typeof value.since === 'number')
+  && (value.until == null || typeof value.until === 'number');
 
 const isBannedEntry = (value: unknown): value is BannedEntry => {
   const entry = value as Partial<BannedEntry> | null;
@@ -196,6 +199,7 @@ const detail = (entry: BanDetail): BanDetail => ({
   reason: entry.reason ?? null,
   by: entry.by ?? null,
   ...(entry.since !== undefined && { since: entry.since }),
+  ...(entry.until != null && { until: entry.until }),
 });
 
 export function parseRemoteConfig(value: unknown): RemoteConfig {
@@ -276,16 +280,19 @@ export function remoteStatus(
   username: string,
   offline = false,
   identity: Identity = NO_IDENTITY,
+  now = Date.now(),
 ): RemoteStatus {
+  // A temporary ban stops at its end even when the policy comes from the cache.
+  const live = (ban: BanDetail) => ban.until == null || ban.until > now;
   const versionMismatch = config !== undefined
     && compareVersions(installedVersion, config.version) < 0;
   const authorized = matchesUsername(username, config?.authorized);
   const restrictions: Restriction[] = [
     ...(config?.banned ?? [])
-      .filter(entry => matchesUsername(username, [entry.user]))
+      .filter(entry => live(entry) && matchesUsername(username, [entry.user]))
       .map(({ user, ...rest }): Restriction => ({ scope: 'user', target: user, ...rest })),
     ...(config?.banned_groups ?? [])
-      .filter(group => matchesGroup(group, identity))
+      .filter(group => live(group) && matchesGroup(group, identity))
       .map(({ scope, value, ...rest }): Restriction => ({ scope, target: value, ...rest })),
   ];
   const restrictedFeatures: RemoteFeature[] = [

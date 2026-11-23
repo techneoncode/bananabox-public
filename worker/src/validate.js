@@ -120,6 +120,17 @@ export function label(value) {
   return value;
 }
 
+const MAX_BAN_MS = 366 * 86_400_000;
+
+/** End of a temporary ban: undefined when absent (unchanged), null for permanent, else a future time within 366 days. */
+export function expiresAt(value, now) {
+  if (value === undefined || value === null) return value;
+  if (!Number.isInteger(value) || value <= now || value > now + MAX_BAN_MS) {
+    throw bad('expires_at must be null or an integer epoch in milliseconds, in the future and at most 366 days ahead.');
+  }
+  return value;
+}
+
 /** Hides the name of the admin who banned from the banned user. */
 export function anonymous(value) {
   if (value === undefined) return false;

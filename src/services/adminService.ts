@@ -85,9 +85,10 @@ export class AdminService {
     return { stats, banned: banned.items, authorized: authorized.items, policy, updates: updates.items, fetchedAt: Date.now() };
   }
 
-  ban(ban: { name: string; scope: BanScope; features: RemoteFeature[]; reason?: string; anonymous?: boolean; label?: string }): Promise<ListEntry> {
-    const { reason, label, ...rest } = ban;
-    return this.authed('POST', '/v1/banned', { ...rest, ...(reason && { reason }), ...(label && { label }) });
+  /** `expiresAt` (epoch ms) makes the ban temporary; absent or null keeps it until lifted. */
+  ban(ban: { name: string; scope: BanScope; features: RemoteFeature[]; reason?: string; anonymous?: boolean; label?: string; expiresAt?: number | null }): Promise<ListEntry> {
+    const { reason, label, expiresAt, ...rest } = ban;
+    return this.authed('POST', '/v1/banned', { ...rest, ...(reason && { reason }), ...(label && { label }), ...(typeof expiresAt === 'number' && { expires_at: expiresAt }) });
   }
 
   // Root endpoints: the Cloudflare root token is passed by the caller for each request and never stored.
@@ -108,8 +109,10 @@ export class AdminService {
     return this.request('DELETE', `/v1/admins/${id}`, undefined, root);
   }
 
-  updateBan(id: number, change: { features?: RemoteFeature[]; reason?: string; anonymous?: boolean }): Promise<ListEntry> {
-    return this.authed('PUT', `/v1/banned/${id}`, change);
+  /** `expiresAt`: a new end (epoch ms), null to make the ban permanent, undefined to keep it. */
+  updateBan(id: number, change: { features?: RemoteFeature[]; reason?: string; anonymous?: boolean; expiresAt?: number | null }): Promise<ListEntry> {
+    const { expiresAt, ...rest } = change;
+    return this.authed('PUT', `/v1/banned/${id}`, { ...rest, ...(expiresAt !== undefined && { expires_at: expiresAt }) });
   }
 
   unban(id: number): Promise<unknown> {

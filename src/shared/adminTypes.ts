@@ -75,6 +75,8 @@ export interface ListEntry {
   banned_by: string | null;
   anonymous: boolean;
   created_at: number;
+  /** End of a temporary ban, in epoch milliseconds; null for a permanent ban. */
+  expires_at: number | null;
 }
 
 export interface AdminPolicy {
@@ -140,8 +142,8 @@ export type AdminWebviewMessage =
   | { type: 'login'; email: string; password: string }
   | { type: 'logout' }
   | { type: 'refresh' }
-  | { type: 'ban'; name: string; scope: BanScope; reason?: string; features: RemoteFeature[]; anonymous?: boolean; label?: string }
-  | { type: 'updateBan'; id: number; features?: RemoteFeature[]; reason?: string; anonymous?: boolean }
+  | { type: 'ban'; name: string; scope: BanScope; reason?: string; features: RemoteFeature[]; anonymous?: boolean; label?: string; expiresAt?: number | null }
+  | { type: 'updateBan'; id: number; features?: RemoteFeature[]; reason?: string; anonymous?: boolean; expiresAt?: number | null }
   | { type: 'unban'; id: number }
   | { type: 'authorize'; name: string; reason?: string }
   | { type: 'unauthorize'; id: number }

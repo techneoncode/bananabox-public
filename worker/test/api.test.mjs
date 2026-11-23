@@ -22,7 +22,7 @@ const id = () => crypto.randomUUID().replaceAll('-', '');
 
 before(async () => {
   execFileSync(WRANGLER, ['d1', 'migrations', 'apply', 'bananabox', '--local', '--persist-to', persist], { stdio: 'ignore' });
-  server = spawn(WRANGLER, ['dev', '--local', '--port', String(PORT), '--persist-to', persist, '--var', `ADMIN_TOKEN:${TOKEN}`], { stdio: ['ignore', 'ignore', 'pipe'], detached: true });
+  server = spawn(WRANGLER, ['dev', '--local', '--port', String(PORT), '--persist-to', persist, '--var', `ADMIN_TOKEN:${TOKEN}`, '--test-scheduled'], { stdio: ['ignore', 'ignore', 'pipe'], detached: true });
   let stderr = '';
   server.stderr.on('data', chunk => { stderr += chunk; });
   // Do not keep node alive: the exit handler below kills the server once the tests are done.
@@ -90,7 +90,7 @@ test('banned and authorized lists: add, duplicate, validate, list, delete, and p
     assert.equal((await asAdmin('POST', `/v1/${kind}`, { name: 'ok', reason: 'x'.repeat(201) })).status, 400);
     const cfg = (await call('GET', '/v1/config')).json.data;
     if (kind === 'banned') {
-      assert.deepEqual(cfg.banned.map(({ since, ...rest }) => rest), [{ user: 'mallory', features: ['lens_active', 'my_api_active'], reason: 'test', by: 'admin.one' }]);
+      assert.deepEqual(cfg.banned.map(({ since, ...rest }) => rest), [{ user: 'mallory', features: ['lens_active', 'my_api_active'], reason: 'test', by: 'admin.one', until: null }]);
       assert.equal(typeof cfg.banned[0].since, 'number');
     }
     else assert.deepEqual(cfg.authorized, ['mallory']);
@@ -130,8 +130,8 @@ test('bans target a promotion or a campus, name the banner unless anonymous, and
   assert.ok(!cfg.banned.some(b => ['pge:2027', 'Paris'].includes(b.user)), 'an older extension would match them as account fragments');
   const groups = cfg.banned_groups.map(({ since, ...rest }) => rest);
   assert.deepEqual(groups, [
-    { scope: 'promotion', value: 'pge:2027', features: ['my_api_active'], reason: 'abuse', by: 'admin.one' },
-    { scope: 'campus', value: 'Paris', features: ['lens_active', 'my_api_active'], reason: null, by: null },
+    { scope: 'promotion', value: 'pge:2027', features: ['my_api_active'], reason: 'abuse', by: 'admin.one', until: null },
+    { scope: 'campus', value: 'Paris', features: ['lens_active', 'my_api_active'], reason: null, by: null, until: null },
   ]);
   const shown = await asAdmin('PUT', `/v1/banned/${campus.json.data.id}`, { anonymous: false });
   assert.equal(shown.json.data.anonymous, false);
@@ -140,6 +140,39 @@ test('bans target a promotion or a campus, name the banner unless anonymous, and
   assert.equal((await call('GET', '/v1/config')).json.data.banned_groups.at(-1).by, 'Bananabox');
   for (const entry of [promo, campus, byRoot]) await asAdmin('DELETE', `/v1/banned/${entry.json.data.id}`);
   assert.deepEqual((await call('GET', '/v1/config')).json.data.banned_groups, []);
+});
+
+test('temporary bans: validated, hidden from the config once over, changeable to and from permanent, purged daily', async () => {
+  const soon = Date.now() + 1500;
+  for (const expires_at of [Date.now() - 1, Date.now() + 367 * 86_400_000, 'tomorrow', 1.5]) {
+    assert.equal((await asAdmin('POST', '/v1/banned', { scope: 'campus', name: 'Nancy', expires_at })).status, 400, String(expires_at));
+  }
+  const temp = await asAdmin('POST', '/v1/banned', { scope: 'campus', name: 'Nancy', expires_at: soon, reason: 'cool down' });
+  assert.deepEqual([temp.status, temp.json.data.expires_at], [201, soon]);
+  const forever = await asAdmin('POST', '/v1/banned', { name: 'tempcheck' });
+  assert.equal(forever.json.data.expires_at, null);
+  let cfg = (await call('GET', '/v1/config')).json.data;
+  assert.equal(cfg.banned_groups.find(g => g.value === 'Nancy').until, soon);
+  assert.equal(cfg.banned.find(b => b.user === 'tempcheck').until, null);
+
+  const week = Date.now() + 7 * 86_400_000;
+  const extended = await asAdmin('PUT', `/v1/banned/${forever.json.data.id}`, { expires_at: week });
+  assert.equal(extended.json.data.expires_at, week);
+  assert.equal((await asAdmin('PUT', `/v1/banned/${forever.json.data.id}`, { reason: 'x' })).json.data.expires_at, week, 'absent keeps the end');
+  assert.equal((await asAdmin('PUT', `/v1/banned/${forever.json.data.id}`, { expires_at: null })).json.data.expires_at, null, 'null makes it permanent');
+  assert.equal((await asAdmin('PUT', `/v1/banned/${forever.json.data.id}`, { expires_at: Date.now() - 5 })).status, 400);
+  const update = (await logs()).find(l => l.action === 'banned.update' && l.target === 'tempcheck' && l.detail.to.expires_at === null);
+  assert.equal(update.detail.from.expires_at, week);
+
+  await new Promise(r => setTimeout(r, Math.max(0, soon - Date.now()) + 200));
+  cfg = (await call('GET', '/v1/config')).json.data;
+  assert.ok(!cfg.banned_groups.some(g => g.value === 'Nancy'), 'an expired ban leaves the config at once');
+  assert.ok((await asAdmin('GET', '/v1/banned')).json.data.items.some(b => b.name === 'Nancy'), 'until the daily purge');
+  assert.equal((await fetch(`${BASE}/__scheduled?cron=17+3+*+*+*`)).status, 200);
+  assert.ok(!(await asAdmin('GET', '/v1/banned')).json.data.items.some(b => b.name === 'Nancy'));
+  const expired = (await logs('&action=banned.expire')).find(l => l.target === 'Nancy');
+  assert.deepEqual([expired.actor_type, expired.detail], ['root', { scope: 'campus', reason: 'cool down', features: ['lens_active', 'my_api_active'] }]);
+  await asAdmin('DELETE', `/v1/banned/${forever.json.data.id}`);
 });
 
 test('policy: validated like the extension and reflected in the public config', async () => {

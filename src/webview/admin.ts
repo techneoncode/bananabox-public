@@ -2,9 +2,10 @@ import { h, icon } from './dom';
 import { chip, notice, tabs, waitBlock } from './ui';
 import { ring, sparkArea, stackBar } from './charts';
 import { rollNumber, resetMotion } from './motion';
-import { relative } from './format';
+import { BAN_MAX_AHEAD as MAX_AHEAD, expiryOf, relative, type BanDuration } from './format';
 import { initialsOf } from './avatars';
 import { countBars, heatGrid, timelineChart, versionBars } from './adminCharts';
+import { cumulative, donut, gauge, histogram, radialBars, scatter, sunburst, topWithOther, treemap } from './adminViz';
 import { createT } from '../shared/i18n';
 import { compareVersions, matchesGroup, type BanScope, type RemoteFeature } from '../domain/remotePolicy';
 import type {
@@ -17,11 +18,12 @@ import type {
   ReleaseStep,
 } from '../shared/adminTypes';
 
-declare function acquireVsCodeApi(): { postMessage(message: AdminWebviewMessage): void };
+declare function acquireVsCodeApi(): { postMessage(message: AdminWebviewMessage): void; getState(): { theme?: Theme } | undefined; setState(state: { theme: Theme }): void };
 const vscode = acquireVsCodeApi();
 const app = document.getElementById('app')!;
 
 const FEATURES: readonly RemoteFeature[] = ['lens_active', 'my_api_active'];
+type Theme = 'simple' | 'advanced';
 type Tab = 'overview' | 'cohorts' | 'users' | 'moderation' | 'policy' | 'admins';
 type PolicyKey = 'lens_active' | 'my_api_active';
 type Child = Node | string | number | false | null | undefined | Child[];
@@ -31,6 +33,8 @@ const FEATURE_ICON: Record<RemoteFeature, string> = { lens_active: 'eye', my_api
 
 let state: AdminViewState = { lang: 'en', phase: 'loading' };
 let tab: Tab = 'overview';
+/** Simple: the essential charts. Advanced: every chart; remembered by the webview. */
+let theme: Theme = vscode.getState()?.theme === 'advanced' ? 'advanced' : 'simple';
 /** Entrance motion plays when a page is first shown, not on every refresh. */
 let animate = true;
 let search = '';
@@ -43,7 +47,9 @@ let confirming: PolicyKey | null = null;
 const draft = {
   email: '',
   banName: '', banPerson: '', banReason: '', banFeatures: new Set<RemoteFeature>(FEATURES), banScope: 'uid' as BanScope, banAnonymous: false,
+  banDuration: 'permanent' as BanDuration, banUntil: '',
   inlineReason: '', inlineFeatures: new Set<RemoteFeature>(FEATURES), inlineScope: 'uid' as BanScope, inlineAnonymous: false,
+  inlineDuration: 'permanent' as BanDuration, inlineUntil: '',
   adminEmail: '', adminWhoami: '', whoamiEdits: {} as Record<number, string>,
   allowName: '', allowReason: '',
   releaseNotes: '',
@@ -65,7 +71,7 @@ function render(): void {
   const active = document.activeElement instanceof HTMLInputElement && document.activeElement.id ? document.activeElement : null;
   const caret = active && active.type !== 'checkbox' ? [active.selectionStart, active.selectionEnd] : null;
 
-  const page = h('div.admin', { class: enter ? 'admin-enter' : '' });
+  const page = h('div.admin', { class: `${enter ? 'admin-enter' : ''} ${theme}` });
   if (state.busy) page.append(h('div.adm-busy', { role: 'progressbar', 'aria-label': t('admin.working') }));
   if (state.phase === 'loading') page.append(h('div.adm-loading', waitBlock(t('admin.loading'))));
   else if (state.phase === 'login' || !state.snapshot) page.append(loginPage(t));
@@ -175,6 +181,14 @@ function dashboard(snapshot: AdminSnapshot, t: T): HTMLElement {
       h('span.adm-brand', 'Bananabox'),
       chip('accent', t('admin.badge')),
       h('span.spacer'),
+      h('div.adm-theme', { role: 'group', 'aria-label': t('admin.theme.aria') }, (['simple', 'advanced'] as const).map((choice) =>
+        h('button', { type: 'button', 'aria-pressed': String(theme === choice), onclick: () => {
+          if (theme === choice) return;
+          theme = choice;
+          vscode.setState({ theme });
+          animate = true;
+          render();
+        } }, t(`admin.theme.${choice}`)))),
       h('button.icon-btn', { type: 'button', title: t('admin.refresh'), 'aria-label': t('admin.refresh'), disabled: busy, onclick: () => send({ type: 'refresh' }) }, icon('refresh', busy ? 'spin' : '')),
       h('button.icon-btn', { type: 'button', title: t('admin.logout'), 'aria-label': t('admin.logout'), disabled: busy, onclick: () => { resetMotion(); send({ type: 'logout' }); } }, icon('sign-out'))),
     h('div.adm-title.adm-rise',
@@ -260,7 +274,7 @@ function overview(snapshot: AdminSnapshot, t: T): Child[] {
         h('span.adm-when', ago(u.at)))))
       : h('div.adm-pad', empty('cloud-download', t('admin.empty'))));
 
-  return [hero, tiles, growth, versions, updates];
+  return [hero, tiles, growth, versions, updates, ...(theme === 'advanced' ? overviewViz(snapshot, t) : [])];
 }
 
 // ───────────────────────── users ─────────────────────────
@@ -312,6 +326,45 @@ function scopePicker(t: T, group: string, chosen: BanScope, available: (scope: B
     h('span', t(`admin.scope.${scope}`)))));
 }
 
+const DURATIONS: readonly BanDuration[] = ['permanent', '1h', '24h', '7d', '30d', 'custom'];
+
+/** `datetime-local` wants the local wall-clock time without zone. */
+const localInput = (ms: number) => new Date(ms - new Date(ms).getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+const fullDate = (ms: number) => new Date(ms).toLocaleString(state.lang, { dateStyle: 'medium', timeStyle: 'short' });
+
+/** How long a ban lasts: permanent, a preset, or until a chosen date and time. */
+function durationPicker(t: T, group: string, chosen: BanDuration, custom: string, pick: (d: BanDuration) => void, setCustom: (v: string) => void): HTMLElement {
+  const now = Date.now();
+  return h('div.adm-duration',
+    h('div.adm-pills', { role: 'radiogroup', 'aria-label': t('admin.ban.duration') }, DURATIONS.map((d) => h('label.adm-pill.pick',
+      h('input', { type: 'radio', name: group, checked: d === chosen, disabled: state.busy, onchange: () => pick(d) }),
+      icon(d === 'permanent' ? 'lock' : d === 'custom' ? 'calendar' : 'watch'),
+      h('span', t(`admin.ban.duration.${d}`))))),
+    chosen === 'custom' ? h('input.adm-input', {
+      type: 'datetime-local', id: `${group}-until`, value: custom, required: true, disabled: state.busy,
+      min: localInput(now + 60_000), max: localInput(now + MAX_AHEAD), 'aria-label': t('admin.ban.until'),
+      oninput: (e: Event) => { const el = e.target as HTMLInputElement; el.setCustomValidity(''); setCustom(el.value); },
+    }) : null);
+}
+
+/** Resolves the picker at submit time; flags the date field and returns undefined when it is unusable. */
+function submittedExpiry(t: T, group: string, choice: BanDuration, custom: string): number | null | undefined {
+  const at = expiryOf(choice, custom);
+  if (at === undefined) {
+    const el = document.getElementById(`${group}-until`) as HTMLInputElement | null;
+    el?.setCustomValidity(t('admin.ban.untilInvalid'));
+    el?.reportValidity();
+  }
+  return at;
+}
+
+/** "Ends in 3 days" with the exact date in the tooltip, "Expired" once past, or "Permanent". */
+function expiryChip(t: T, expiresAt: number | null): HTMLElement {
+  if (expiresAt === null) return chip('muted', icon('lock'), t('admin.ban.permanent'));
+  if (expiresAt <= Date.now()) return h('span', { title: fullDate(expiresAt) }, chip('muted', icon('history'), t('admin.ban.expired')));
+  return h('span', { title: t('admin.ban.endsAt', { date: fullDate(expiresAt) }) }, chip('warn', icon('watch'), t('admin.ban.endsIn', { when: ago(expiresAt) })));
+}
+
 /** Hides the name of the admin who bans from the banned user. */
 function anonymousPill(t: T, checked: boolean, onChange: (value: boolean) => void): HTMLElement {
   return h('label.adm-pill.pick', { title: t('admin.ban.anonymousHint') },
@@ -358,15 +411,20 @@ function userRow(snapshot: AdminSnapshot, user: AdminUser, t: T, busy: boolean):
     draft.inlineFeatures = new Set(FEATURES);
     draft.inlineScope = 'uid';
     draft.inlineAnonymous = false;
+    draft.inlineDuration = 'permanent';
+    draft.inlineUntil = '';
     render();
   };
   const confirm = () => {
     if (!draft.inlineFeatures.size || !target) return;
+    const expiresAt = submittedExpiry(t, `inline-dur-${id}`, draft.inlineDuration, draft.inlineUntil);
+    if (expiresAt === undefined) return;
     send({
       type: 'ban', name: target, scope, features: [...draft.inlineFeatures],
       ...(scope === 'uid' && { label: name }),
       ...(draft.inlineReason && { reason: draft.inlineReason }),
       ...(draft.inlineAnonymous && { anonymous: true }),
+      ...(expiresAt !== null && { expiresAt }),
     });
     banning = null;
   };
@@ -377,7 +435,11 @@ function userRow(snapshot: AdminSnapshot, user: AdminUser, t: T, busy: boolean):
     user.campus ? chip('muted', icon(SCOPE_ICON.campus), user.campus) : null,
     chip(isActive(snapshot, user) ? 'pass' : 'muted', h('span.mono', `v${user.version}`)),
   ].filter(Boolean);
-  const tags = features.map((f) => chip('fail', icon(FEATURE_ICON[f]), featureLabel(t, f)));
+  const tags = [
+    ...features.map((f) => chip('fail', icon(FEATURE_ICON[f]), featureLabel(t, f))),
+    // A person under a permanent ban stays banned whatever the temporary ones say: only show the ends that matter.
+    ...(bans.some((b) => b.expires_at === null) ? [] : bans.map((b) => expiryChip(t, b.expires_at))),
+  ];
   const what = (s: BanScope, value: string) => (s === 'uid' ? name : `${t(`admin.scope.${s}`)} ${value}`);
   return h('li.adm-user', { class: `${bans.length ? 'banned' : ''} ${open ? 'open' : ''}` },
     h('div.adm-user-row',
@@ -398,6 +460,8 @@ function userRow(snapshot: AdminSnapshot, user: AdminUser, t: T, busy: boolean):
       featurePills(t, draft.inlineFeatures, `inline-${id}`),
       reason,
       anonymousPill(t, draft.inlineAnonymous, (v) => { draft.inlineAnonymous = v; }),
+      h('span.adm-label', t('admin.ban.duration')),
+      durationPicker(t, `inline-dur-${id}`, draft.inlineDuration, draft.inlineUntil, (d) => { draft.inlineDuration = d; render(); }, (v) => { draft.inlineUntil = v; }),
       h('div.adm-actions',
         h('button.btn.danger.solid', { type: 'button', disabled: busy || !target, onclick: confirm }, icon('circle-slash'), t('admin.ban.confirm', { name: target ? what(scope, target) : name })),
         h('button.btn.ghost', { type: 'button', onclick: toggle }, t('admin.cancel')))) : null);
@@ -429,15 +493,19 @@ function moderation(snapshot: AdminSnapshot, t: T): Child[] {
     const picked = known.find((u) => u.user_id === draft.banPerson);
     const name = scope === 'uid' ? picked?.user_id : draft.banName.trim();
     if (!name || !draft.banFeatures.size) return;
+    const expiresAt = submittedExpiry(t, 'ban-dur', draft.banDuration, draft.banUntil);
+    if (expiresAt === undefined) return;
     send({
       type: 'ban', name, scope, features: [...draft.banFeatures],
       ...(scope === 'uid' && picked && { label: personName(t, picked) }),
       ...(draft.banReason && { reason: draft.banReason }),
       ...(draft.banAnonymous && { anonymous: true }),
+      ...(expiresAt !== null && { expiresAt }),
     });
     draft.banName = '';
     draft.banPerson = '';
     draft.banReason = '';
+    draft.banUntil = '';
   };
   const allowName = input('adm-allow-name', { maxLength: 64, required: true, placeholder: t('admin.ban.name'), 'aria-label': t('admin.ban.name'), autocomplete: 'off' }, draft.allowName, (v) => { draft.allowName = v; });
   const allowReason = input('adm-allow-reason', { maxLength: 200, placeholder: t('admin.ban.reason'), 'aria-label': t('admin.ban.reason') }, draft.allowReason, (v) => { draft.allowReason = v; });
@@ -458,6 +526,8 @@ function moderation(snapshot: AdminSnapshot, t: T): Child[] {
         h('div.adm-field', h('span.adm-label', t('admin.ban.restrict')), featurePills(t, draft.banFeatures, 'ban')),
         field(t('admin.ban.reasonShown'), reason),
         anonymousPill(t, draft.banAnonymous, (v) => { draft.banAnonymous = v; }),
+        h('div.adm-field', h('span.adm-label', t('admin.ban.duration')),
+          durationPicker(t, 'ban-dur', draft.banDuration, draft.banUntil, (d) => { draft.banDuration = d; render(); }, (v) => { draft.banUntil = v; })),
         h('button.btn.danger.solid.block', { type: 'submit', disabled: busy }, icon('circle-slash'), t('admin.ban')))),
     block(t('admin.banlist.title'), { glyph: 'shield', meta: snapshot.banned.length },
       snapshot.banned.length
@@ -498,7 +568,7 @@ function bannedRow(entry: ListEntry, users: AdminUser[], t: T, busy: boolean): H
       entry.scope === 'uid' ? avatar(title, 'bad') : h('span.adm-avatar.bad', { 'aria-hidden': 'true' }, icon(SCOPE_ICON[entry.scope])),
       h('div.adm-user-main',
         h('span.adm-name', { class: entry.scope === 'uid' ? '' : 'mono', title: banLabel(t, entry, users) }, title),
-        h('span.adm-chips', chip(entry.scope === 'user' ? 'warn' : 'muted', icon(SCOPE_ICON[entry.scope]), t(`admin.scope.${entry.scope}`))),
+        h('span.adm-chips', chip(entry.scope === 'user' ? 'warn' : 'muted', icon(SCOPE_ICON[entry.scope]), t(`admin.scope.${entry.scope}`)), expiryChip(t, entry.expires_at)),
         h('span.adm-sub', sub)),
       h('button.btn.ghost.small', { type: 'button', disabled: busy, onclick: () => send({ type: 'unban', id: entry.id }) }, icon('unlock'), t('admin.unban'))),
     h('div.adm-toggles',
@@ -513,7 +583,25 @@ function bannedRow(entry: ListEntry, users: AdminUser[], t: T, busy: boolean): H
         type: 'button', class: entry.anonymous ? 'on' : '', 'aria-pressed': String(entry.anonymous), disabled: busy,
         title: t('admin.ban.anonymousHint'), onclick: () => send({ type: 'updateBan', id: entry.id, anonymous: !entry.anonymous }),
       }, icon(entry.anonymous ? 'eye-closed' : 'eye'), t('admin.ban.anonymous'))),
+    h('div.adm-toggles', durationActions(entry, t, busy)),
     entry.reason ? h('p.adm-reason', icon('quote'), entry.reason) : null);
+}
+
+/**
+ * Quick changes to how long a ban lasts. Extending adds to the time left (from now if the end already passed);
+ * a permanent ban is not "extended", it can only become temporary.
+ */
+function durationActions(entry: ListEntry, t: T, busy: boolean): HTMLElement[] {
+  const set = (expiresAt: number | null) => send({ type: 'updateBan', id: entry.id, expiresAt });
+  const action = (glyph: string, label: string, title: string, onclick: () => void) =>
+    h('button.adm-toggle.soft', { type: 'button', disabled: busy, title, onclick }, icon(glyph), label);
+  if (entry.expires_at === null) return [action('watch', t('admin.ban.makeTemporary'), t('admin.ban.makeTemporaryHint'), () => set(Date.now() + DAY))];
+  const from = Math.max(entry.expires_at, Date.now());
+  return [
+    action('add', t('admin.ban.extend24h'), t('admin.ban.extendHint'), () => set(from + DAY)),
+    action('add', t('admin.ban.extend7d'), t('admin.ban.extendHint'), () => set(Math.min(from + 7 * DAY, Date.now() + MAX_AHEAD))),
+    action('lock', t('admin.ban.makePermanent'), t('admin.ban.makePermanentHint'), () => set(null)),
+  ];
 }
 
 // ───────────────────────── cohorts ─────────────────────────
@@ -601,7 +689,125 @@ function cohorts(snapshot: AdminSnapshot, t: T): Child[] {
       }), t('admin.cohorts.launches'), n)
       : empty('rocket', t('admin.cohorts.empty'))));
 
-  return [tiles, promotions, campuses, heat, adoption, cursus, launches];
+  return [tiles, promotions, campuses, heat, adoption, cursus, launches, ...(theme === 'advanced' ? cohortsViz(snapshot, t) : [])];
+}
+
+// ───────────────────────── advanced theme ─────────────────────────
+
+const LAUNCH_BINS: Array<[number, number]> = [[1, 1], [2, 3], [4, 7], [8, 15], [16, 31], [32, 63], [64, Infinity]];
+
+function overviewViz(snapshot: AdminSnapshot, t: T): Child[] {
+  const { stats } = snapshot;
+  const people = stats.users;
+  const identified = people.filter((u) => u.promotion !== null || u.campus !== null).length;
+  const banned = people.filter((u) => matching(snapshot.banned, u).length).length;
+  const share = (part: number, whole: number) => (whole ? part / whole : 0);
+  const g = (ratio: number, label: string, tone: 'pass' | 'warn' | 'fail' | 'accent') =>
+    gauge(ratio, { label, tone, aria: `${label}: ${Math.round(ratio * 100)}%` });
+  const gauges = block(t('admin.viz.gauges'), { glyph: 'dashboard', tone: 'viz-block', hint: t('admin.viz.gaugesHint') },
+    h('div.adm-pad.viz-gauges',
+      g(share(stats.active, stats.installs), t('admin.viz.activeShare'), 'pass'),
+      g(share(stats.active - stats.obsolete_active, stats.active), t('admin.viz.upToDate'), stats.obsolete_active ? 'warn' : 'pass'),
+      g(share(identified, people.length), t('admin.viz.identified'), 'accent'),
+      g(share(banned, people.length), t('admin.viz.banned'), 'fail')));
+
+  const versions = block(t('admin.viz.versionPie'), { glyph: 'pie-chart', tone: 'viz-block', hint: t('admin.viz.versionPieHint') },
+    h('div.adm-pad', stats.installs
+      ? donut(topWithOther(stats.versions.map((v) => ({ label: v.version, value: v.installs })), t('admin.viz.other')), {
+        aria: t('admin.viz.versionPie'), center: String(stats.installs), sub: t('admin.kpi.installs'),
+        tip: (s, pct) => t('admin.viz.sliceTip', { label: s.label, n: s.value, pct }),
+      })
+      : empty('pie-chart', t('admin.empty'))));
+
+  const before = stats.installs - stats.timeline.reduce((n, d) => n + d.new, 0);
+  let running = before;
+  const totals = stats.timeline.map((d) => (running += d.new));
+  const growth = block(t('admin.viz.cumulative'), { glyph: 'graph-line', tone: 'viz-block', meta: h('span.adm-delta', icon('arrow-up'), `+${stats.installs - before}`), hint: t('admin.viz.cumulativeHint') },
+    h('div.adm-pad', cumulative(totals, { aria: t('admin.viz.cumulative'), tip: (i, v) => t('admin.viz.cumulativeTip', { day: stats.timeline[i].day, n: v }) })));
+
+  const bins = LAUNCH_BINS.map(([lo, hi]) => ({
+    label: hi === Infinity ? `${lo}+` : lo === hi ? String(lo) : `${lo}–${hi}`,
+    value: people.filter((u) => u.launches >= lo && u.launches <= hi).length,
+  }));
+  const histo = block(t('admin.viz.histogram'), { glyph: 'graph', tone: 'viz-block', hint: t('admin.viz.histogramHint') },
+    h('div.adm-pad', people.length
+      ? histogram(bins, { aria: t('admin.viz.histogram'), tip: (b) => t('admin.viz.histogramTip', { label: b.label, n: b.value }) })
+      : empty('graph', t('admin.empty'))));
+
+  // When people last opened Bananabox, in the admin's local time: a weekday × 4-hour punch card.
+  const day = (i: number) => new Intl.DateTimeFormat(state.lang, { weekday: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(2024, 0, 1 + i)));
+  const days = Array.from({ length: 7 }, (_, i) => day(i));
+  const hours = Array.from({ length: 6 }, (_, i) => `${i * 4}h`);
+  const slot = (u: AdminUser) => { const d = new Date(u.last_seen); return [days[(d.getDay() + 6) % 7], hours[Math.floor(d.getHours() / 4)]]; };
+  const punch = block(t('admin.viz.punch'), { glyph: 'calendar', tone: 'viz-block', hint: t('admin.viz.punchHint') },
+    h('div.adm-pad', people.length
+      ? heatGrid(days, hours, (r, c) => people.filter((u) => { const [a, b] = slot(u); return a === r && b === c; }).length,
+        { aria: t('admin.viz.punch'), tip: (r, c, n) => t('admin.viz.punchTip', { day: r, hour: c, n }) })
+      : empty('calendar', t('admin.empty'))));
+
+  // What the bans target: one person, a promotion, a campus or a former account name.
+  const scopes = [...bansByScope(snapshot.banned)];
+  const bans = snapshot.banned.length
+    ? [block(t('admin.viz.banPie'), { glyph: 'shield', tone: 'viz-block', hint: t('admin.viz.banPieHint') },
+      h('div.adm-pad', donut(topWithOther(scopes.map(([scope, n]) => ({ label: t(`admin.scope.${scope}`), value: n })), t('admin.viz.other')), {
+        aria: t('admin.viz.banPie'), center: String(snapshot.banned.length), sub: t('admin.kpi.banned'),
+        tip: (s, pct) => t('admin.viz.sliceTip', { label: s.label, n: s.value, pct }),
+      })))]
+    : [];
+
+  return [gauges, versions, growth, histo, punch, ...bans];
+}
+
+const bansByScope = (entries: ListEntry[]) => {
+  const counts = new Map<BanScope, number>();
+  for (const e of entries) counts.set(e.scope, (counts.get(e.scope) ?? 0) + 1);
+  return counts;
+};
+
+function cohortsViz(snapshot: AdminSnapshot, t: T): Child[] {
+  const people = snapshot.stats.users;
+  if (!people.some((u) => u.promotion !== null || u.campus !== null)) return [];
+  const active = (u: AdminUser) => isActive(snapshot, u);
+  const byCampus = [...countBy(people, (u) => u.campus)];
+  const byCursus = [...countBy(people, (u) => u.cursus?.toLowerCase() ?? null)].sort((a, b) => b[1].length - a[1].length);
+  const byPromotion = [...countBy(people, (u) => u.promotion)].sort((a, b) => b[0] - a[0]);
+
+  const campusPie = block(t('admin.viz.campusPie'), { glyph: 'pie-chart', tone: 'viz-block', hint: t('admin.viz.campusPieHint') },
+    h('div.adm-pad', donut(topWithOther(byCampus.map(([c, g]) => ({ label: c, value: g.length })), t('admin.viz.other')), {
+      aria: t('admin.viz.campusPie'), center: String(byCampus.length), sub: t('admin.cohorts.campuses'),
+      tip: (s, pct) => t('admin.viz.sliceTip', { label: s.label, n: s.value, pct }),
+    })));
+
+  const sun = block(t('admin.viz.sunburst'), { glyph: 'circle-large-outline', tone: 'viz-block', hint: t('admin.viz.sunburstHint') },
+    h('div.adm-pad', byCursus.length
+      ? sunburst(byCursus.map(([name, group]) => ({
+        label: name, value: group.length,
+        children: [...countBy(group, (u) => u.promotion)].sort((a, b) => a[0] - b[0]).map(([y, g]) => ({ label: String(y), value: g.length })),
+      })), { aria: t('admin.viz.sunburst'), center: String(byCursus.length), sub: t('admin.cohorts.cursus'),
+        tip: (path, n, pct) => t('admin.viz.sliceTip', { label: path, n, pct }) })
+      : empty('circle-large-outline', t('admin.cohorts.empty'))));
+
+  const tree = block(t('admin.viz.treemap'), { glyph: 'layout', tone: 'viz-block', hint: t('admin.viz.treemapHint') },
+    h('div.adm-pad', treemap(byCampus.map(([c, g]) => ({ label: c, value: g.length, ratio: g.filter(active).length / g.length })), {
+      aria: t('admin.viz.treemap'),
+      tip: (label, n, ratio) => t('admin.viz.treemapTip', { label, n, pct: Math.round(ratio * 100) }),
+    })));
+
+  const radial = block(t('admin.viz.radial'), { glyph: 'mortar-board', tone: 'viz-block', hint: t('admin.viz.radialHint') },
+    h('div.adm-pad.viz-pie', radialBars(byPromotion.slice(0, 8).map(([y, g]) => ({ label: String(y), value: g.length })), {
+      aria: t('admin.viz.radial'), tip: (s) => t('admin.cohorts.tip', { label: s.label, total: s.value, active: byPromotion.find(([y]) => String(y) === s.label)![1].filter(active).length }),
+    })));
+
+  const window = snapshot.stats.active_window_days;
+  const dots = block(t('admin.viz.scatter'), { glyph: 'symbol-misc', tone: 'viz-block', hint: t('admin.viz.scatterHint', { days: window }) },
+    h('div.adm-pad',
+      scatter(people.map((u) => ({
+        x: Math.max(0, (snapshot.fetchedAt - u.last_seen) / DAY), y: u.launches, active: active(u),
+        tip: t('admin.viz.scatterTip', { name: personName(t, u), n: u.launches, when: ago(u.last_seen) }),
+      })), { aria: t('admin.viz.scatter'), window, xLabel: (d) => t('admin.viz.daysAgo', { n: Math.round(d) }) }),
+      h('div.adm-legend', legendKey('s1', t('admin.kpi.active')), legendKey('muted', t('admin.kpi.inactive')))));
+
+  return [campusPie, sun, tree, radial, dots];
 }
 
 // ───────────────────────── admins ─────────────────────────
@@ -758,7 +964,7 @@ window.addEventListener('message', (event: MessageEvent<AdminHostMessage>) => {
   const previous = state;
   state = event.data.state;
   if (previous.phase !== state.phase) animate = true;
-  if (state.phase === 'login') { tab = 'overview'; confirming = null; banning = null; }
+  if (state.phase === 'login') { tab = 'overview'; confirming = null; banning = null; confirmingAdmin = null; }
   render();
 });
 render();

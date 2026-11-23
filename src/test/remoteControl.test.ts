@@ -446,3 +446,23 @@ test('an installed build at or ahead of the required version is never asked to d
     assert.equal(remoteStatus(baseline, '0.5.1-beta', 'niels').versionMismatch, true);
   } finally { service.dispose(); reset(); }
 });
+
+test('a temporary ban applies until its end, also from a cached policy, then lifts on its own', () => {
+  const now = Date.UTC(2026, 10, 23, 12);
+  const value = { ...baseline,
+    banned: [{ ...ban('zoe', ['lens_active']), until: now + 60_000 }],
+    banned_groups: [{ scope: 'campus', value: 'Paris', features: ['my_api_active'], until: now - 1 }, { scope: 'campus', value: 'Paris', features: ['lens_active'], until: null }],
+  };
+  const parsed = parseRemoteConfig(value);
+  assert.equal(parsed.banned[0].until, now + 60_000);
+  assert.equal('until' in parsed.banned_groups![1], false, 'a permanent ban has no end');
+  const identity = { promotion: null, cursus: null, campus: 'Paris' };
+  const during = remoteStatus(parsed, '0.5.1', 'zoe', false, identity, now);
+  assert.deepEqual(during.restrictedFeatures, ['lens_active'], 'the expired campus ban is ignored');
+  assert.deepEqual(during.restrictions!.map(r => [r.scope, r.until ?? null]), [['user', now + 60_000], ['campus', null]]);
+  const after = remoteStatus(parsed, '0.5.1', 'zoe', false, { ...identity, campus: null }, now + 60_000);
+  assert.deepEqual(after.restrictedFeatures, [], 'the end itself is no longer banned');
+  for (const until of ['tomorrow', {}]) {
+    assert.throws(() => parseRemoteConfig({ ...baseline, banned: [{ ...ban('zoe'), until }] }));
+  }
+});
