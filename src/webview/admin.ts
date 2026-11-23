@@ -18,23 +18,20 @@ import type {
   ReleaseStep,
 } from '../shared/adminTypes';
 
-declare function acquireVsCodeApi(): { postMessage(message: AdminWebviewMessage): void; getState(): { theme?: Theme } | undefined; setState(state: { theme: Theme }): void };
+declare function acquireVsCodeApi(): { postMessage(message: AdminWebviewMessage): void };
 const vscode = acquireVsCodeApi();
 const app = document.getElementById('app')!;
 
 const FEATURES: readonly RemoteFeature[] = ['lens_active', 'my_api_active'];
-type Theme = 'simple' | 'advanced';
-type Tab = 'overview' | 'cohorts' | 'users' | 'moderation' | 'policy' | 'admins';
+type Tab = 'overview' | 'cohorts' | 'graphs' | 'users' | 'moderation' | 'policy' | 'admins';
 type PolicyKey = 'lens_active' | 'my_api_active';
 type Child = Node | string | number | false | null | undefined | Child[];
 
-const TAB_ICON: Record<Tab, string> = { overview: 'dashboard', cohorts: 'pie-chart', users: 'organization', moderation: 'shield', policy: 'settings-gear', admins: 'key' };
+const TAB_ICON: Record<Tab, string> = { overview: 'dashboard', cohorts: 'pie-chart', graphs: 'graph', users: 'organization', moderation: 'shield', policy: 'settings-gear', admins: 'key' };
 const FEATURE_ICON: Record<RemoteFeature, string> = { lens_active: 'eye', my_api_active: 'globe' };
 
 let state: AdminViewState = { lang: 'en', phase: 'loading' };
 let tab: Tab = 'overview';
-/** Simple: the essential charts. Advanced: every chart; remembered by the webview. */
-let theme: Theme = vscode.getState()?.theme === 'advanced' ? 'advanced' : 'simple';
 /** Entrance motion plays when a page is first shown, not on every refresh. */
 let animate = true;
 let search = '';
@@ -71,7 +68,7 @@ function render(): void {
   const active = document.activeElement instanceof HTMLInputElement && document.activeElement.id ? document.activeElement : null;
   const caret = active && active.type !== 'checkbox' ? [active.selectionStart, active.selectionEnd] : null;
 
-  const page = h('div.admin', { class: `${enter ? 'admin-enter' : ''} ${theme}` });
+  const page = h('div.admin', { class: enter ? 'admin-enter' : '' });
   if (state.busy) page.append(h('div.adm-busy', { role: 'progressbar', 'aria-label': t('admin.working') }));
   if (state.phase === 'loading') page.append(h('div.adm-loading', waitBlock(t('admin.loading'))));
   else if (state.phase === 'login' || !state.snapshot) page.append(loginPage(t));
@@ -169,26 +166,19 @@ function dashboard(snapshot: AdminSnapshot, t: T): HTMLElement {
   const items: Array<{ id: Tab; label: string; icon: string; count?: number }> = [
     { id: 'overview', label: t('admin.nav.overview'), icon: TAB_ICON.overview },
     { id: 'cohorts', label: t('admin.nav.cohorts'), icon: TAB_ICON.cohorts },
+    { id: 'graphs', label: t('admin.nav.graphs'), icon: TAB_ICON.graphs },
     { id: 'users', label: t('admin.nav.users'), icon: TAB_ICON.users, count: snapshot.stats.users.length },
     { id: 'moderation', label: t('admin.nav.moderation'), icon: TAB_ICON.moderation, count: snapshot.banned.length },
     { id: 'policy', label: t('admin.nav.policy'), icon: TAB_ICON.policy, count: off },
     { id: 'admins', label: t('admin.nav.admins'), icon: TAB_ICON.admins },
   ];
-  const body = { overview, cohorts, users, moderation, policy, admins }[tab](snapshot, t);
+  const body = { overview, cohorts, graphs, users, moderation, policy, admins }[tab](snapshot, t);
   return h('div.adm-dashboard',
     h('header.adm-appbar',
       h('img.adm-logo', { src: document.body.dataset.logo, alt: '', width: 18, height: 18 }),
       h('span.adm-brand', 'Bananabox'),
       chip('accent', t('admin.badge')),
       h('span.spacer'),
-      h('div.adm-theme', { role: 'group', 'aria-label': t('admin.theme.aria') }, (['simple', 'advanced'] as const).map((choice) =>
-        h('button', { type: 'button', 'aria-pressed': String(theme === choice), onclick: () => {
-          if (theme === choice) return;
-          theme = choice;
-          vscode.setState({ theme });
-          animate = true;
-          render();
-        } }, t(`admin.theme.${choice}`)))),
       h('button.icon-btn', { type: 'button', title: t('admin.refresh'), 'aria-label': t('admin.refresh'), disabled: busy, onclick: () => send({ type: 'refresh' }) }, icon('refresh', busy ? 'spin' : '')),
       h('button.icon-btn', { type: 'button', title: t('admin.logout'), 'aria-label': t('admin.logout'), disabled: busy, onclick: () => { resetMotion(); send({ type: 'logout' }); } }, icon('sign-out'))),
     h('div.adm-title.adm-rise',
@@ -214,12 +204,63 @@ function tile(key: string, glyph: string, label: string, value: number, sub: str
 const legendKey = (tone: string, label: string, value?: number) =>
   h('span.adm-key', { class: `k-${tone}` }, label, value !== undefined ? h('b', value) : null);
 
+/** Charts side by side on a wide panel, stacked on a narrow one; a last odd chart takes the whole row. */
+const grid = (...cells: Child[]) => h('div.adm-grid.adm-stagger', cells);
+
 function overview(snapshot: AdminSnapshot, t: T): Child[] {
   const { stats } = snapshot;
-  const upToDate = Math.max(0, stats.active - stats.obsolete_active);
   const added = stats.timeline.reduce((n, d) => n + d.new, 0);
   const peak = Math.max(1, ...stats.timeline.map((d) => d.new));
   const perInstall = stats.installs ? stats.launches / stats.installs : 0;
+  const c = activityCharts(snapshot, t);
+
+  const tiles = h('div.adm-tiles.adm-stagger',
+    tile('installs', 'package', t('admin.kpi.installs'), stats.installs, t('admin.kpi.installsSub', { n: added }), '',
+      sparkArea(stats.timeline.map((d) => (d.new / peak) * 100), { width: 120, height: 26, aria: t('admin.growth.aria') })),
+    tile('launches', 'rocket', t('admin.kpi.launches'), stats.launches,
+      t('admin.kpi.launchesSub', { n: perInstall.toLocaleString(state.lang, { maximumFractionDigits: 1 }) })),
+    tile('obsolete', 'warning', t('admin.kpi.obsolete'), stats.obsolete_active,
+      t('admin.kpi.obsoleteSub', { pct: percent(stats.obsolete_active, stats.active) }), stats.obsolete_active ? 'warn' : ''),
+    tile('banned', 'circle-slash', t('admin.kpi.banned'), snapshot.banned.length,
+      t('admin.kpi.bannedSub', { n: snapshot.authorized.length }), snapshot.banned.length ? 'bad' : ''));
+
+  const updates = block(t('admin.updates.title'), { glyph: 'cloud-download', meta: snapshot.updates.length || null },
+    snapshot.updates.length
+      ? h('ul.adm-list', snapshot.updates.map((u) => h('li.adm-li',
+        h('span.adm-upd',
+          h('span.adm-ver', u.from_version),
+          icon('arrow-right', 'adm-arrow'),
+          h('span.adm-ver', { class: u.to_version === stats.current_version ? 'now' : '' }, u.to_version)),
+        h('span.adm-when', ago(u.at)))))
+      : h('div.adm-pad', empty('cloud-download', t('admin.empty'))));
+
+  return [tiles, c.gauges, grid(c.cumulative, c.versionPie), grid(c.histogram, c.punch), grid(c.banPie, updates)];
+}
+
+// ───────────────────────── graphs ─────────────────────────
+
+/** Every chart of the dashboard, by theme: the other tabs show a chosen few. */
+function graphs(snapshot: AdminSnapshot, t: T): Child[] {
+  const a = activityCharts(snapshot, t);
+  const c = cohortCharts(snapshot, t);
+  const section = (title: string, glyph: string, wide: Child[], cells: Child[]) =>
+    [h('h2.adm-section.adm-rise', icon(glyph), title), ...wide, grid(...cells)];
+  return [
+    ...section(t('admin.graphs.activity'), 'pulse', [a.gauges], [a.hero, a.timeline, a.cumulative, a.histogram, a.banPie, a.punch]),
+    ...section(t('admin.graphs.versions'), 'versions', [], [a.versionBars, a.versionPie, c.adoption]),
+    ...section(t('admin.graphs.cohorts'), 'mortar-board', [c.heat],
+      [c.promotions, c.campuses, c.radial, c.sunburst, c.campusPie, c.treemap, c.launches, c.scatter, c.cursus]),
+  ];
+}
+
+const LAUNCH_BINS: Array<[number, number]> = [[1, 1], [2, 3], [4, 7], [8, 15], [16, 31], [32, 63], [64, Infinity]];
+
+/** Installations, versions, launches and bans: every chart about activity, by name. */
+function activityCharts(snapshot: AdminSnapshot, t: T) {
+  const { stats } = snapshot;
+  const people = stats.users;
+  const upToDate = Math.max(0, stats.active - stats.obsolete_active);
+  const added = stats.timeline.reduce((n, d) => n + d.new, 0);
   const dayLabel = (day: string | undefined) => day
     ? new Date(`${day}T00:00:00Z`).toLocaleDateString(state.lang, { day: 'numeric', month: 'short', timeZone: 'UTC' })
     : '';
@@ -242,40 +283,82 @@ function overview(snapshot: AdminSnapshot, t: T): Child[] {
         legendKey('warn', t('admin.kpi.obsolete'), stats.obsolete_active),
         legendKey('muted', t('admin.kpi.inactive'), stats.inactive))));
 
-  const tiles = h('div.adm-tiles.adm-stagger',
-    tile('installs', 'package', t('admin.kpi.installs'), stats.installs, t('admin.kpi.installsSub', { n: added }), '',
-      sparkArea(stats.timeline.map((d) => (d.new / peak) * 100), { width: 120, height: 26, aria: t('admin.growth.aria') })),
-    tile('launches', 'rocket', t('admin.kpi.launches'), stats.launches,
-      t('admin.kpi.launchesSub', { n: perInstall.toLocaleString(state.lang, { maximumFractionDigits: 1 }) })),
-    tile('obsolete', 'warning', t('admin.kpi.obsolete'), stats.obsolete_active,
-      t('admin.kpi.obsoleteSub', { pct: percent(stats.obsolete_active, stats.active) }), stats.obsolete_active ? 'warn' : ''),
-    tile('banned', 'circle-slash', t('admin.kpi.banned'), snapshot.banned.length,
-      t('admin.kpi.bannedSub', { n: snapshot.authorized.length }), snapshot.banned.length ? 'bad' : ''));
-
-  const growth = block(t('admin.growth.title'), { glyph: 'graph', hint: t('admin.growth.meta'), meta: h('span.adm-delta', icon('arrow-up'), t('admin.growth.total', { n: added })) },
+  const timeline = block(t('admin.growth.title'), { glyph: 'graph', hint: t('admin.growth.meta'), meta: h('span.adm-delta', icon('arrow-up'), t('admin.growth.total', { n: added })) },
     h('div.adm-pad',
       timelineChart(stats.timeline, { aria: t('admin.growth.aria'), tip: (day, created, seen) => t('admin.growth.tip', { day, created, seen }) }),
       h('div.adm-axis', h('span', dayLabel(stats.timeline[0]?.day)), h('span', dayLabel(stats.timeline.at(-1)?.day))),
       h('div.adm-legend', legendKey('bar', t('admin.growth.new')), legendKey('line', t('admin.growth.seen')))));
 
-  const versions = block(t('admin.versions.title'), { glyph: 'versions', meta: h('span.adm-ver.now', stats.current_version), hint: t('admin.versions.hint') },
+  const versionList = block(t('admin.versions.title'), { glyph: 'versions', meta: h('span.adm-ver.now', stats.current_version), hint: t('admin.versions.hint') },
     h('div.adm-pad', stats.versions.length
       ? [versionBars(stats.versions, t('admin.versions.aria'), { active: t('admin.kpi.active'), installs: t('admin.kpi.installs') }, stats.current_version),
         h('div.adm-legend', legendKey('pass', t('admin.kpi.active')), legendKey('track', t('admin.kpi.installs')))]
       : empty('versions', t('admin.empty'))));
 
-  const updates = block(t('admin.updates.title'), { glyph: 'cloud-download', meta: snapshot.updates.length || null },
-    snapshot.updates.length
-      ? h('ul.adm-list', snapshot.updates.map((u) => h('li.adm-li',
-        h('span.adm-upd',
-          h('span.adm-ver', u.from_version),
-          icon('arrow-right', 'adm-arrow'),
-          h('span.adm-ver', { class: u.to_version === stats.current_version ? 'now' : '' }, u.to_version)),
-        h('span.adm-when', ago(u.at)))))
-      : h('div.adm-pad', empty('cloud-download', t('admin.empty'))));
+  const identified = people.filter((u) => u.promotion !== null || u.campus !== null).length;
+  const banned = people.filter((u) => matching(snapshot.banned, u).length).length;
+  const share = (part: number, whole: number) => (whole ? part / whole : 0);
+  const g = (ratio: number, label: string, tone: 'pass' | 'warn' | 'fail' | 'accent') =>
+    gauge(ratio, { label, tone, aria: `${label}: ${Math.round(ratio * 100)}%` });
+  const gauges = block(t('admin.viz.gauges'), { glyph: 'dashboard', tone: 'viz-block', hint: t('admin.viz.gaugesHint') },
+    h('div.adm-pad.viz-gauges',
+      g(share(stats.active, stats.installs), t('admin.viz.activeShare'), 'pass'),
+      g(share(stats.active - stats.obsolete_active, stats.active), t('admin.viz.upToDate'), stats.obsolete_active ? 'warn' : 'pass'),
+      g(share(identified, people.length), t('admin.viz.identified'), 'accent'),
+      g(share(banned, people.length), t('admin.viz.banned'), 'fail')));
 
-  return [hero, tiles, growth, versions, updates, ...(theme === 'advanced' ? overviewViz(snapshot, t) : [])];
+  const versionPie = block(t('admin.viz.versionPie'), { glyph: 'pie-chart', tone: 'viz-block', hint: t('admin.viz.versionPieHint') },
+    h('div.adm-pad', stats.installs
+      ? donut(topWithOther(stats.versions.map((v) => ({ label: v.version, value: v.installs })), t('admin.viz.other')), {
+        aria: t('admin.viz.versionPie'), center: String(stats.installs), sub: t('admin.kpi.installs'),
+        tip: (s, pct) => t('admin.viz.sliceTip', { label: s.label, n: s.value, pct }),
+      })
+      : empty('pie-chart', t('admin.empty'))));
+
+  const before = stats.installs - added;
+  let running = before;
+  const totals = stats.timeline.map((d) => (running += d.new));
+  const cumulativeChart = block(t('admin.viz.cumulative'), { glyph: 'graph-line', tone: 'viz-block', meta: h('span.adm-delta', icon('arrow-up'), `+${added}`), hint: t('admin.viz.cumulativeHint') },
+    h('div.adm-pad', cumulative(totals, { aria: t('admin.viz.cumulative'), tip: (i, v) => t('admin.viz.cumulativeTip', { day: stats.timeline[i].day, n: v }) })));
+
+  const bins = LAUNCH_BINS.map(([lo, hi]) => ({
+    label: hi === Infinity ? `${lo}+` : lo === hi ? String(lo) : `${lo}–${hi}`,
+    value: people.filter((u) => u.launches >= lo && u.launches <= hi).length,
+  }));
+  const histo = block(t('admin.viz.histogram'), { glyph: 'graph', tone: 'viz-block', hint: t('admin.viz.histogramHint') },
+    h('div.adm-pad', people.length
+      ? histogram(bins, { aria: t('admin.viz.histogram'), tip: (b) => t('admin.viz.histogramTip', { label: b.label, n: b.value }) })
+      : empty('graph', t('admin.empty'))));
+
+  // When people last opened Bananabox, in the admin's local time: a weekday × 4-hour punch card.
+  const day = (i: number) => new Intl.DateTimeFormat(state.lang, { weekday: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(2024, 0, 1 + i)));
+  const days = Array.from({ length: 7 }, (_, i) => day(i));
+  const hours = Array.from({ length: 6 }, (_, i) => `${i * 4}h`);
+  const slot = (u: AdminUser) => { const d = new Date(u.last_seen); return [days[(d.getDay() + 6) % 7], hours[Math.floor(d.getHours() / 4)]]; };
+  const punch = block(t('admin.viz.punch'), { glyph: 'calendar', tone: 'viz-block', hint: t('admin.viz.punchHint') },
+    h('div.adm-pad', people.length
+      ? heatGrid(days, hours, (r, c) => people.filter((u) => { const [a, b] = slot(u); return a === r && b === c; }).length,
+        { aria: t('admin.viz.punch'), tip: (r, c, n) => t('admin.viz.punchTip', { day: r, hour: c, n }) })
+      : empty('calendar', t('admin.empty'))));
+
+  // What the bans target: one person, a promotion, a campus or a former account name. Nothing to show without bans.
+  const scopes = [...bansByScope(snapshot.banned)];
+  const banPie = snapshot.banned.length
+    ? block(t('admin.viz.banPie'), { glyph: 'shield', tone: 'viz-block', hint: t('admin.viz.banPieHint') },
+      h('div.adm-pad', donut(topWithOther(scopes.map(([scope, n]) => ({ label: t(`admin.scope.${scope}`), value: n })), t('admin.viz.other')), {
+        aria: t('admin.viz.banPie'), center: String(snapshot.banned.length), sub: t('admin.kpi.banned'),
+        tip: (s, pct) => t('admin.viz.sliceTip', { label: s.label, n: s.value, pct }),
+      })))
+    : null;
+
+  return { hero, timeline, versionBars: versionList, gauges, versionPie, cumulative: cumulativeChart, histogram: histo, punch, banPie };
 }
+
+const bansByScope = (entries: ListEntry[]) => {
+  const counts = new Map<BanScope, number>();
+  for (const e of entries) counts.set(e.scope, (counts.get(e.scope) ?? 0) + 1);
+  return counts;
+};
 
 // ───────────────────────── users ─────────────────────────
 
@@ -618,23 +701,34 @@ const countBy = <K>(items: AdminUser[], key: (u: AdminUser) => K | null) => {
 
 function cohorts(snapshot: AdminSnapshot, t: T): Child[] {
   const people = snapshot.stats.users;
-  const active = (u: AdminUser) => isActive(snapshot, u);
   const known = people.filter((u) => u.promotion !== null || u.campus !== null);
   const byPromotion = [...countBy(people, (u) => u.promotion)].sort((a, b) => b[0] - a[0]);
   const byCampus = [...countBy(people, (u) => u.campus)].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
   const byCursus = [...countBy(people, (u) => u.cursus?.toLowerCase() ?? null)].sort((a, b) => b[1].length - a[1].length);
   const top = byCampus[0];
-  const n = (v: number) => v.toLocaleString(state.lang, { maximumFractionDigits: 1 });
-  const row = (label: string, group: AdminUser[]) => ({
-    label, total: group.length, part: group.filter(active).length,
-    title: t('admin.cohorts.tip', { label, total: group.length, active: group.filter(active).length }),
-  });
+  const c = cohortCharts(snapshot, t);
 
   const tiles = h('div.adm-tiles.adm-stagger',
     tile('identified', 'person', t('admin.cohorts.identified'), known.length, t('admin.cohorts.identifiedSub', { pct: percent(known.length, people.length), total: people.length })),
     tile('promotions', 'mortar-board', t('admin.cohorts.promotions'), byPromotion.length, byPromotion.length ? t('admin.cohorts.range', { from: byPromotion.at(-1)![0], to: byPromotion[0][0] }) : '—'),
     tile('campuses', 'location', t('admin.cohorts.campuses'), byCampus.length, top ? t('admin.cohorts.top', { campus: top[0], n: top[1].length }) : '—'),
-    tile('cursus', 'library', t('admin.cohorts.cursus'), byCursus.length, byCursus.map(([c]) => c).join(' · ') || '—'));
+    tile('cursus', 'library', t('admin.cohorts.cursus'), byCursus.length, byCursus.map(([name]) => name).join(' · ') || '—'));
+
+  return [tiles, grid(c.sunburst, c.treemap), c.heat, grid(c.adoption, c.scatter)];
+}
+
+/** Promotions, campuses and cursus: every chart about who the users are, by name. */
+function cohortCharts(snapshot: AdminSnapshot, t: T) {
+  const people = snapshot.stats.users;
+  const active = (u: AdminUser) => isActive(snapshot, u);
+  const byPromotion = [...countBy(people, (u) => u.promotion)].sort((a, b) => b[0] - a[0]);
+  const byCampus = [...countBy(people, (u) => u.campus)].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+  const byCursus = [...countBy(people, (u) => u.cursus?.toLowerCase() ?? null)].sort((a, b) => b[1].length - a[1].length);
+  const n = (v: number) => v.toLocaleString(state.lang, { maximumFractionDigits: 1 });
+  const row = (label: string, group: AdminUser[]) => ({
+    label, total: group.length, part: group.filter(active).length,
+    title: t('admin.cohorts.tip', { label, total: group.length, active: group.filter(active).length }),
+  });
 
   const legend = h('div.adm-legend', legendKey('pass', t('admin.kpi.active')), legendKey('track', t('admin.cohorts.people')));
   const promotions = block(t('admin.cohorts.byPromotion'), { glyph: 'mortar-board', hint: t('admin.cohorts.byPromotionHint') },
@@ -689,94 +783,13 @@ function cohorts(snapshot: AdminSnapshot, t: T): Child[] {
       }), t('admin.cohorts.launches'), n)
       : empty('rocket', t('admin.cohorts.empty'))));
 
-  return [tiles, promotions, campuses, heat, adoption, cursus, launches, ...(theme === 'advanced' ? cohortsViz(snapshot, t) : [])];
-}
-
-// ───────────────────────── advanced theme ─────────────────────────
-
-const LAUNCH_BINS: Array<[number, number]> = [[1, 1], [2, 3], [4, 7], [8, 15], [16, 31], [32, 63], [64, Infinity]];
-
-function overviewViz(snapshot: AdminSnapshot, t: T): Child[] {
-  const { stats } = snapshot;
-  const people = stats.users;
-  const identified = people.filter((u) => u.promotion !== null || u.campus !== null).length;
-  const banned = people.filter((u) => matching(snapshot.banned, u).length).length;
-  const share = (part: number, whole: number) => (whole ? part / whole : 0);
-  const g = (ratio: number, label: string, tone: 'pass' | 'warn' | 'fail' | 'accent') =>
-    gauge(ratio, { label, tone, aria: `${label}: ${Math.round(ratio * 100)}%` });
-  const gauges = block(t('admin.viz.gauges'), { glyph: 'dashboard', tone: 'viz-block', hint: t('admin.viz.gaugesHint') },
-    h('div.adm-pad.viz-gauges',
-      g(share(stats.active, stats.installs), t('admin.viz.activeShare'), 'pass'),
-      g(share(stats.active - stats.obsolete_active, stats.active), t('admin.viz.upToDate'), stats.obsolete_active ? 'warn' : 'pass'),
-      g(share(identified, people.length), t('admin.viz.identified'), 'accent'),
-      g(share(banned, people.length), t('admin.viz.banned'), 'fail')));
-
-  const versions = block(t('admin.viz.versionPie'), { glyph: 'pie-chart', tone: 'viz-block', hint: t('admin.viz.versionPieHint') },
-    h('div.adm-pad', stats.installs
-      ? donut(topWithOther(stats.versions.map((v) => ({ label: v.version, value: v.installs })), t('admin.viz.other')), {
-        aria: t('admin.viz.versionPie'), center: String(stats.installs), sub: t('admin.kpi.installs'),
+  const campusPie = block(t('admin.viz.campusPie'), { glyph: 'pie-chart', tone: 'viz-block', hint: t('admin.viz.campusPieHint') },
+    h('div.adm-pad', byCampus.length
+      ? donut(topWithOther(byCampus.map(([c, g]) => ({ label: c, value: g.length })), t('admin.viz.other')), {
+        aria: t('admin.viz.campusPie'), center: String(byCampus.length), sub: t('admin.cohorts.campuses'),
         tip: (s, pct) => t('admin.viz.sliceTip', { label: s.label, n: s.value, pct }),
       })
-      : empty('pie-chart', t('admin.empty'))));
-
-  const before = stats.installs - stats.timeline.reduce((n, d) => n + d.new, 0);
-  let running = before;
-  const totals = stats.timeline.map((d) => (running += d.new));
-  const growth = block(t('admin.viz.cumulative'), { glyph: 'graph-line', tone: 'viz-block', meta: h('span.adm-delta', icon('arrow-up'), `+${stats.installs - before}`), hint: t('admin.viz.cumulativeHint') },
-    h('div.adm-pad', cumulative(totals, { aria: t('admin.viz.cumulative'), tip: (i, v) => t('admin.viz.cumulativeTip', { day: stats.timeline[i].day, n: v }) })));
-
-  const bins = LAUNCH_BINS.map(([lo, hi]) => ({
-    label: hi === Infinity ? `${lo}+` : lo === hi ? String(lo) : `${lo}–${hi}`,
-    value: people.filter((u) => u.launches >= lo && u.launches <= hi).length,
-  }));
-  const histo = block(t('admin.viz.histogram'), { glyph: 'graph', tone: 'viz-block', hint: t('admin.viz.histogramHint') },
-    h('div.adm-pad', people.length
-      ? histogram(bins, { aria: t('admin.viz.histogram'), tip: (b) => t('admin.viz.histogramTip', { label: b.label, n: b.value }) })
-      : empty('graph', t('admin.empty'))));
-
-  // When people last opened Bananabox, in the admin's local time: a weekday × 4-hour punch card.
-  const day = (i: number) => new Intl.DateTimeFormat(state.lang, { weekday: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(2024, 0, 1 + i)));
-  const days = Array.from({ length: 7 }, (_, i) => day(i));
-  const hours = Array.from({ length: 6 }, (_, i) => `${i * 4}h`);
-  const slot = (u: AdminUser) => { const d = new Date(u.last_seen); return [days[(d.getDay() + 6) % 7], hours[Math.floor(d.getHours() / 4)]]; };
-  const punch = block(t('admin.viz.punch'), { glyph: 'calendar', tone: 'viz-block', hint: t('admin.viz.punchHint') },
-    h('div.adm-pad', people.length
-      ? heatGrid(days, hours, (r, c) => people.filter((u) => { const [a, b] = slot(u); return a === r && b === c; }).length,
-        { aria: t('admin.viz.punch'), tip: (r, c, n) => t('admin.viz.punchTip', { day: r, hour: c, n }) })
-      : empty('calendar', t('admin.empty'))));
-
-  // What the bans target: one person, a promotion, a campus or a former account name.
-  const scopes = [...bansByScope(snapshot.banned)];
-  const bans = snapshot.banned.length
-    ? [block(t('admin.viz.banPie'), { glyph: 'shield', tone: 'viz-block', hint: t('admin.viz.banPieHint') },
-      h('div.adm-pad', donut(topWithOther(scopes.map(([scope, n]) => ({ label: t(`admin.scope.${scope}`), value: n })), t('admin.viz.other')), {
-        aria: t('admin.viz.banPie'), center: String(snapshot.banned.length), sub: t('admin.kpi.banned'),
-        tip: (s, pct) => t('admin.viz.sliceTip', { label: s.label, n: s.value, pct }),
-      })))]
-    : [];
-
-  return [gauges, versions, growth, histo, punch, ...bans];
-}
-
-const bansByScope = (entries: ListEntry[]) => {
-  const counts = new Map<BanScope, number>();
-  for (const e of entries) counts.set(e.scope, (counts.get(e.scope) ?? 0) + 1);
-  return counts;
-};
-
-function cohortsViz(snapshot: AdminSnapshot, t: T): Child[] {
-  const people = snapshot.stats.users;
-  if (!people.some((u) => u.promotion !== null || u.campus !== null)) return [];
-  const active = (u: AdminUser) => isActive(snapshot, u);
-  const byCampus = [...countBy(people, (u) => u.campus)];
-  const byCursus = [...countBy(people, (u) => u.cursus?.toLowerCase() ?? null)].sort((a, b) => b[1].length - a[1].length);
-  const byPromotion = [...countBy(people, (u) => u.promotion)].sort((a, b) => b[0] - a[0]);
-
-  const campusPie = block(t('admin.viz.campusPie'), { glyph: 'pie-chart', tone: 'viz-block', hint: t('admin.viz.campusPieHint') },
-    h('div.adm-pad', donut(topWithOther(byCampus.map(([c, g]) => ({ label: c, value: g.length })), t('admin.viz.other')), {
-      aria: t('admin.viz.campusPie'), center: String(byCampus.length), sub: t('admin.cohorts.campuses'),
-      tip: (s, pct) => t('admin.viz.sliceTip', { label: s.label, n: s.value, pct }),
-    })));
+      : empty('pie-chart', t('admin.cohorts.empty'))));
 
   const sun = block(t('admin.viz.sunburst'), { glyph: 'circle-large-outline', tone: 'viz-block', hint: t('admin.viz.sunburstHint') },
     h('div.adm-pad', byCursus.length
@@ -784,30 +797,35 @@ function cohortsViz(snapshot: AdminSnapshot, t: T): Child[] {
         label: name, value: group.length,
         children: [...countBy(group, (u) => u.promotion)].sort((a, b) => a[0] - b[0]).map(([y, g]) => ({ label: String(y), value: g.length })),
       })), { aria: t('admin.viz.sunburst'), center: String(byCursus.length), sub: t('admin.cohorts.cursus'),
-        tip: (path, n, pct) => t('admin.viz.sliceTip', { label: path, n, pct }) })
+        tip: (path, count, pct) => t('admin.viz.sliceTip', { label: path, n: count, pct }) })
       : empty('circle-large-outline', t('admin.cohorts.empty'))));
 
   const tree = block(t('admin.viz.treemap'), { glyph: 'layout', tone: 'viz-block', hint: t('admin.viz.treemapHint') },
-    h('div.adm-pad', treemap(byCampus.map(([c, g]) => ({ label: c, value: g.length, ratio: g.filter(active).length / g.length })), {
-      aria: t('admin.viz.treemap'),
-      tip: (label, n, ratio) => t('admin.viz.treemapTip', { label, n, pct: Math.round(ratio * 100) }),
-    })));
+    h('div.adm-pad', byCampus.length
+      ? treemap(byCampus.map(([c, g]) => ({ label: c, value: g.length, ratio: g.filter(active).length / g.length })), {
+        aria: t('admin.viz.treemap'),
+        tip: (label, count, ratio) => t('admin.viz.treemapTip', { label, n: count, pct: Math.round(ratio * 100) }),
+      })
+      : empty('layout', t('admin.cohorts.empty'))));
 
   const radial = block(t('admin.viz.radial'), { glyph: 'mortar-board', tone: 'viz-block', hint: t('admin.viz.radialHint') },
-    h('div.adm-pad.viz-pie', radialBars(byPromotion.slice(0, 8).map(([y, g]) => ({ label: String(y), value: g.length })), {
-      aria: t('admin.viz.radial'), tip: (s) => t('admin.cohorts.tip', { label: s.label, total: s.value, active: byPromotion.find(([y]) => String(y) === s.label)![1].filter(active).length }),
-    })));
+    byPromotion.length
+      ? h('div.adm-pad.viz-pie', radialBars(byPromotion.slice(0, 8).map(([y, g]) => ({ label: String(y), value: g.length })), {
+        aria: t('admin.viz.radial'), tip: (s) => t('admin.cohorts.tip', { label: s.label, total: s.value, active: byPromotion.find(([y]) => String(y) === s.label)![1].filter(active).length }),
+      }))
+      : h('div.adm-pad', empty('mortar-board', t('admin.cohorts.empty'))));
 
   const window = snapshot.stats.active_window_days;
   const dots = block(t('admin.viz.scatter'), { glyph: 'symbol-misc', tone: 'viz-block', hint: t('admin.viz.scatterHint', { days: window }) },
-    h('div.adm-pad',
-      scatter(people.map((u) => ({
+    h('div.adm-pad', people.length
+      ? [scatter(people.map((u) => ({
         x: Math.max(0, (snapshot.fetchedAt - u.last_seen) / DAY), y: u.launches, active: active(u),
         tip: t('admin.viz.scatterTip', { name: personName(t, u), n: u.launches, when: ago(u.last_seen) }),
       })), { aria: t('admin.viz.scatter'), window, xLabel: (d) => t('admin.viz.daysAgo', { n: Math.round(d) }) }),
-      h('div.adm-legend', legendKey('s1', t('admin.kpi.active')), legendKey('muted', t('admin.kpi.inactive')))));
+        h('div.adm-legend', legendKey('s1', t('admin.kpi.active')), legendKey('muted', t('admin.kpi.inactive')))]
+      : empty('symbol-misc', t('admin.empty'))));
 
-  return [campusPie, sun, tree, radial, dots];
+  return { promotions, campuses, heat, adoption, cursus, launches, campusPie, sunburst: sun, treemap: tree, radial, scatter: dots };
 }
 
 // ───────────────────────── admins ─────────────────────────
