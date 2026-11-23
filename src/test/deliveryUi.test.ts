@@ -62,17 +62,46 @@ test('revoked access renders a branded alert with two paragraphs and functional 
   assert.equal(rendered.key, 'connection-refused');
   const root = rendered.node as unknown as DomElement;
   assert.match(root.textContent, /Your access has been revoked/);
-  assert.match(root.textContent, /as a precaution/);
+  assert.match(root.textContent, /No reason was given/);
+  assert.match(root.textContent, /The Bananabox team/);
   assert.match(root.textContent, /Microsoft Teams/);
   assert.ok(root.all('section').some(element => element.attrs.role === 'alert'));
   assert.ok(root.all('span').some(element => element.className.includes('codicon-shield')));
   const copy = root.all('div').find(element => element.className.split(' ').includes('access-copy'))!;
-  assert.equal(copy.all('p').length, 2);
+  assert.equal(copy.all('p').length, 1);
   const buttons = root.all('button');
   assert.equal(buttons.length, 3);
   buttons.find(button => button.textContent.includes('Appeal'))!.click();
   buttons.find(button => button.textContent.includes('Uninstall'))!.click();
   assert.deepEqual(messages, [{ type: 'appeal' }, { type: 'uninstall' }]);
+});
+
+test('a promotion ban says whom it targets, why, who decided and what still works', () => {
+  const { ctx } = context();
+  ctx.t = createT('en');
+  const policy: RemoteConfig = {
+    lens_active: true, my_api_active: true, version: '0.5.3', latest: '', authorized: [], banned: [],
+    banned_groups: [{ scope: 'promotion', value: 'pge:2027', features: ['my_api_active'], reason: 'API abuse', by: 'admin.one', since: Date.UTC(2026, 10, 20) }],
+  };
+  ctx.state.availability = remoteStatus(policy, '0.5.3', 'zoe', false, { promotion: 2027, cursus: 'pge', campus: 'Paris' });
+  const text = (renderAvailability(ctx)!.node as unknown as DomElement).textContent;
+  for (const expected of [/Your promotion/, /pge:2027/, /API abuse/, /admin\.one/, /2026/, /Lens \(coding style\)\s*Available/, /My interface \(MyEpitech\)\s*Restricted/]) assert.match(text, expected);
+  ctx.state.availability = remoteStatus(policy, '0.5.3', 'zoe', false, { promotion: 2027, cursus: 'bachelor', campus: 'Paris' });
+  assert.equal(renderAvailability(ctx), null, 'another cursus of the same year is not concerned');
+});
+
+test('a campus ban hides the banner name when anonymous and only shows the Lens notice for Lens bans', () => {
+  const { ctx } = context();
+  ctx.t = createT('en');
+  const policy: RemoteConfig = {
+    lens_active: true, my_api_active: true, version: '0.5.3', latest: '', authorized: [], banned: [],
+    banned_groups: [{ scope: 'campus', value: 'Sète', features: ['lens_active'], reason: null, by: null }],
+  };
+  ctx.state.availability = remoteStatus(policy, '0.5.3', 'zoe', false, { promotion: null, cursus: null, campus: 'sete' });
+  assert.equal(renderAvailability(ctx), null, 'a Lens-only ban leaves the My interface usable');
+  const notice = (renderLensRestriction(ctx) as unknown as DomElement).textContent;
+  assert.match(notice, /Your campus/);
+  assert.match(notice, /The Bananabox team/);
 });
 
 test('My disabled screen exposes Refresh, Uninstall and Fetch version before sign-in', () => {

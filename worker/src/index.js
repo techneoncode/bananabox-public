@@ -63,45 +63,65 @@ const publicPolicy = row => ({
   latest: row.latest,
 });
 
+/** What the banned user is shown: the admin's name is the email's local part, or nothing when anonymized. */
+const displayName = by => (by === null || by === undefined ? null : by === 'root' ? 'Bananabox' : by.split('@')[0]);
+const publicBan = u => ({
+  features: JSON.parse(u.features),
+  reason: u.reason,
+  by: u.anonymous ? null : displayName(u.banned_by),
+  since: u.created_at,
+});
+
 // Public configuration read by the extension. `admins` only decides whether the extension shows the
 // admin dashboard; every admin endpoint still needs a session.
 async function config(env) {
   const [policy, users, admins] = await Promise.all([
     readPolicy(env),
-    env.DB.prepare('SELECT kind, name, features FROM users ORDER BY id').all(),
+    env.DB.prepare('SELECT kind, scope, name, features, reason, banned_by, anonymous, created_at FROM users ORDER BY id').all(),
     env.DB.prepare('SELECT DISTINCT whoami FROM admins WHERE whoami IS NOT NULL ORDER BY whoami').all(),
   ]);
   return {
     ...publicPolicy(policy),
     authorized: users.results.filter(u => u.kind === 'authorized').map(u => u.name),
-    banned: users.results.filter(u => u.kind === 'banned').map(u => ({ user: u.name, features: JSON.parse(u.features) })),
+    // Only the former account-name fragments go to `banned`: an older extension matches every `user` there as one.
+    // Labels are never public: a uid ban only gives the hashed id.
+    banned: users.results.filter(u => u.kind === 'banned' && u.scope === 'user').map(u => ({ user: u.name, ...publicBan(u) })),
+    banned_groups: users.results.filter(u => u.kind === 'banned' && u.scope !== 'user').map(u => ({ scope: u.scope, value: u.name, ...publicBan(u) })),
     admins: admins.results.map(r => r.whoami),
   };
 }
 
-const entry = row => ({ ...row, features: JSON.parse(row.features) });
+const COLUMNS = 'id, scope, name, label, reason, features, banned_by, anonymous, created_at';
+const entry = row => ({ ...row, features: JSON.parse(row.features), anonymous: !!row.anonymous });
 
 function userRoutes(kind) {
   const withFeatures = kind === 'banned';
   const list = async env =>
-    ok({ items: (await env.DB.prepare('SELECT id, name, reason, features, created_at FROM users WHERE kind = ? ORDER BY id').bind(kind).all()).results.map(entry) });
+    ok({ items: (await env.DB.prepare(`SELECT ${COLUMNS} FROM users WHERE kind = ? ORDER BY id`).bind(kind).all()).results.map(entry) });
 
   const add = async (request, env, _id, actor) => {
     const body = await readBody(request);
-    const name = v.name(body.name);
+    const scope = withFeatures ? v.scope(body.scope) : 'user';
+    const name = v.target(scope, body.name);
+    const label = withFeatures ? v.label(body.label) : null;
     const reason = v.reason(body.reason);
     const features = withFeatures ? v.features(body.features) : v.features(undefined);
+    const anonymous = withFeatures && v.anonymous(body.anonymous);
+    const by = withFeatures ? (actor.type === 'root' ? 'root' : actor.email) : null;
+    const taken = () => new HttpError(409, 'conflict', `"${name}" is already in ${kind}.`);
+    // The key is case-sensitive, so "Paris" and "paris" would both fit: compare them here.
+    if (scope !== 'user' && await env.DB.prepare('SELECT 1 FROM users WHERE kind = ? AND scope = ? AND lower(name) = lower(?)').bind(kind, scope, name).first()) throw taken();
     const [inserted] = await env.DB.batch([
-      env.DB.prepare('INSERT INTO users (kind, name, reason, features, created_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING RETURNING id, name, reason, features, created_at')
-        .bind(kind, name, reason, JSON.stringify(features), Date.now()),
-      audit(env, actor, `${kind}.add`, name, { reason, ...(withFeatures && { features }) }, true),
+      env.DB.prepare(`INSERT INTO users (kind, scope, name, label, reason, features, banned_by, anonymous, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING RETURNING ${COLUMNS}`)
+        .bind(kind, scope, name, label, reason, JSON.stringify(features), by, +anonymous, Date.now()),
+      audit(env, actor, `${kind}.add`, name, { scope, reason, ...(withFeatures && { features, anonymous }), ...(label && { label }) }, true),
     ]);
-    if (!inserted.results.length) throw new HttpError(409, 'conflict', `"${name}" is already in ${kind}.`);
+    if (!inserted.results.length) throw taken();
     return ok(entry(inserted.results[0]), 201);
   };
 
   const find = async (env, id) => {
-    const row = await env.DB.prepare('SELECT id, name, reason, features FROM users WHERE kind = ? AND id = ?').bind(kind, Number(id)).first();
+    const row = await env.DB.prepare('SELECT id, scope, name, reason, features, anonymous FROM users WHERE kind = ? AND id = ?').bind(kind, Number(id)).first();
     if (!row) throw new HttpError(404, 'not_found', `No ${kind} entry with id ${id}.`);
     return row;
   };
@@ -110,22 +130,23 @@ function userRoutes(kind) {
     const row = await find(env, id);
     await env.DB.batch([
       env.DB.prepare('DELETE FROM users WHERE kind = ? AND id = ?').bind(kind, row.id),
-      audit(env, actor, `${kind}.delete`, row.name, { reason: row.reason, features: JSON.parse(row.features) }, true),
+      audit(env, actor, `${kind}.delete`, row.name, { scope: row.scope, reason: row.reason, features: JSON.parse(row.features) }, true),
     ]);
     return ok({ deleted: row.id });
   };
 
-  // Changes the restricted features and/or the reason of a ban.
+  // Changes the restricted features, the reason and/or the anonymity of a ban.
   const update = async (request, env, id, actor) => {
     const body = await readBody(request);
     const row = await find(env, id);
     const features = body.features === undefined ? JSON.parse(row.features) : v.features(body.features);
     const reason = body.reason === undefined ? row.reason : v.reason(body.reason);
+    const anonymous = body.anonymous === undefined ? !!row.anonymous : v.anonymous(body.anonymous);
     await env.DB.batch([
-      env.DB.prepare('UPDATE users SET features = ?, reason = ? WHERE id = ?').bind(JSON.stringify(features), reason, row.id),
-      audit(env, actor, `${kind}.update`, row.name, { from: { features: JSON.parse(row.features), reason: row.reason }, to: { features, reason } }, true),
+      env.DB.prepare('UPDATE users SET features = ?, reason = ?, anonymous = ? WHERE id = ?').bind(JSON.stringify(features), reason, +anonymous, row.id),
+      audit(env, actor, `${kind}.update`, row.name, { from: { features: JSON.parse(row.features), reason: row.reason, anonymous: !!row.anonymous }, to: { features, reason, anonymous } }, true),
     ]);
-    return ok(entry(await env.DB.prepare('SELECT id, name, reason, features, created_at FROM users WHERE id = ?').bind(row.id).first()));
+    return ok(entry(await env.DB.prepare(`SELECT ${COLUMNS} FROM users WHERE id = ?`).bind(row.id).first()));
   };
   return { list, add, remove, update };
 }
@@ -150,7 +171,11 @@ async function stats(env) {
     readPolicy(env),
     env.DB.prepare('SELECT version, COUNT(*) AS installs, SUM(last_seen >= ?) AS active FROM installs GROUP BY version').bind(now - ACTIVE_MS).all(),
     env.DB.prepare('SELECT COUNT(*) AS installs, COALESCE(SUM(launches), 0) AS launches FROM installs').first(),
-    env.DB.prepare('SELECT DISTINCT account FROM installs WHERE account IS NOT NULL ORDER BY account').all(),
+    // One row per person: their most recent installation, with the launches of all of them.
+    env.DB.prepare(`SELECT user_id, first_name, last_initial, promotion, cursus, campus, version, last_seen,
+        (SELECT SUM(launches) FROM installs WHERE user_id = i.user_id) AS launches
+      FROM installs i WHERE user_id IS NOT NULL
+      AND last_seen = (SELECT MAX(last_seen) FROM installs WHERE user_id = i.user_id) GROUP BY user_id ORDER BY first_name, user_id`).all(),
     timeline(env, now),
   ]);
   const versions = rows.results
@@ -165,7 +190,7 @@ async function stats(env) {
     inactive: totals.installs - active,
     obsolete_active: versions.filter(r => r.obsolete).reduce((n, r) => n + r.active, 0),
     launches: totals.launches,
-    users: accounts.results.map(r => r.account),
+    users: accounts.results,
     versions,
     timeline: days,
   };
@@ -177,14 +202,23 @@ async function heartbeat(request, env) {
   const version = v.semver(body.version, 'version');
   await consumeNonce(env, body.nonce);
   const now = Date.now();
+  const who = v.identity(body);
   // SET expressions read the pre-update row: launches only grows after a gap.
-  await env.DB.prepare(`INSERT INTO installs (id_hash, first_seen, last_seen, launches, version, account) VALUES (?1, ?2, ?2, 1, ?3, ?5)
+  // A report sent before sign-in carries no identity: COALESCE keeps the one already known.
+  await env.DB.prepare(`INSERT INTO installs (id_hash, first_seen, last_seen, launches, version, account, promotion, cursus, campus, user_id, first_name, last_initial)
+    VALUES (?1, ?2, ?2, 1, ?3, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
     ON CONFLICT (id_hash) DO UPDATE SET
       launches = launches + (excluded.last_seen - last_seen >= ?4),
       last_seen = excluded.last_seen,
       version = excluded.version,
-      account = excluded.account`)
-    .bind(await sha256(id), now, version, MIN_LAUNCH_GAP_MS, v.account(body.account)).run();
+      account = excluded.account,
+      promotion = COALESCE(excluded.promotion, promotion),
+      cursus = COALESCE(excluded.cursus, cursus),
+      campus = COALESCE(excluded.campus, campus),
+      user_id = COALESCE(excluded.user_id, user_id),
+      first_name = COALESCE(excluded.first_name, first_name),
+      last_initial = COALESCE(excluded.last_initial, last_initial)`)
+    .bind(await sha256(id), now, version, MIN_LAUNCH_GAP_MS, v.account(body.account), who.promotion, who.cursus, who.campus, who.userId, who.firstName, who.lastInitial).run();
   return ok({ recorded: true });
 }
 

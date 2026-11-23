@@ -1,6 +1,7 @@
 import type * as vscode from 'vscode';
-import type { RemoteFeature } from '../domain/remotePolicy';
+import type { BanScope, RemoteFeature } from '../domain/remotePolicy';
 import type {
+  AdminAccount,
   AdminPolicy,
   AdminSession,
   AdminSnapshot,
@@ -84,11 +85,30 @@ export class AdminService {
     return { stats, banned: banned.items, authorized: authorized.items, policy, updates: updates.items, fetchedAt: Date.now() };
   }
 
-  ban(name: string, features: RemoteFeature[], reason?: string): Promise<ListEntry> {
-    return this.authed('POST', '/v1/banned', { name, features, ...(reason && { reason }) });
+  ban(ban: { name: string; scope: BanScope; features: RemoteFeature[]; reason?: string; anonymous?: boolean; label?: string }): Promise<ListEntry> {
+    const { reason, label, ...rest } = ban;
+    return this.authed('POST', '/v1/banned', { ...rest, ...(reason && { reason }), ...(label && { label }) });
   }
 
-  updateBan(id: number, change: { features?: RemoteFeature[]; reason?: string }): Promise<ListEntry> {
+  // Root endpoints: the Cloudflare root token is passed by the caller for each request and never stored.
+
+  async admins(root: string): Promise<AdminAccount[]> {
+    return (await this.request<{ items: AdminAccount[] }>('GET', '/v1/admins', undefined, root)).items;
+  }
+
+  createAdmin(root: string, account: { email: string; whoami: string; password: string }): Promise<AdminAccount> {
+    return this.request('POST', '/v1/admins', account, root);
+  }
+
+  setAdminWhoami(root: string, id: number, whoami: string): Promise<AdminAccount> {
+    return this.request('PUT', `/v1/admins/${id}`, { whoami }, root);
+  }
+
+  deleteAdmin(root: string, id: number): Promise<unknown> {
+    return this.request('DELETE', `/v1/admins/${id}`, undefined, root);
+  }
+
+  updateBan(id: number, change: { features?: RemoteFeature[]; reason?: string; anonymous?: boolean }): Promise<ListEntry> {
     return this.authed('PUT', `/v1/banned/${id}`, change);
   }
 

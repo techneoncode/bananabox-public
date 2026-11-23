@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { deflateRawSync } from 'node:zlib';
 import { readFile } from 'node:fs/promises';
 import * as vscode from 'vscode';
-import { compareVersions, latestUrl, parseRemoteConfig, remoteStatus, type RemoteConfig, type RemoteFeature } from '../domain/remotePolicy';
+import { compareVersions, latestUrl, matchesGroup, parseRemoteConfig, remoteStatus, type RemoteConfig, type RemoteFeature } from '../domain/remotePolicy';
 import { RemoteControl, REMOTE_CONFIG_URL } from '../services/remoteControl';
 import { remoteFeatures } from '../services/remoteFeatures';
 import { downloadAndInstall, validateVsix, type ExtensionUpdateProgress } from '../services/extensionUpdate';
@@ -111,6 +111,71 @@ test('refused accounts override authorized, block updates and recover when remov
   } finally { service.dispose(); reset(); }
 });
 
+test('promotion and campus bans match the signed-in identity, ignore accents and case, and need a cursus when named', () => {
+  const zoe = { promotion: 2027, cursus: 'PGE', campus: 'Sète' };
+  assert.equal(matchesGroup({ scope: 'promotion', value: '2027' }, zoe), true);
+  assert.equal(matchesGroup({ scope: 'promotion', value: 'pge:2027' }, zoe), true);
+  assert.equal(matchesGroup({ scope: 'promotion', value: 'bachelor:2027' }, zoe), false);
+  assert.equal(matchesGroup({ scope: 'promotion', value: '2028' }, zoe), false);
+  assert.equal(matchesGroup({ scope: 'campus', value: 'sete' }, zoe), true);
+  assert.equal(matchesGroup({ scope: 'campus', value: 'Paris' }, zoe), false);
+  const unknown = { promotion: null, cursus: null, campus: null };
+  for (const scope of ['promotion', 'campus'] as const) assert.equal(matchesGroup({ scope, value: 'x' }, unknown), false, 'nothing matches before a sign-in');
+
+  const value = { ...baseline, banned_groups: [
+    { scope: 'promotion', value: '2027', features: ['my_api_active'], reason: 'abuse', by: 'admin.one', since: 5 },
+    { scope: 'campus', value: 'Sète', features: ['lens_active'] },
+  ] };
+  const status = remoteStatus(parseRemoteConfig(value), '0.5.1', 'nobody', false, zoe);
+  assert.deepEqual(status.restrictedFeatures.sort(), ['lens_active', 'my_api_active']);
+  assert.deepEqual(status.restrictions!.map(r => [r.scope, r.target, r.reason, r.by]), [['promotion', '2027', 'abuse', 'admin.one'], ['campus', 'Sète', null, null]]);
+  assert.equal(status.connectionRefused, true);
+  assert.deepEqual(remoteStatus(parseRemoteConfig(value), '0.5.1', 'nobody').restrictedFeatures, [], 'unknown identity: no group applies');
+
+  const both = remoteStatus(parseRemoteConfig({ ...value, banned: [{ ...ban('nob', ['lens_active']), reason: 'spam' }] }), '0.5.1', 'nobody', false, zoe);
+  assert.deepEqual(both.restrictions!.map(r => r.scope), ['user', 'promotion', 'campus'], 'every applicable ban is explained');
+  for (const invalid of [[{ scope: 'galaxy', value: 'x', features: ['lens_active'] }], [{ scope: 'campus', value: 'x', features: [] }], [{ scope: 'campus', features: ['lens_active'] }], 'campus']) {
+    assert.throws(() => parseRemoteConfig({ ...baseline, banned_groups: invalid }));
+  }
+  assert.deepEqual(parseRemoteConfig(baseline).banned_groups, [], 'an older API answers without the field');
+});
+
+test('a uid ban applies to that OS account before any sign-in, and to no other', async () => {
+  const value = { ...baseline, banned_groups: [{ scope: 'uid', value: 'f'.repeat(32), features: ['lens_active', 'my_api_active'], reason: 'spam', by: 'admin.one' }] };
+  const none = { promotion: null, cursus: null, campus: null };
+  const banned = remoteStatus(parseRemoteConfig(value), '0.5.1', 'zoe', false, { ...none, userId: 'f'.repeat(32) });
+  assert.deepEqual([banned.connectionRefused, banned.restrictions![0].scope], [true, 'uid']);
+  assert.equal(remoteStatus(parseRemoteConfig(value), '0.5.1', 'zoe', false, { ...none, userId: '0'.repeat(32) }).connectionRefused, false);
+  assert.equal(remoteStatus(parseRemoteConfig(value), '0.5.1', 'zoe', false, none).connectionRefused, false);
+  const service = new RemoteControl(context(), { fetch: (async () => envelope(value)) as typeof fetch, username: 'zoe', userId: 'f'.repeat(32) });
+  try {
+    await service.refresh(); await flush();
+    assert.equal(remoteFeatures.status.myApiActive, false);
+  } finally { service.dispose(); reset(); }
+});
+
+test('RemoteControl applies the identity of the last sign-in, also after a restart', async () => {
+  const store = new Map<string, unknown>();
+  const fetcher = (async () => envelope({ ...baseline, banned_groups: [{ scope: 'campus', value: 'Paris', features: ['my_api_active'], reason: 'test', by: null }] })) as typeof fetch;
+  const first = new RemoteControl(context(store), { fetch: fetcher, username: 'zoe', userId: 'e'.repeat(32) });
+  try {
+    await first.refresh(); await flush();
+    assert.equal(remoteFeatures.status.myApiActive, true);
+    first.setIdentity({ promotion: 2027, cursus: 'pge', campus: 'Paris' });
+    assert.equal(remoteFeatures.status.myApiActive, false);
+    assert.equal(remoteFeatures.status.restrictions![0].scope, 'campus');
+    first.setIdentity({ promotion: 2027, cursus: 'pge', campus: 'Lyon' });
+    assert.equal(remoteFeatures.status.myApiActive, true);
+    first.setIdentity({ promotion: 2027, cursus: 'pge', campus: 'Paris' });
+  } finally { first.dispose(); reset(); }
+  await flush();
+  const second = new RemoteControl(context(store), { fetch: fetcher, username: 'zoe', userId: 'e'.repeat(32) });
+  try {
+    assert.deepEqual(second.identity, { promotion: 2027, cursus: 'pge', campus: 'Paris', userId: 'e'.repeat(32) });
+    assert.equal(remoteFeatures.status.myApiActive, false, 'the cached policy and identity already apply before the first check');
+  } finally { second.dispose(); reset(); }
+});
+
 test('a ban restricts only its own features, per account, including for an otherwise authorized user', () => {
   const matrix = [
     { features: ['lens_active'] as RemoteFeature[], lens: false, my: true },
@@ -138,7 +203,7 @@ test('a ban restricts only its own features, per account, including for an other
   assert.deepEqual(remoteStatus(mixed, '0.5.1', 'bob').restrictedFeatures, ['my_api_active']);
   assert.deepEqual(remoteStatus(mixed, '0.5.1', 'alicia').restrictedFeatures, ['my_api_active']);
   assert.deepEqual(remoteStatus({ ...mixed, banned: [ban('al', ['lens_active']), ban('ice', ['my_api_active'])] }, '0.5.1', 'alice').restrictedFeatures, ['lens_active', 'my_api_active'], 'matching entries add up');
-  assert.deepEqual(parseRemoteConfig({ ...baseline, banned: [ban('niels', ['lens_active', 'lens_active'])] }).banned, [ban('niels', ['lens_active'])]);
+  assert.deepEqual(parseRemoteConfig({ ...baseline, banned: [ban('niels', ['lens_active', 'lens_active'])] }).banned, [{ ...ban('niels', ['lens_active']), reason: null, by: null }]);
   for (const invalid of [[ban('niels', ['unknown' as RemoteFeature])], [ban('niels', [])], [{ user: 'niels', features: 'lens_active' }], [{ features: ['lens_active'] }], ['niels']]) {
     assert.throws(() => parseRemoteConfig({ ...baseline, banned: invalid }));
   }

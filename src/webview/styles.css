@@ -591,6 +591,16 @@ body[data-surface='sidebar'] .connection-screen { margin-top: 4px; }
 .status-title > .codicon { font-size: 20px; margin-top: 2px; }
 .access-copy { display: grid; gap: 8px; max-width: 70ch; overflow-wrap: anywhere; }
 .access-copy p + p { color: var(--fg-2); font-size: var(--t-sm); }
+.ban-cards { display: grid; gap: 8px; }
+.ban-card { display: grid; gap: 8px; padding: 10px 12px; border-radius: var(--r); background: color-mix(in srgb, var(--fail) 8%, transparent); box-shadow: inset 2px 0 0 var(--fail); }
+.ban-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ban-card-head .codicon { color: var(--fail); }
+.ban-facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; font-size: var(--t-sm); }
+.ban-facts dt { color: var(--fg-2); }
+.ban-facts dd { margin: 0; overflow-wrap: anywhere; }
+.feature-status { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.feature-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r); background: var(--layer-2); }
+.feature-row > span { flex: 1; min-width: 0; }
 .connection-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .uninstall-controls { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; max-width: 100%; }
 .uninstall-error { flex-basis: 100%; color: var(--fail); font-size: var(--t-sm); overflow-wrap: anywhere; }
@@ -1952,6 +1962,23 @@ body.vscode-high-contrast .vg-col.selected .vg-band, body.vscode-high-contrast-l
 .adm-toggle.on { border-style: solid; border-color: color-mix(in srgb, var(--fail) 50%, transparent); background: color-mix(in srgb, var(--fail) 11%, transparent); color: var(--fail); }
 .adm-toggle.on:hover:not(:disabled) { color: var(--fail); background: color-mix(in srgb, var(--fail) 18%, transparent); }
 .adm-toggle:disabled { cursor: default; opacity: 0.75; }
+.adm-toggle.soft.on { border-style: solid; border-color: var(--line); background: var(--hover); color: var(--fg); }
+.adm-counts .adm-version { grid-template-columns: 7.5em minmax(0, 1fr) 3.2em; }
+.adm-counts .adm-version-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-heat { display: grid; gap: 2px; font-size: 0.78em; font-variant-numeric: tabular-nums; overflow-x: auto; }
+.adm-heat-col { color: var(--fg-2); text-align: center; white-space: nowrap; padding-bottom: 2px; }
+.adm-heat-row { color: var(--fg-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 6px; align-self: center; }
+.adm-heat-cell { display: grid; place-items: center; min-height: 24px; border-radius: 4px; color: var(--fg); background: color-mix(in srgb, var(--banana) calc(12% + var(--a) * 88%), var(--layer-2)); }
+.adm-heat-cell.zero { background: var(--layer-2); }
+.adm-heat-cell.hot { color: #1d1a10; font-weight: 600; }
+.adm-rings { display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-around; }
+.adm-ring { display: grid; justify-items: center; gap: 4px; font-size: 0.8em; color: var(--fg-2); }
+.adm-ring strong { color: var(--fg); }
+.adm-adoption { display: grid; grid-template-columns: max-content 1fr max-content; align-items: center; gap: 6px 10px; font-size: 0.85em; }
+.adm-adoption .stack-bar { min-width: 0; }
+.adm-adoption .adm-pct { color: var(--fg-2); font-variant-numeric: tabular-nums; }
+.adm-admin-edit { display: flex; gap: 6px; margin-left: 38px; }
+.adm-admin-edit .adm-input { flex: 1; min-width: 0; }
 .adm-toggle:focus-visible { outline: 1px solid var(--focus); outline-offset: 1px; }
 .adm-reason { display: flex; align-items: flex-start; gap: 6px; padding: 6px 9px; border-radius: 6px; background: var(--raise); color: var(--fg-2); font-size: 0.8em; font-style: italic; overflow-wrap: anywhere; }
 .adm-reason .codicon { margin-top: 2px; font-size: 12px; color: var(--fg-3); }
@@ -1982,6 +2009,9 @@ body.vscode-high-contrast .vg-col.selected .vg-band, body.vscode-high-contrast-l
 .adm-pill:hover { color: var(--fg); background: var(--hover); }
 .adm-pill:has(input:checked) { border-color: color-mix(in srgb, var(--fail) 55%, transparent); background: color-mix(in srgb, var(--fail) 12%, transparent); color: var(--fail); }
 .adm-pill:has(input:focus-visible) { outline: 1px solid var(--focus); outline-offset: 1px; }
+.adm-pill.pick:has(input:checked) { border-color: color-mix(in srgb, var(--banana-ink) 45%, transparent); background: var(--banana-wash); color: var(--banana-ink); }
+.adm-pill:has(input:disabled) { opacity: 0.45; cursor: default; }
+.adm-pill:has(input:disabled) input { cursor: default; }
 .adm-pill:has(input:disabled) { opacity: 0.55; cursor: default; }
 
 /* policy */

@@ -25,6 +25,9 @@ export async function activate(
   context.subscriptions.push(remote);
   await remote.start();
   let stats: InstallStats | undefined;
+  // Only the first name and the initial of the last name leave the machine, never the full name.
+  let profile: { firstName: string | null; lastInitial: string | null } = { firstName: null, lastInitial: null };
+  const reporter = () => ({ ...remote.identity, ...profile });
   // Skipped when offline or refused: no statistics from an account the policy blocks.
   if (
     !remoteFeatures.status.offline
@@ -34,12 +37,26 @@ export async function activate(
       context,
       context.extension.packageJSON.version,
       remoteDependencies?.fetch,
+      reporter,
     );
     void stats.report();
   }
 
   const controller = new Controller(context);
   controller.onTermsAccepted = () => void stats?.report();
+  // The name, promotion and campus come with the sign-in: bans on them apply at once and are reported with the statistics.
+  let reportedIdentity = JSON.stringify(reporter());
+  const syncIdentity = (auth: typeof controller.auth.snapshot) => {
+    if (auth.status !== 'signedIn') return;
+    remote.setIdentity({ promotion: auth.promotion, cursus: auth.cursus, campus: auth.campus });
+    profile = { firstName: auth.firstname, lastInitial: auth.lastname?.trim().charAt(0).toUpperCase() || null };
+    const identity = JSON.stringify(reporter());
+    if (identity === reportedIdentity) return;
+    reportedIdentity = identity;
+    if (!remoteFeatures.status.connectionRefused) void stats?.report();
+  };
+  context.subscriptions.push(controller.auth.onDidChange(syncIdentity));
+  syncIdentity(controller.auth.snapshot);
   controller.panels = new ProjectPanels(context.extensionUri, controller);
   controller.home = new HomePanel(context.extensionUri, controller);
   registerAvailabilityActions(context, remote);

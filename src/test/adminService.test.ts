@@ -59,7 +59,7 @@ test('an expired stored session is dropped without a request', async () => {
 
 test('snapshot reads every dashboard endpoint with the bearer token', async () => {
   const data: Record<string, unknown> = {
-    '/v1/stats': { installs: 3, users: ['alice'], versions: [], timeline: [] },
+    '/v1/stats': { installs: 3, users: [{ account: 'alice', promotion: null, cursus: null, campus: null }], versions: [], timeline: [] },
     '/v1/banned': { items: [{ id: 1, name: 'mallory', reason: null, features: ['lens_active'], created_at: 1 }] },
     '/v1/authorized': { items: [] },
     '/v1/policy': { lens_active: true, my_api_active: false, version: '1.4.0', latest: release('1.4.0') },
@@ -83,16 +83,18 @@ test('changes use the matching endpoint and body', async () => {
     : { id: 7 }));
   await service.login('a@epitech.eu', 'a long password');
   calls.length = 0;
-  await service.ban('mallory', ['lens_active'], 'spam');
-  await service.ban('eve', ['lens_active', 'my_api_active']);
+  await service.ban({ name: 'mallory', scope: 'user', features: ['lens_active'], reason: 'spam' });
+  await service.ban({ name: 'eve', scope: 'user', features: ['lens_active', 'my_api_active'] });
+  await service.ban({ name: 'pge:2027', scope: 'promotion', features: ['my_api_active'], anonymous: true });
   await service.updateBan(7, { features: ['my_api_active'] });
   await service.unban(7);
   await service.authorize('alice', 'maintainer');
   await service.unauthorize(2);
   await service.setPolicy({ lens_active: false });
   assert.deepEqual(calls.map((c) => [c.method, c.path, c.body]), [
-    ['POST', '/v1/banned', { name: 'mallory', features: ['lens_active'], reason: 'spam' }],
-    ['POST', '/v1/banned', { name: 'eve', features: ['lens_active', 'my_api_active'] }],
+    ['POST', '/v1/banned', { name: 'mallory', scope: 'user', features: ['lens_active'], reason: 'spam' }],
+    ['POST', '/v1/banned', { name: 'eve', scope: 'user', features: ['lens_active', 'my_api_active'] }],
+    ['POST', '/v1/banned', { name: 'pge:2027', scope: 'promotion', features: ['my_api_active'], anonymous: true }],
     ['PUT', '/v1/banned/7', { features: ['my_api_active'] }],
     ['DELETE', '/v1/banned/7', undefined],
     ['POST', '/v1/authorized', { name: 'alice', reason: 'maintainer' }],
@@ -139,4 +141,23 @@ test('the dashboard is offered only to an exact whoami listed as admin', () => {
   assert.deepEqual(parseRemoteConfig(config).admins, []);
   assert.throws(() => parseRemoteConfig({ ...config, admins: [1] }));
   assert.throws(() => parseRemoteConfig({ ...config, admins: 'alice' }));
+});
+
+test('root endpoints send the root token given for the call, and never store it', async () => {
+  const { service, calls, store } = setup((call) => call.method === 'GET'
+    ? ok({ items: [{ id: 1, email: 'a@epitech.eu', whoami: 'alice', created_at: 1, last_login: null }] })
+    : ok({ id: 2 }));
+  const admins = await service.admins('root-secret');
+  assert.equal(admins[0].whoami, 'alice');
+  await service.createAdmin('root-secret', { email: 'b@epitech.eu', whoami: 'bob', password: 'a long password' });
+  await service.setAdminWhoami('root-secret', 2, 'bobby');
+  await service.deleteAdmin('root-secret', 2);
+  assert.deepEqual(calls.map((c) => [c.method, c.path, c.body]), [
+    ['GET', '/v1/admins', undefined],
+    ['POST', '/v1/admins', { email: 'b@epitech.eu', whoami: 'bob', password: 'a long password' }],
+    ['PUT', '/v1/admins/2', { whoami: 'bobby' }],
+    ['DELETE', '/v1/admins/2', undefined],
+  ]);
+  assert.ok(calls.every((c) => c.auth === 'Bearer root-secret'));
+  assert.equal(store.size, 0);
 });

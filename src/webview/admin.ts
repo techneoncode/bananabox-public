@@ -4,12 +4,13 @@ import { ring, sparkArea, stackBar } from './charts';
 import { rollNumber, resetMotion } from './motion';
 import { relative } from './format';
 import { initialsOf } from './avatars';
-import { timelineChart, versionBars } from './adminCharts';
+import { countBars, heatGrid, timelineChart, versionBars } from './adminCharts';
 import { createT } from '../shared/i18n';
-import { matchesUsername, type RemoteFeature } from '../domain/remotePolicy';
+import { compareVersions, matchesGroup, type BanScope, type RemoteFeature } from '../domain/remotePolicy';
 import type {
   AdminHostMessage,
   AdminSnapshot,
+  AdminUser,
   AdminViewState,
   AdminWebviewMessage,
   ListEntry,
@@ -21,11 +22,11 @@ const vscode = acquireVsCodeApi();
 const app = document.getElementById('app')!;
 
 const FEATURES: readonly RemoteFeature[] = ['lens_active', 'my_api_active'];
-type Tab = 'overview' | 'users' | 'moderation' | 'policy';
+type Tab = 'overview' | 'cohorts' | 'users' | 'moderation' | 'policy' | 'admins';
 type PolicyKey = 'lens_active' | 'my_api_active';
 type Child = Node | string | number | false | null | undefined | Child[];
 
-const TAB_ICON: Record<Tab, string> = { overview: 'dashboard', users: 'organization', moderation: 'shield', policy: 'settings-gear' };
+const TAB_ICON: Record<Tab, string> = { overview: 'dashboard', cohorts: 'pie-chart', users: 'organization', moderation: 'shield', policy: 'settings-gear', admins: 'key' };
 const FEATURE_ICON: Record<RemoteFeature, string> = { lens_active: 'eye', my_api_active: 'globe' };
 
 let state: AdminViewState = { lang: 'en', phase: 'loading' };
@@ -33,14 +34,17 @@ let tab: Tab = 'overview';
 /** Entrance motion plays when a page is first shown, not on every refresh. */
 let animate = true;
 let search = '';
-/** Account whose inline ban form is open in the Users tab. */
+/** Person (user id) whose inline ban form is open in the Users tab. */
 let banning: string | null = null;
+/** Admin account waiting for the second click that removes it. */
+let confirmingAdmin: number | null = null;
 /** Switch waiting for its confirmation: turning a feature off hits every user. */
 let confirming: PolicyKey | null = null;
 const draft = {
   email: '',
-  banName: '', banReason: '', banFeatures: new Set<RemoteFeature>(FEATURES),
-  inlineReason: '', inlineFeatures: new Set<RemoteFeature>(FEATURES),
+  banName: '', banPerson: '', banReason: '', banFeatures: new Set<RemoteFeature>(FEATURES), banScope: 'uid' as BanScope, banAnonymous: false,
+  inlineReason: '', inlineFeatures: new Set<RemoteFeature>(FEATURES), inlineScope: 'uid' as BanScope, inlineAnonymous: false,
+  adminEmail: '', adminWhoami: '', whoamiEdits: {} as Record<number, string>,
   allowName: '', allowReason: '',
   releaseNotes: '',
 };
@@ -154,15 +158,17 @@ function loginPage(t: T): HTMLElement {
 
 function dashboard(snapshot: AdminSnapshot, t: T): HTMLElement {
   const busy = !!state.busy;
-  const select = (next: Tab) => { tab = next; confirming = null; banning = null; animate = true; render(); };
+  const select = (next: Tab) => { tab = next; confirming = null; banning = null; confirmingAdmin = null; animate = true; render(); };
   const off = FEATURES.filter((f) => !snapshot.policy[f]).length;
   const items: Array<{ id: Tab; label: string; icon: string; count?: number }> = [
     { id: 'overview', label: t('admin.nav.overview'), icon: TAB_ICON.overview },
+    { id: 'cohorts', label: t('admin.nav.cohorts'), icon: TAB_ICON.cohorts },
     { id: 'users', label: t('admin.nav.users'), icon: TAB_ICON.users, count: snapshot.stats.users.length },
     { id: 'moderation', label: t('admin.nav.moderation'), icon: TAB_ICON.moderation, count: snapshot.banned.length },
     { id: 'policy', label: t('admin.nav.policy'), icon: TAB_ICON.policy, count: off },
+    { id: 'admins', label: t('admin.nav.admins'), icon: TAB_ICON.admins },
   ];
-  const body = { overview, users, moderation, policy }[tab](snapshot, t);
+  const body = { overview, cohorts, users, moderation, policy, admins }[tab](snapshot, t);
   return h('div.adm-dashboard',
     h('header.adm-appbar',
       h('img.adm-logo', { src: document.body.dataset.logo, alt: '', width: 18, height: 18 }),
@@ -259,8 +265,34 @@ function overview(snapshot: AdminSnapshot, t: T): Child[] {
 
 // ───────────────────────── users ─────────────────────────
 
-const exact = (entries: ListEntry[], name: string) => entries.find((e) => e.name === name);
-const matching = (entries: ListEntry[], name: string) => entries.filter((e) => matchesUsername(name, [e.name]));
+const SCOPES: readonly BanScope[] = ['uid', 'promotion', 'campus'];
+const SCOPE_ICON: Record<BanScope, string> = { user: 'terminal', uid: 'account', promotion: 'mortar-board', campus: 'location' };
+const DAY = 86_400_000;
+
+/** "Zoé M.", or a short id for a person who never signed in. */
+const personName = (t: T, u: AdminUser) =>
+  [u.first_name, u.last_initial && `${u.last_initial}.`].filter(Boolean).join(' ') || t('admin.users.unnamed', { id: u.user_id.slice(0, 6) });
+const isActive = (snapshot: AdminSnapshot, u: AdminUser) => u.last_seen >= snapshot.fetchedAt - snapshot.stats.active_window_days * DAY;
+
+const exact = (entries: ListEntry[], user: AdminUser) => entries.find((e) => e.scope === 'uid' && e.name === user.user_id);
+/** The bans that apply to this person: their id, their promotion and their campus. Former name fragments cannot be matched. */
+const matching = (entries: ListEntry[], user: AdminUser) => entries.filter((e) => e.scope !== 'user'
+  && matchesGroup({ scope: e.scope, value: e.name }, { ...user, userId: user.user_id }));
+
+const promotionOf = (user: AdminUser) => (user.promotion === null ? null : `${user.cursus ? `${user.cursus.toLowerCase()}:` : ''}${user.promotion}`);
+/** What a ban of this scope targets for this person; null when it was never reported. */
+const targetOf = (user: AdminUser, scope: BanScope) => (scope === 'uid' ? user.user_id : scope === 'promotion' ? promotionOf(user) : scope === 'campus' ? user.campus : null);
+const affected = (users: AdminUser[], scope: BanScope, name: string) =>
+  scope === 'user' ? null : users.filter((u) => matchesGroup({ scope, value: name }, { ...u, userId: u.user_id })).length;
+
+/** How the dashboard names a ban: the person for a uid ban, the promotion or campus otherwise. */
+function banTitle(t: T, entry: ListEntry, users: AdminUser[]): string {
+  if (entry.scope !== 'uid') return entry.name;
+  const person = users.find((u) => u.user_id === entry.name);
+  return entry.label ?? (person ? personName(t, person) : t('admin.users.unnamed', { id: entry.name.slice(0, 6) }));
+}
+const banLabel = (t: T, entry: ListEntry, users: AdminUser[]) =>
+  (entry.scope === 'uid' ? banTitle(t, entry, users) : `${t(`admin.scope.${entry.scope}`)} ${entry.name}`);
 
 /** Feature checkboxes drawn as toggle pills; the native input keeps keyboard and screen-reader support. */
 function featurePills(t: T, chosen: Set<RemoteFeature>, name: string): HTMLElement {
@@ -272,6 +304,22 @@ function featurePills(t: T, chosen: Set<RemoteFeature>, name: string): HTMLEleme
     h('span', featureLabel(t, feature)))));
 }
 
+/** Who a ban targets: one person, a whole promotion or a whole campus. */
+function scopePicker(t: T, group: string, chosen: BanScope, available: (scope: BanScope) => boolean, pick: (scope: BanScope) => void): HTMLElement {
+  return h('div.adm-pills', { role: 'radiogroup', 'aria-label': t('admin.ban.scope') }, SCOPES.map((scope) => h('label.adm-pill.pick',
+    h('input', { type: 'radio', name: group, checked: scope === chosen, disabled: state.busy || !available(scope), onchange: () => pick(scope) }),
+    icon(SCOPE_ICON[scope]),
+    h('span', t(`admin.scope.${scope}`)))));
+}
+
+/** Hides the name of the admin who bans from the banned user. */
+function anonymousPill(t: T, checked: boolean, onChange: (value: boolean) => void): HTMLElement {
+  return h('label.adm-pill.pick', { title: t('admin.ban.anonymousHint') },
+    h('input', { type: 'checkbox', checked, disabled: state.busy, onchange: (e: Event) => onChange((e.target as HTMLInputElement).checked) }),
+    icon('eye-closed'),
+    h('span', t('admin.ban.anonymous')));
+}
+
 function users(snapshot: AdminSnapshot, t: T): Child[] {
   const busy = !!state.busy;
   const list = h('ul.adm-list');
@@ -279,11 +327,11 @@ function users(snapshot: AdminSnapshot, t: T): Child[] {
   const total = snapshot.stats.users.length;
   const fill = () => {
     const needle = search.trim().toLowerCase();
-    const shown = snapshot.stats.users.filter((name) => name.toLowerCase().includes(needle));
+    const shown = snapshot.stats.users.filter((u) => [personName(t, u), u.campus, u.cursus, u.promotion].filter(Boolean).join(' ').toLowerCase().includes(needle));
     count.textContent = needle ? `${shown.length} / ${total}` : String(total);
     count.title = t('admin.users.count', { shown: shown.length, total });
     list.replaceChildren(...(shown.length
-      ? shown.map((name) => userRow(snapshot, name, t, busy))
+      ? shown.map((user) => userRow(snapshot, user, t, busy))
       : [h('li', empty(needle ? 'search' : 'organization', needle ? t('admin.users.none') : t('admin.empty')))]));
   };
   const box = h('input.search', { id: 'adm-search', type: 'search', placeholder: t('admin.users.search'), 'aria-label': t('admin.users.search'), value: search, oninput: () => { search = box.value; fill(); } });
@@ -294,44 +342,64 @@ function users(snapshot: AdminSnapshot, t: T): Child[] {
   ];
 }
 
-function userRow(snapshot: AdminSnapshot, name: string, t: T, busy: boolean): HTMLElement {
-  const own = exact(snapshot.banned, name);
-  const bans = matching(snapshot.banned, name);
-  const allowed = matching(snapshot.authorized, name).length > 0;
+function userRow(snapshot: AdminSnapshot, user: AdminUser, t: T, busy: boolean): HTMLElement {
+  const id = user.user_id;
+  const name = personName(t, user);
+  const own = exact(snapshot.banned, user);
+  const bans = matching(snapshot.banned, user);
+  const others = bans.filter((b) => b !== own);
   const features = [...new Set(bans.flatMap((b) => b.features))];
-  const open = banning === name;
+  const open = banning === id;
+  const scope = draft.inlineScope;
+  const target = targetOf(user, scope);
   const toggle = () => {
-    banning = open ? null : name;
+    banning = open ? null : id;
     draft.inlineReason = '';
     draft.inlineFeatures = new Set(FEATURES);
+    draft.inlineScope = 'uid';
+    draft.inlineAnonymous = false;
     render();
   };
   const confirm = () => {
-    if (!draft.inlineFeatures.size) return;
-    send({ type: 'ban', name, features: [...draft.inlineFeatures], ...(draft.inlineReason && { reason: draft.inlineReason }) });
+    if (!draft.inlineFeatures.size || !target) return;
+    send({
+      type: 'ban', name: target, scope, features: [...draft.inlineFeatures],
+      ...(scope === 'uid' && { label: name }),
+      ...(draft.inlineReason && { reason: draft.inlineReason }),
+      ...(draft.inlineAnonymous && { anonymous: true }),
+    });
     banning = null;
   };
-  const reason = input('adm-inline-reason', { maxLength: 200, placeholder: t('admin.ban.reason'), 'aria-label': t('admin.ban.reason') }, draft.inlineReason, (v) => { draft.inlineReason = v; });
-  const tags = [
-    allowed ? chip('pass', icon('verified'), t('admin.authorized')) : null,
-    ...features.map((f) => chip('fail', icon(FEATURE_ICON[f]), featureLabel(t, f))),
+  const reason = input('adm-inline-reason', { maxLength: 200, placeholder: t('admin.ban.reasonShown'), 'aria-label': t('admin.ban.reasonShown') }, draft.inlineReason, (v) => { draft.inlineReason = v; });
+  const promotion = promotionOf(user);
+  const identity = [
+    promotion ? chip('muted', icon(SCOPE_ICON.promotion), promotion) : null,
+    user.campus ? chip('muted', icon(SCOPE_ICON.campus), user.campus) : null,
+    chip(isActive(snapshot, user) ? 'pass' : 'muted', h('span.mono', `v${user.version}`)),
   ].filter(Boolean);
-  return h('li.adm-user', { class: `${bans.length ? 'banned' : allowed ? 'allowed' : ''} ${open ? 'open' : ''}` },
+  const tags = features.map((f) => chip('fail', icon(FEATURE_ICON[f]), featureLabel(t, f)));
+  const what = (s: BanScope, value: string) => (s === 'uid' ? name : `${t(`admin.scope.${s}`)} ${value}`);
+  return h('li.adm-user', { class: `${bans.length ? 'banned' : ''} ${open ? 'open' : ''}` },
     h('div.adm-user-row',
-      avatar(name, bans.length ? 'bad' : allowed ? 'good' : ''),
+      avatar(name, bans.length ? 'bad' : ''),
       h('div.adm-user-main',
-        h('span.mono.adm-name', { title: name }, name),
+        h('span.adm-name', { title: t('admin.users.seen', { when: ago(user.last_seen), n: user.launches }) }, name),
+        h('span.adm-chips', identity),
         tags.length ? h('span.adm-chips', tags) : null,
-        bans.length && !own ? h('span.adm-sub', t('admin.users.viaFragment', { fragment: bans.map((b) => b.name).join(', ') })) : null),
+        others.length ? h('span.adm-sub', t('admin.users.via', { what: others.map((b) => what(b.scope, b.name)).join(', ') })) : null),
       own
         ? h('button.btn.ghost.small', { type: 'button', disabled: busy, onclick: () => send({ type: 'unban', id: own.id }) }, icon('unlock'), t('admin.unban'))
         : h('button.btn.ghost.small.adm-ban', { type: 'button', disabled: busy, 'aria-expanded': String(open), onclick: toggle }, icon(open ? 'chevron-up' : 'circle-slash'), t('admin.ban'))),
     open ? h('div.adm-inline',
+      h('span.adm-label', t('admin.ban.scope')),
+      scopePicker(t, `inline-scope-${id}`, scope, (s) => targetOf(user, s) !== null, (s) => { draft.inlineScope = s; render(); }),
+      target && scope !== 'uid' ? h('span.adm-sub', t('admin.ban.affects', { what: what(scope, target), n: affected(snapshot.stats.users, scope, target) ?? 0 })) : null,
       h('span.adm-label', t('admin.ban.restrict')),
-      featurePills(t, draft.inlineFeatures, `inline-${name}`),
+      featurePills(t, draft.inlineFeatures, `inline-${id}`),
       reason,
+      anonymousPill(t, draft.inlineAnonymous, (v) => { draft.inlineAnonymous = v; }),
       h('div.adm-actions',
-        h('button.btn.danger.solid', { type: 'button', disabled: busy, onclick: confirm }, icon('circle-slash'), t('admin.ban.confirm', { name })),
+        h('button.btn.danger.solid', { type: 'button', disabled: busy || !target, onclick: confirm }, icon('circle-slash'), t('admin.ban.confirm', { name: target ? what(scope, target) : name })),
         h('button.btn.ghost', { type: 'button', onclick: toggle }, t('admin.cancel')))) : null);
 }
 
@@ -339,13 +407,36 @@ function userRow(snapshot: AdminSnapshot, name: string, t: T, busy: boolean): HT
 
 function moderation(snapshot: AdminSnapshot, t: T): Child[] {
   const busy = !!state.busy;
-  const name = input('adm-ban-name', { maxLength: 64, required: true, placeholder: 'login.name', autocomplete: 'off' }, draft.banName, (v) => { draft.banName = v; });
-  const reason = input('adm-ban-reason', { maxLength: 200, placeholder: t('admin.ban.reason') }, draft.banReason, (v) => { draft.banReason = v; });
+  const scope = draft.banScope;
+  const known = snapshot.stats.users;
+  const suggestions = scope === 'promotion'
+    ? known.flatMap((u) => [promotionOf(u), u.promotion === null ? null : String(u.promotion)])
+    : scope === 'campus' ? known.map((u) => u.campus) : [];
+  const options = [...new Set(suggestions.filter((s): s is string => !!s))].sort();
+  const person = known.find((u) => u.user_id === draft.banPerson);
+  const target = scope === 'uid'
+    ? h('select.adm-input', { id: 'adm-ban-person', disabled: busy, onchange: (e: Event) => { draft.banPerson = (e.target as HTMLSelectElement).value; } },
+      h('option', { value: '', selected: !person }, t('admin.ban.pickPerson')),
+      [...known].sort((a, b) => personName(t, a).localeCompare(personName(t, b))).map((u) => h('option', { value: u.user_id, selected: u === person },
+        [personName(t, u), promotionOf(u), u.campus].filter(Boolean).join(' · '))))
+    : input('adm-ban-name', {
+      maxLength: 64, required: true, autocomplete: 'off', list: 'adm-ban-suggest',
+      placeholder: scope === 'promotion' ? 'pge:2027' : 'Paris',
+    }, draft.banName, (v) => { draft.banName = v; });
+  const reason = input('adm-ban-reason', { maxLength: 200, placeholder: t('admin.ban.reasonShown') }, draft.banReason, (v) => { draft.banReason = v; });
   const ban = (e: Event) => {
     e.preventDefault();
-    if (!draft.banName.trim() || !draft.banFeatures.size) return;
-    send({ type: 'ban', name: draft.banName.trim(), features: [...draft.banFeatures], ...(draft.banReason && { reason: draft.banReason }) });
+    const picked = known.find((u) => u.user_id === draft.banPerson);
+    const name = scope === 'uid' ? picked?.user_id : draft.banName.trim();
+    if (!name || !draft.banFeatures.size) return;
+    send({
+      type: 'ban', name, scope, features: [...draft.banFeatures],
+      ...(scope === 'uid' && picked && { label: personName(t, picked) }),
+      ...(draft.banReason && { reason: draft.banReason }),
+      ...(draft.banAnonymous && { anonymous: true }),
+    });
     draft.banName = '';
+    draft.banPerson = '';
     draft.banReason = '';
   };
   const allowName = input('adm-allow-name', { maxLength: 64, required: true, placeholder: t('admin.ban.name'), 'aria-label': t('admin.ban.name'), autocomplete: 'off' }, draft.allowName, (v) => { draft.allowName = v; });
@@ -358,15 +449,19 @@ function moderation(snapshot: AdminSnapshot, t: T): Child[] {
     draft.allowReason = '';
   };
   return [
-    block(t('admin.ban.title'), { glyph: 'circle-slash', hint: t('admin.ban.hint'), tone: 'danger' },
+    block(t('admin.ban.title'), { glyph: 'circle-slash', hint: t(`admin.ban.hint.${scope}`), tone: 'danger' },
       h('form.adm-pad.adm-form', { onsubmit: ban },
-        field(t('admin.ban.name'), name),
+        h('div.adm-field', h('span.adm-label', t('admin.ban.scope')),
+          scopePicker(t, 'ban-scope', scope, (s) => s !== 'uid' || known.length > 0, (s) => { draft.banScope = s; draft.banName = ''; render(); })),
+        field(t(`admin.ban.name.${scope}`), target),
+        scope === 'uid' ? null : h('datalist', { id: 'adm-ban-suggest' }, options.map((value) => h('option', { value }))),
         h('div.adm-field', h('span.adm-label', t('admin.ban.restrict')), featurePills(t, draft.banFeatures, 'ban')),
-        field(t('admin.ban.reason'), reason),
+        field(t('admin.ban.reasonShown'), reason),
+        anonymousPill(t, draft.banAnonymous, (v) => { draft.banAnonymous = v; }),
         h('button.btn.danger.solid.block', { type: 'submit', disabled: busy }, icon('circle-slash'), t('admin.ban')))),
     block(t('admin.banlist.title'), { glyph: 'shield', meta: snapshot.banned.length },
       snapshot.banned.length
-        ? h('ul.adm-list', snapshot.banned.map((entry) => bannedRow(entry, t, busy)))
+        ? h('ul.adm-list', snapshot.banned.map((entry) => bannedRow(entry, known, t, busy)))
         : h('div.adm-pad', empty('pass', t('admin.banlist.empty')))),
     block(t('admin.allow.title'), { glyph: 'verified', hint: t('admin.allow.hint'), meta: snapshot.authorized.length },
       h('form.adm-pad.adm-form.adm-allow', { onsubmit: allow }, allowName, allowReason,
@@ -385,27 +480,186 @@ function moderation(snapshot: AdminSnapshot, t: T): Child[] {
   ];
 }
 
-function bannedRow(entry: ListEntry, t: T, busy: boolean): HTMLElement {
+function bannedRow(entry: ListEntry, users: AdminUser[], t: T, busy: boolean): HTMLElement {
   // A ban always keeps at least one feature; lifting every feature is "unban".
   const flip = (feature: RemoteFeature) => {
     const next = entry.features.includes(feature) ? entry.features.filter((f) => f !== feature) : [...entry.features, feature];
     if (next.length) send({ type: 'updateBan', id: entry.id, features: next });
   };
+  const reach = affected(users, entry.scope, entry.name);
+  const sub = [
+    t('admin.banlist.since', { when: ago(entry.created_at) }),
+    t('admin.banlist.by', { who: entry.banned_by ?? t('admin.banlist.unknownBy') }),
+    ...(entry.scope === 'promotion' || entry.scope === 'campus' ? [t('admin.banlist.affects', { n: reach ?? 0 })] : []),
+  ].join(' · ');
+  const title = banTitle(t, entry, users);
   return h('li.adm-user.banned',
     h('div.adm-user-row',
-      avatar(entry.name, 'bad'),
+      entry.scope === 'uid' ? avatar(title, 'bad') : h('span.adm-avatar.bad', { 'aria-hidden': 'true' }, icon(SCOPE_ICON[entry.scope])),
       h('div.adm-user-main',
-        h('span.mono.adm-name', { title: entry.name }, entry.name),
-        h('span.adm-sub', t('admin.banlist.since', { when: ago(entry.created_at) }))),
+        h('span.adm-name', { class: entry.scope === 'uid' ? '' : 'mono', title: banLabel(t, entry, users) }, title),
+        h('span.adm-chips', chip(entry.scope === 'user' ? 'warn' : 'muted', icon(SCOPE_ICON[entry.scope]), t(`admin.scope.${entry.scope}`))),
+        h('span.adm-sub', sub)),
       h('button.btn.ghost.small', { type: 'button', disabled: busy, onclick: () => send({ type: 'unban', id: entry.id }) }, icon('unlock'), t('admin.unban'))),
-    h('div.adm-toggles', FEATURES.map((feature) => {
-      const on = entry.features.includes(feature);
-      return h('button.adm-toggle', {
-        type: 'button', class: on ? 'on' : '', 'aria-pressed': String(on), disabled: busy || (on && entry.features.length === 1),
-        title: on && entry.features.length === 1 ? t('admin.ban.lastFeature') : t('admin.ban.toggle'), onclick: () => flip(feature),
-      }, icon(on ? 'circle-slash' : FEATURE_ICON[feature]), featureLabel(t, feature));
-    })),
+    h('div.adm-toggles',
+      FEATURES.map((feature) => {
+        const on = entry.features.includes(feature);
+        return h('button.adm-toggle', {
+          type: 'button', class: on ? 'on' : '', 'aria-pressed': String(on), disabled: busy || (on && entry.features.length === 1),
+          title: on && entry.features.length === 1 ? t('admin.ban.lastFeature') : t('admin.ban.toggle'), onclick: () => flip(feature),
+        }, icon(on ? 'circle-slash' : FEATURE_ICON[feature]), featureLabel(t, feature));
+      }),
+      h('button.adm-toggle.soft', {
+        type: 'button', class: entry.anonymous ? 'on' : '', 'aria-pressed': String(entry.anonymous), disabled: busy,
+        title: t('admin.ban.anonymousHint'), onclick: () => send({ type: 'updateBan', id: entry.id, anonymous: !entry.anonymous }),
+      }, icon(entry.anonymous ? 'eye-closed' : 'eye'), t('admin.ban.anonymous'))),
     entry.reason ? h('p.adm-reason', icon('quote'), entry.reason) : null);
+}
+
+// ───────────────────────── cohorts ─────────────────────────
+
+const countBy = <K>(items: AdminUser[], key: (u: AdminUser) => K | null) => {
+  const groups = new Map<K, AdminUser[]>();
+  for (const u of items) {
+    const k = key(u);
+    if (k === null) continue;
+    groups.set(k, [...(groups.get(k) ?? []), u]);
+  }
+  return groups;
+};
+
+function cohorts(snapshot: AdminSnapshot, t: T): Child[] {
+  const people = snapshot.stats.users;
+  const active = (u: AdminUser) => isActive(snapshot, u);
+  const known = people.filter((u) => u.promotion !== null || u.campus !== null);
+  const byPromotion = [...countBy(people, (u) => u.promotion)].sort((a, b) => b[0] - a[0]);
+  const byCampus = [...countBy(people, (u) => u.campus)].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+  const byCursus = [...countBy(people, (u) => u.cursus?.toLowerCase() ?? null)].sort((a, b) => b[1].length - a[1].length);
+  const top = byCampus[0];
+  const n = (v: number) => v.toLocaleString(state.lang, { maximumFractionDigits: 1 });
+  const row = (label: string, group: AdminUser[]) => ({
+    label, total: group.length, part: group.filter(active).length,
+    title: t('admin.cohorts.tip', { label, total: group.length, active: group.filter(active).length }),
+  });
+
+  const tiles = h('div.adm-tiles.adm-stagger',
+    tile('identified', 'person', t('admin.cohorts.identified'), known.length, t('admin.cohorts.identifiedSub', { pct: percent(known.length, people.length), total: people.length })),
+    tile('promotions', 'mortar-board', t('admin.cohorts.promotions'), byPromotion.length, byPromotion.length ? t('admin.cohorts.range', { from: byPromotion.at(-1)![0], to: byPromotion[0][0] }) : '—'),
+    tile('campuses', 'location', t('admin.cohorts.campuses'), byCampus.length, top ? t('admin.cohorts.top', { campus: top[0], n: top[1].length }) : '—'),
+    tile('cursus', 'library', t('admin.cohorts.cursus'), byCursus.length, byCursus.map(([c]) => c).join(' · ') || '—'));
+
+  const legend = h('div.adm-legend', legendKey('pass', t('admin.kpi.active')), legendKey('track', t('admin.cohorts.people')));
+  const promotions = block(t('admin.cohorts.byPromotion'), { glyph: 'mortar-board', hint: t('admin.cohorts.byPromotionHint') },
+    h('div.adm-pad', byPromotion.length
+      ? [countBars(byPromotion.map(([year, group]) => row(String(year), group)), t('admin.cohorts.byPromotion')), legend.cloneNode(true)]
+      : empty('mortar-board', t('admin.cohorts.empty'))));
+  const campuses = block(t('admin.cohorts.byCampus'), { glyph: 'location', hint: t('admin.cohorts.byCampusHint') },
+    h('div.adm-pad', byCampus.length
+      ? [countBars(byCampus.map(([campus, group]) => row(campus, group)), t('admin.cohorts.byCampus')), legend.cloneNode(true)]
+      : empty('location', t('admin.cohorts.empty'))));
+
+  // The 8 largest campuses by every promotion: where the users are.
+  const rows = byCampus.slice(0, 8).map(([c]) => c);
+  const cols = byPromotion.map(([y]) => String(y)).reverse();
+  const heat = block(t('admin.cohorts.heat'), { glyph: 'table', hint: t('admin.cohorts.heatHint') },
+    h('div.adm-pad', rows.length && cols.length
+      ? heatGrid(rows, cols, (c, y) => people.filter((u) => u.campus === c && String(u.promotion) === y).length,
+        { aria: t('admin.cohorts.heat'), tip: (c, y, count) => t('admin.cohorts.heatTip', { campus: c, year: y, n: count }) })
+      : empty('table', t('admin.cohorts.empty'))));
+
+  // Share of each promotion already on the required version: who lags behind the updates.
+  const adoption = block(t('admin.cohorts.adoption'), { glyph: 'versions', hint: t('admin.cohorts.adoptionHint', { version: snapshot.stats.current_version }) },
+    h('div.adm-pad', byPromotion.length
+      ? [h('div.adm-adoption', byPromotion.map(([year, group]) => {
+        const current = group.filter((u) => compareVersions(u.version, snapshot.stats.current_version) >= 0).length;
+        return [
+          h('span.mono', String(year)),
+          stackBar([
+            { value: current, tone: 'pass', label: t('admin.mix.current') },
+            { value: group.length - current, tone: 'warn', label: t('admin.kpi.obsolete') },
+          ], t('admin.cohorts.adoptionAria', { year })),
+          h('span.adm-pct', `${percent(current, group.length)}%`),
+        ];
+      })), h('div.adm-legend', legendKey('pass', t('admin.mix.current')), legendKey('warn', t('admin.kpi.obsolete')))]
+      : empty('versions', t('admin.cohorts.empty'))));
+
+  // Activity rate per cursus, and how much each promotion launches Bananabox.
+  const cursus = block(t('admin.cohorts.activity'), { glyph: 'pulse', hint: t('admin.cohorts.activityHint', { days: snapshot.stats.active_window_days }) },
+    h('div.adm-pad', byCursus.length
+      ? h('div.adm-rings', byCursus.map(([name, group]) => {
+        const on = group.filter(active).length;
+        return h('div.adm-ring',
+          ring(group.length ? on / group.length : 0, { size: 72, stroke: 7, tone: 'pass', label: `${percent(on, group.length)}%`, aria: t('admin.cohorts.ringAria', { cursus: name, active: on, total: group.length }) }),
+          h('strong', name), h('span', t('admin.cohorts.ringSub', { active: on, total: group.length })));
+      }))
+      : empty('pulse', t('admin.cohorts.empty'))));
+  const launches = block(t('admin.cohorts.launches'), { glyph: 'rocket', hint: t('admin.cohorts.launchesHint') },
+    h('div.adm-pad', byPromotion.length
+      ? countBars(byPromotion.map(([year, group]) => {
+        const avg = group.reduce((s, u) => s + u.launches, 0) / group.length;
+        return { label: String(year), total: avg, title: t('admin.cohorts.launchesTip', { year, n: n(avg) }) };
+      }), t('admin.cohorts.launches'), n)
+      : empty('rocket', t('admin.cohorts.empty'))));
+
+  return [tiles, promotions, campuses, heat, adoption, cursus, launches];
+}
+
+// ───────────────────────── admins ─────────────────────────
+
+function admins(_snapshot: AdminSnapshot, t: T): Child[] {
+  const busy = !!state.busy;
+  if (!state.root) {
+    const token = h('input.adm-input', { type: 'password', id: 'adm-root-token', autocomplete: 'off', required: true, maxLength: 512, disabled: busy, placeholder: t('admin.admins.token') });
+    const unlock = (e: Event) => { e.preventDefault(); if (token.value.trim()) send({ type: 'rootUnlock', token: token.value }); };
+    return [block(t('admin.admins.lockedTitle'), { glyph: 'key', hint: t('admin.admins.lockedHint') },
+      h('form.adm-pad.adm-form', { onsubmit: unlock },
+        field(t('admin.admins.token'), token),
+        h('p.adm-hint', icon('lock'), ' ', t('admin.admins.tokenNote')),
+        h('button.btn.primary.block', { type: 'submit', disabled: busy }, icon('unlock'), t('admin.admins.unlock'))))];
+  }
+  const accounts = state.root.admins;
+  const email = input('adm-new-email', { type: 'email', required: true, maxLength: 128, placeholder: 'prenom.nom@epitech.eu', autocomplete: 'off' }, draft.adminEmail, (v) => { draft.adminEmail = v; });
+  const whoami = input('adm-new-whoami', { required: true, maxLength: 64, placeholder: 'whoami', autocomplete: 'off' }, draft.adminWhoami, (v) => { draft.adminWhoami = v; });
+  const password = h('input.adm-input', { type: 'password', id: 'adm-new-password', required: true, minLength: 12, maxLength: 128, autocomplete: 'new-password', disabled: busy });
+  const create = (e: Event) => {
+    e.preventDefault();
+    if (!draft.adminEmail.trim() || !draft.adminWhoami.trim() || password.value.length < 12) return;
+    send({ type: 'createAdmin', email: draft.adminEmail, whoami: draft.adminWhoami, password: password.value });
+    draft.adminEmail = '';
+    draft.adminWhoami = '';
+  };
+  return [
+    block(t('admin.admins.title'), { glyph: 'key', meta: accounts.length, hint: t('admin.admins.hint') },
+      h('div.adm-pad', h('button.btn.ghost.small', { type: 'button', disabled: busy, onclick: () => send({ type: 'rootLock' }) }, icon('lock'), t('admin.admins.lock'))),
+      h('ul.adm-list', accounts.map((account) => {
+        const edit = input(`adm-whoami-${account.id}`, { maxLength: 64, placeholder: 'whoami', 'aria-label': t('admin.admins.whoami') },
+          draft.whoamiEdits[account.id] ?? account.whoami ?? '', (v) => { draft.whoamiEdits[account.id] = v; });
+        const removing = confirmingAdmin === account.id;
+        return h('li.adm-user',
+          h('div.adm-user-row',
+            avatar(account.email.split('@')[0].replace('.', ' ')),
+            h('div.adm-user-main',
+              h('span.adm-name.ellipsis', { title: account.email }, account.email),
+              h('span.adm-sub', [
+                account.whoami ? `whoami ${account.whoami}` : t('admin.admins.noWhoami'),
+                account.last_login ? t('admin.admins.lastLogin', { when: ago(account.last_login) }) : t('admin.admins.never'),
+              ].join(' · '))),
+            h('button.btn.ghost.small', { type: 'button', disabled: busy, class: removing ? 'danger' : '',
+              onclick: () => { if (removing) { confirmingAdmin = null; send({ type: 'deleteAdmin', id: account.id }); } else { confirmingAdmin = account.id; render(); } } },
+            icon(removing ? 'warning' : 'trash'), removing ? t('admin.admins.confirmRemove') : t('admin.remove'))),
+          h('div.adm-admin-edit', edit,
+            h('button.btn.small', { type: 'button', disabled: busy, onclick: () => {
+              const value = (draft.whoamiEdits[account.id] ?? '').trim();
+              if (value && value !== account.whoami) send({ type: 'setAdminWhoami', id: account.id, whoami: value });
+            } }, icon('save'), t('admin.admins.save'))));
+      }))),
+    block(t('admin.admins.addTitle'), { glyph: 'person-add', hint: t('admin.admins.addHint') },
+      h('form.adm-pad.adm-form', { onsubmit: create },
+        field(t('admin.login.email'), email),
+        field(t('admin.admins.whoami'), whoami),
+        field(t('admin.admins.password'), password),
+        h('button.btn.primary.block', { type: 'submit', disabled: busy }, icon('person-add'), t('admin.admins.add')))),
+  ];
 }
 
 // ───────────────────────── policy ─────────────────────────

@@ -12,6 +12,7 @@ const MAX_VSIX_BASE64 = Math.ceil((100 * 1024 * 1024) / 3) * 4;
 
 const isFeatures = (value: unknown): value is RemoteFeature[] =>
   Array.isArray(value) && value.length > 0 && value.every((f) => FEATURES.includes(f));
+const SCOPES = ['uid', 'promotion', 'campus'];
 const isText = (value: unknown, max: number): value is string =>
   typeof value === 'string' && value.length <= max;
 
@@ -21,6 +22,8 @@ export class AdminView implements vscode.WebviewViewProvider {
 
   private webview?: vscode.Webview;
   private state: AdminViewState = { lang: config.language(), phase: 'loading' };
+  /** The Cloudflare root token, kept in memory only until locked, logged out or the editor closes. */
+  private rootToken?: string;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -54,7 +57,26 @@ export class AdminView implements vscode.WebviewViewProvider {
   /** The signed-in admin lost the right to see the dashboard (removed from the admin list). */
   async revoke(): Promise<void> {
     await this.service.clear();
-    this.set({ phase: 'login', session: undefined, snapshot: undefined, error: undefined });
+    this.rootToken = undefined;
+    this.set({ phase: 'login', session: undefined, snapshot: undefined, error: undefined, root: undefined });
+  }
+
+  /** Runs a root change, then reloads the admin list; a rejected token is forgotten. */
+  private async runRoot(action: (token: string) => Promise<unknown>): Promise<void> {
+    const token = this.rootToken;
+    if (!token) return;
+    this.set({ busy: true, error: undefined });
+    try {
+      await action(token);
+      this.set({ root: { admins: await this.service.admins(token) }, busy: false });
+    } catch (error) {
+      const info = error instanceof AdminError ? { code: error.code, message: error.message } : { code: 'bad_response', message: String(error) };
+      if (error instanceof AdminError && (error.status === 401 || error.status === 403)) {
+        this.rootToken = undefined;
+        return this.set({ root: undefined, busy: false, error: { code: 'root_rejected', message: info.message } });
+      }
+      this.set({ busy: false, error: info });
+    }
   }
 
   private set(change: Partial<AdminViewState>): void {
@@ -122,15 +144,35 @@ export class AdminView implements vscode.WebviewViewProvider {
         }
       case 'logout':
         await this.service.logout();
-        return this.set({ phase: 'login', session: undefined, snapshot: undefined, busy: false, error: undefined });
+        this.rootToken = undefined;
+        return this.set({ phase: 'login', session: undefined, snapshot: undefined, busy: false, error: undefined, root: undefined });
+      case 'rootUnlock':
+        if (!isText(message.token, 512) || !message.token.trim()) return;
+        this.rootToken = message.token.trim();
+        return this.runRoot(async () => undefined);
+      case 'rootLock':
+        this.rootToken = undefined;
+        return this.set({ root: undefined, error: undefined });
+      case 'createAdmin':
+        if (!isText(message.email, 128) || !isText(message.whoami, 64) || !isText(message.password, 128)) return;
+        return this.runRoot((token) => this.service.createAdmin(token, { email: message.email.trim(), whoami: message.whoami.trim(), password: message.password }));
+      case 'setAdminWhoami':
+        if (!Number.isInteger(message.id) || !isText(message.whoami, 64)) return;
+        return this.runRoot((token) => this.service.setAdminWhoami(token, message.id, message.whoami.trim()));
+      case 'deleteAdmin':
+        if (!Number.isInteger(message.id)) return;
+        return this.runRoot((token) => this.service.deleteAdmin(token, message.id));
       case 'ban':
-        if (!isText(message.name, 64) || !isFeatures(message.features) || (message.reason !== undefined && !isText(message.reason, 200))) return;
-        return this.run(() => this.service.ban(message.name, message.features, message.reason));
+        if (!isText(message.name, 64) || !SCOPES.includes(message.scope) || !isFeatures(message.features) || (message.reason !== undefined && !isText(message.reason, 200))) return;
+        if (message.anonymous !== undefined && typeof message.anonymous !== 'boolean') return;
+        if (message.label !== undefined && !isText(message.label, 64)) return;
+        return this.run(() => this.service.ban({ name: message.name, scope: message.scope, features: message.features, reason: message.reason, anonymous: message.anonymous, label: message.label }));
       case 'updateBan':
         if (!Number.isInteger(message.id)) return;
         if (message.features !== undefined && !isFeatures(message.features)) return;
         if (message.reason !== undefined && !isText(message.reason, 200)) return;
-        return this.run(() => this.service.updateBan(message.id, { features: message.features, reason: message.reason }));
+        if (message.anonymous !== undefined && typeof message.anonymous !== 'boolean') return;
+        return this.run(() => this.service.updateBan(message.id, { features: message.features, reason: message.reason, anonymous: message.anonymous }));
       case 'unban':
         if (!Number.isInteger(message.id)) return;
         return this.run(() => this.service.unban(message.id));

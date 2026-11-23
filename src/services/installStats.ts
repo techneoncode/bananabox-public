@@ -1,7 +1,12 @@
 import { randomBytes } from 'node:crypto';
-import { userInfo } from 'node:os';
 import * as vscode from 'vscode';
-import { compareVersions } from '../domain/remotePolicy';
+import { compareVersions, type Identity } from '../domain/remotePolicy';
+
+/** Who reports: the OS account id and, once signed in, the first name and last-name initial from My. */
+export interface Reporter extends Identity {
+  firstName?: string | null;
+  lastInitial?: string | null;
+}
 import { createT } from '../shared/i18n';
 import { config } from '../util/config';
 import { log } from '../util/log';
@@ -12,17 +17,12 @@ import { acceptTerms, termsAccepted } from './termsConsent';
 const ID_KEY = 'bananabox.installId.v1';
 const VERSION_KEY = 'bananabox.reportedVersion.v1';
 
-function osUsername(): string {
-  try {
-    return userInfo().username;
-  } catch {
-    return '';
-  }
-}
-
 /**
- * Installation statistics (see docs/terms.md): a random id, the version, the
- * OS account name (so maintainers can ban it) and a launch count. Nothing is
+ * Installation statistics (see docs/terms.md): a random id, the version, a
+ * hashed id of the OS account (so maintainers can ban it), the first name,
+ * last-name initial, promotion and campus of the signed-in account (so they
+ * know whom they ban, and can ban a whole promotion or campus) and a launch
+ * count. Nothing is
  * sent before the user has accepted the terms, and turning the setting off
  * deletes the server-side data.
  */
@@ -31,7 +31,7 @@ export class InstallStats {
     private readonly context: vscode.ExtensionContext,
     private readonly version: string,
     private readonly fetcher: typeof fetch = fetch,
-    private readonly account: string = osUsername(),
+    private readonly reporter: () => Reporter = () => ({ promotion: null, cursus: null, campus: null }),
   ) {}
 
   /** One report per activation; never throws and never blocks the extension. */
@@ -51,7 +51,17 @@ export class InstallStats {
         id = randomBytes(16).toString('hex');
         await state.update(ID_KEY, id);
       }
-      await this.send('POST', '/v1/installs', { installId: id, version: this.version, ...(this.account && { account: this.account }) });
+      const { userId, firstName, lastInitial, promotion, cursus, campus } = this.reporter();
+      await this.send('POST', '/v1/installs', {
+        installId: id,
+        version: this.version,
+        ...(userId && { userId }),
+        ...(firstName && { firstName }),
+        ...(lastInitial && { lastInitial }),
+        ...(promotion !== null && { promotion }),
+        ...(cursus && { cursus }),
+        ...(campus && { campus }),
+      });
 
       const previous = state.get<string>(VERSION_KEY);
       if (previous && compareVersions(previous, this.version) < 0) {
@@ -87,7 +97,7 @@ export class InstallStats {
   }
 
   /** Every write needs a fresh single-use nonce, so a captured request cannot be replayed. */
-  private async send(method: 'POST' | 'DELETE', path: string, body: Record<string, string>): Promise<void> {
+  private async send(method: 'POST' | 'DELETE', path: string, body: Record<string, string | number>): Promise<void> {
     const nonce = (await this.call('POST', '/v1/nonce')).nonce;
     await this.call(method, path, { ...body, nonce });
   }

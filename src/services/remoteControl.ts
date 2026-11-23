@@ -1,8 +1,10 @@
+import { createHash } from 'node:crypto';
 import { userInfo } from 'node:os';
 import * as vscode from 'vscode';
 import {
   parseRemoteConfig,
   remoteStatus,
+  type Identity,
   type RemoteConfig,
 } from '../domain/remotePolicy';
 import { createT } from '../shared/i18n';
@@ -16,12 +18,29 @@ export const API_BASE_URL = 'https://bananabox-api.niels-christophe.workers.dev'
 export const REMOTE_CONFIG_URL = `${API_BASE_URL}/v1/config`;
 const CACHE_KEY = 'bananabox.remoteConfig.v1';
 const UPDATE_KEY = 'bananabox.installedUpdate.v1';
+const IDENTITY_KEY = 'bananabox.identity.v1';
 const POLL_MS = 60_000;
 
 export interface RemoteControlDependencies {
   fetch?: typeof fetch;
   install?: typeof downloadAndInstall;
   username?: string;
+  userId?: string;
+}
+
+/**
+ * Identifies the OS account on this machine without revealing it: a hash of the editor's machine id and the
+ * account's UID (its name on Windows, which has no UID). The UID alone is not enough: most Linux users are 1000.
+ */
+export function localUserId(): string {
+  let account: string;
+  try {
+    const info = userInfo();
+    account = info.uid >= 0 ? `uid:${info.uid}` : `name:${info.username}`;
+  } catch {
+    account = 'unknown';
+  }
+  return createHash('sha256').update(`${vscode.env.machineId}:${account}`).digest('hex').slice(0, 32);
 }
 
 export class RemoteControl implements vscode.Disposable {
@@ -32,9 +51,11 @@ export class RemoteControl implements vscode.Disposable {
   private updateAbort?: AbortController;
   private announced?: string;
   private readonly username: string;
+  private readonly userId: string;
   private readonly version: string;
   private remote?: RemoteConfig;
   private offline = true;
+  private known: Identity = { promotion: null, cursus: null, campus: null };
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -46,9 +67,32 @@ export class RemoteControl implements vscode.Disposable {
     } catch {
       this.username = '';
     }
+    this.userId = deps.userId ?? localUserId();
     try {
       this.remote = parseRemoteConfig(context.globalState.get(CACHE_KEY));
     } catch {}
+    // Remembered from the last sign-in, so a promotion or campus ban already applies before the next one.
+    const stored = context.globalState.get<Partial<Identity>>(IDENTITY_KEY);
+    this.known = {
+      promotion: typeof stored?.promotion === 'number' ? stored.promotion : null,
+      cursus: typeof stored?.cursus === 'string' ? stored.cursus : null,
+      campus: typeof stored?.campus === 'string' ? stored.campus : null,
+    };
+    this.apply();
+  }
+
+  /** This OS account's id, with the promotion and campus of the last signed-in account. */
+  get identity(): Identity {
+    return { ...this.known, userId: this.userId };
+  }
+
+  /** Called at every sign-in; a different promotion or campus is evaluated against the bans at once. */
+  setIdentity(change: Identity): void {
+    const identity = { promotion: change.promotion, cursus: change.cursus, campus: change.campus };
+    if (JSON.stringify(identity) === JSON.stringify(this.known)) return;
+    this.known = identity;
+    void this.context.globalState.update(IDENTITY_KEY, identity)
+      .then(undefined, (error) => log().warn('Cannot cache identity.', error));
     this.apply();
   }
 
@@ -73,6 +117,7 @@ export class RemoteControl implements vscode.Disposable {
       this.version,
       this.username,
       this.offline,
+      this.identity,
     );
     const previous = remoteFeatures.status;
     state.uninstall = previous.uninstall;
@@ -122,7 +167,7 @@ export class RemoteControl implements vscode.Disposable {
       const targetChanged = remote.latest !== this.remote?.latest;
       if (
         targetChanged
-        || remoteStatus(remote, this.version, this.username)
+        || remoteStatus(remote, this.version, this.username, false, this.identity)
           .restrictedFeatures.length === 2
       ) {
         this.updateAbort?.abort();

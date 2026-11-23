@@ -1,5 +1,5 @@
 import type { Lang } from './i18n';
-import type { RemoteFeature } from '../domain/remotePolicy';
+import type { BanScope, RemoteFeature } from '../domain/remotePolicy';
 
 /** Shapes returned by the admin endpoints of the Worker (see docs/remote-control.md). */
 
@@ -25,6 +25,30 @@ export interface VersionCount {
   obsolete: boolean;
 }
 
+/** A person reported by the installations: the hashed OS account id, then what My says once they signed in. */
+export interface AdminUser {
+  user_id: string;
+  first_name: string | null;
+  last_initial: string | null;
+  promotion: number | null;
+  cursus: string | null;
+  campus: string | null;
+  /** Version of their most recent installation. */
+  version: string;
+  last_seen: number;
+  /** Launches of all their installations. */
+  launches: number;
+}
+
+/** An admin account, as root lists it. */
+export interface AdminAccount {
+  id: number;
+  email: string;
+  whoami: string | null;
+  created_at: number;
+  last_login: number | null;
+}
+
 export interface AdminStats {
   current_version: string;
   active_window_days: number;
@@ -33,17 +57,23 @@ export interface AdminStats {
   inactive: number;
   obsolete_active: number;
   launches: number;
-  /** Account names reported by the installations. */
-  users: string[];
+  users: AdminUser[];
   versions: VersionCount[];
   timeline: TimelineDay[];
 }
 
 export interface ListEntry {
   id: number;
+  /** What `name` is: an account fragment, a promotion or a campus. */
+  scope: BanScope;
   name: string;
+  /** The dashboard's name for a `uid` ban (the person's name); never public. */
+  label: string | null;
   reason: string | null;
   features: RemoteFeature[];
+  /** The email of the admin who banned, or `root`; the banned user sees it only when `anonymous` is false. */
+  banned_by: string | null;
+  anonymous: boolean;
   created_at: number;
 }
 
@@ -99,6 +129,8 @@ export interface AdminViewState {
   busy?: boolean;
   /** The release being published from a dropped VSIX, or the last one. */
   release?: ReleaseState;
+  /** Present once the root token was given: the admin accounts. The token itself stays in the extension host. */
+  root?: { admins: AdminAccount[] };
 }
 
 export type AdminHostMessage = { type: 'state'; state: AdminViewState };
@@ -108,10 +140,15 @@ export type AdminWebviewMessage =
   | { type: 'login'; email: string; password: string }
   | { type: 'logout' }
   | { type: 'refresh' }
-  | { type: 'ban'; name: string; reason?: string; features: RemoteFeature[] }
-  | { type: 'updateBan'; id: number; features?: RemoteFeature[]; reason?: string }
+  | { type: 'ban'; name: string; scope: BanScope; reason?: string; features: RemoteFeature[]; anonymous?: boolean; label?: string }
+  | { type: 'updateBan'; id: number; features?: RemoteFeature[]; reason?: string; anonymous?: boolean }
   | { type: 'unban'; id: number }
   | { type: 'authorize'; name: string; reason?: string }
   | { type: 'unauthorize'; id: number }
   | { type: 'setPolicy'; lens_active?: boolean; my_api_active?: boolean }
-  | { type: 'publishRelease'; file: string; data: string; notes?: string };
+  | { type: 'publishRelease'; file: string; data: string; notes?: string }
+  | { type: 'rootUnlock'; token: string }
+  | { type: 'rootLock' }
+  | { type: 'createAdmin'; email: string; whoami: string; password: string }
+  | { type: 'setAdminWhoami'; id: number; whoami: string }
+  | { type: 'deleteAdmin'; id: number };

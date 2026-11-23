@@ -58,3 +58,46 @@ export function versionBars(versions: VersionCount[], aria: string, labels: { ac
   });
   return wrap;
 }
+
+export interface CountRow {
+  label: string;
+  total: number;
+  /** The highlighted part of `total`; the whole bar is filled when absent. */
+  part?: number;
+  title: string;
+}
+
+/** Horizontal bars on one scale: the track is `total`, the fill `part`. Same look as the version bars. */
+export function countBars(rows: CountRow[], aria: string, format: (n: number) => string = String): HTMLElement {
+  const max = Math.max(1, ...rows.map((r) => r.total));
+  const wrap = h('div.adm-versions.adm-counts', { role: 'img', 'aria-label': aria });
+  rows.forEach((r, i) => {
+    const part = r.part ?? r.total;
+    wrap.append(h('div.adm-version', { title: r.title },
+      h('span.adm-version-name', r.label),
+      h('div.adm-track',
+        h('div.adm-total', { style: { width: `${(r.total / max) * 100}%`, '--i': i } },
+          h('div.adm-fill', { style: { width: `${r.total ? (part / r.total) * 100 : 0}%` } }))),
+      h('span.adm-version-count', format(r.total))));
+  });
+  return wrap;
+}
+
+/**
+ * Rows by columns, one cell per pair: one hue whose strength follows the count (sequential), the count
+ * written in the cell, and the exact value in the tooltip.
+ */
+export function heatGrid(rows: string[], cols: string[], value: (row: string, col: string) => number, o: { aria: string; tip: (row: string, col: string, n: number) => string }): HTMLElement {
+  const max = Math.max(1, ...rows.flatMap((r) => cols.map((c) => value(r, c))));
+  const grid = h('div.adm-heat', { role: 'table', 'aria-label': o.aria, style: { gridTemplateColumns: `minmax(64px, max-content) repeat(${cols.length}, minmax(26px, 1fr))` } });
+  grid.append(h('span.adm-heat-corner', { role: 'columnheader' }), ...cols.map((c) => h('span.adm-heat-col', { role: 'columnheader' }, c)));
+  rows.forEach((r, i) => {
+    grid.append(h('span.adm-heat-row', { role: 'rowheader', title: r }, r));
+    cols.forEach((c) => {
+      const n = value(r, c);
+      const a = n / max;
+      grid.append(h('span.adm-heat-cell', { role: 'cell', class: `${n ? '' : 'zero'} ${a > 0.55 ? 'hot' : ''}`, title: o.tip(r, c, n), style: { '--a': a.toFixed(3), '--i': i } }, n ? String(n) : ''));
+    });
+  });
+  return grid;
+}

@@ -7,14 +7,50 @@ export interface RemoteConfig {
   latest: string;
   authorized: string[];
   banned: BannedEntry[];
+  /** Whole promotions and campuses; absent from older API versions. */
+  banned_groups?: BannedGroup[];
   /** OS account names of the admins (exact match); absent from older API versions. */
   admins?: string[];
 }
 
-/** An account-name fragment and the features it loses. */
-export interface BannedEntry {
-  user: string;
+/** What the banned user is told about a ban. */
+export interface BanDetail {
   features: RemoteFeature[];
+  reason?: string | null;
+  /** The admin who decided; null when anonymous. */
+  by?: string | null;
+  /** When the ban started, in epoch milliseconds. */
+  since?: number;
+}
+
+/** An account-name fragment and the features it loses. */
+export interface BannedEntry extends BanDetail {
+  user: string;
+}
+
+/** `user` is the former OS account-name fragment; `uid` is one person, by the id of their OS account. */
+export type BanScope = 'user' | 'uid' | 'promotion' | 'campus';
+
+/** One person (`uid`), a whole promotion (`2027` or `cursus:2027`) or campus, and the features it loses. */
+export interface BannedGroup extends BanDetail {
+  scope: 'uid' | 'promotion' | 'campus';
+  value: string;
+}
+
+/** Who the signed-in account is, as far as bans are concerned. */
+export interface Identity {
+  /** Hashed id of the OS account on this machine; known before any sign-in. */
+  userId?: string | null;
+  promotion: number | null;
+  cursus: string | null;
+  campus: string | null;
+}
+
+/** A ban that applies to this user, and why it does. */
+export interface Restriction extends BanDetail {
+  scope: BanScope;
+  /** The account name, promotion or campus the ban targets. */
+  target: string;
 }
 
 export interface RemoteStatus {
@@ -24,6 +60,8 @@ export interface RemoteStatus {
   offline: boolean;
   connectionRefused: boolean;
   restrictedFeatures: RemoteFeature[];
+  /** Every ban that applies to this user, for the screens that explain it. */
+  restrictions?: Restriction[];
   /** Shows the admin dashboard; the API still requires an admin login. */
   admin?: boolean;
   lensActive: boolean;
@@ -133,13 +171,32 @@ export function latestUrl(latest: string, version: string): string {
 const isFeature = (value: unknown): value is RemoteFeature =>
   value === 'lens_active' || value === 'my_api_active';
 
+const isBanDetail = (value: Partial<BanDetail> | null): boolean =>
+  Array.isArray(value?.features)
+  && value.features.length > 0
+  && value.features.every(isFeature)
+  && (value.reason == null || typeof value.reason === 'string')
+  && (value.by == null || typeof value.by === 'string')
+  && (value.since === undefined || typeof value.since === 'number');
+
 const isBannedEntry = (value: unknown): value is BannedEntry => {
   const entry = value as Partial<BannedEntry> | null;
-  return typeof entry?.user === 'string'
-    && Array.isArray(entry.features)
-    && entry.features.length > 0
-    && entry.features.every(isFeature);
+  return typeof entry?.user === 'string' && isBanDetail(entry);
 };
+
+const isBannedGroup = (value: unknown): value is BannedGroup => {
+  const entry = value as Partial<BannedGroup> | null;
+  return (entry?.scope === 'uid' || entry?.scope === 'promotion' || entry?.scope === 'campus')
+    && typeof entry.value === 'string'
+    && isBanDetail(entry);
+};
+
+const detail = (entry: BanDetail): BanDetail => ({
+  features: [...new Set(entry.features)],
+  reason: entry.reason ?? null,
+  by: entry.by ?? null,
+  ...(entry.since !== undefined && { since: entry.since }),
+});
 
 export function parseRemoteConfig(value: unknown): RemoteConfig {
   const config = value as Partial<RemoteConfig> | null;
@@ -152,6 +209,9 @@ export function parseRemoteConfig(value: unknown): RemoteConfig {
     || !config.authorized.every(user => typeof user === 'string')
     || !Array.isArray(config.banned)
     || !config.banned.every(isBannedEntry)
+    || (config.banned_groups !== undefined
+      && (!Array.isArray(config.banned_groups)
+        || !config.banned_groups.every(isBannedGroup)))
     || (config.admins !== undefined
       && (!Array.isArray(config.admins)
         || !config.admins.every(user => typeof user === 'string')))) {
@@ -166,9 +226,11 @@ export function parseRemoteConfig(value: unknown): RemoteConfig {
     version: config.version,
     latest: config.latest,
     authorized: [...config.authorized],
-    banned: config.banned.map(entry => ({
-      user: entry.user,
-      features: [...new Set(entry.features)],
+    banned: config.banned.map(entry => ({ user: entry.user, ...detail(entry) })),
+    banned_groups: (config.banned_groups ?? []).map(entry => ({
+      scope: entry.scope,
+      value: entry.value,
+      ...detail(entry),
     })),
     admins: [...(config.admins ?? [])],
   };
@@ -183,20 +245,52 @@ export function matchesUsername(
       fragment !== '' && username.includes(fragment));
 }
 
+const fold = (text: string): string =>
+  text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().trim();
+
+/**
+ * A promotion ban is `2027` (every cursus) or `cursus:2027`; a campus ban
+ * ignores case and accents. Nothing matches before the user has signed in once.
+ */
+export function matchesGroup(
+  group: Pick<BannedGroup, 'scope' | 'value'>,
+  identity: Identity,
+): boolean {
+  if (group.scope === 'uid') return !!identity.userId && identity.userId === group.value;
+  if (group.scope === 'campus') {
+    return identity.campus !== null && fold(identity.campus) === fold(group.value);
+  }
+  const [cursus, year] = group.value.includes(':')
+    ? group.value.split(':')
+    : [null, group.value];
+  return identity.promotion !== null
+    && String(identity.promotion) === year
+    && (cursus === null || fold(identity.cursus ?? '') === fold(cursus));
+}
+
+const NO_IDENTITY: Identity = { promotion: null, cursus: null, campus: null };
+
 export function remoteStatus(
   config: RemoteConfig | undefined,
   installedVersion: string,
   username: string,
   offline = false,
+  identity: Identity = NO_IDENTITY,
 ): RemoteStatus {
   const versionMismatch = config !== undefined
     && compareVersions(installedVersion, config.version) < 0;
   const authorized = matchesUsername(username, config?.authorized);
-  const restrictedFeatures: RemoteFeature[] = [...new Set(
-    (config?.banned ?? [])
+  const restrictions: Restriction[] = [
+    ...(config?.banned ?? [])
       .filter(entry => matchesUsername(username, [entry.user]))
-      .flatMap(entry => entry.features),
-  )];
+      .map(({ user, ...rest }): Restriction => ({ scope: 'user', target: user, ...rest })),
+    ...(config?.banned_groups ?? [])
+      .filter(group => matchesGroup(group, identity))
+      .map(({ scope, value, ...rest }): Restriction => ({ scope, target: value, ...rest })),
+  ];
+  const restrictedFeatures: RemoteFeature[] = [
+    ...new Set(restrictions.flatMap(entry => entry.features)),
+  ];
   const connectionRefused = restrictedFeatures.length > 0;
 
   return {
@@ -206,6 +300,7 @@ export function remoteStatus(
     offline,
     connectionRefused,
     restrictedFeatures,
+    restrictions,
     admin: username !== '' && (config?.admins ?? []).includes(username),
     lensActive: !restrictedFeatures.includes('lens_active')
       && !offline

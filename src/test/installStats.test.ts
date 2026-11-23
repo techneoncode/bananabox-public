@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as vscode from 'vscode';
 import { InstallStats } from '../services/installStats';
+import type { Reporter } from '../services/installStats';
 
 interface Call { method: string; path: string; body?: Record<string, string> }
 
@@ -25,7 +26,11 @@ function setup(options: { statistics?: boolean; failOn?: string; terms?: boolean
     get: (key: string) => store.get(key),
     update: async (key: string, value: unknown) => { value === undefined ? store.delete(key) : store.set(key, value); },
   } } as unknown as vscode.ExtensionContext;
-  return { store, calls, notices, stats: (version: string, account = 'alice') => new InstallStats(context, version, fetcher, account) };
+  return {
+    store, calls, notices,
+    stats: (version: string, reporter: () => Reporter = () => ({ userId: 'a'.repeat(32), promotion: null, cursus: null, campus: null })) =>
+      new InstallStats(context, version, fetcher, reporter),
+  };
 }
 
 test('nothing is sent until the terms are accepted; a new install is not nagged', async () => {
@@ -46,18 +51,30 @@ test('an install that already reported is asked to accept the terms and sends no
   assert.equal(notices.length, 1);
 });
 
-test('only a random install id, the version, the account name and a nonce are sent', async () => {
+test('only a random install id, the version, the hashed OS account id and a nonce are sent before sign-in', async () => {
   const { calls, stats } = setup();
   await stats('1.4.0').report();
   await stats('1.4.0').report();
   const body = calls.find(c => c.path === '/v1/installs')!.body!;
-  assert.deepEqual(Object.keys(body).sort(), ['account', 'installId', 'nonce', 'version']);
-  assert.equal(body.account, 'alice');
+  assert.deepEqual(Object.keys(body).sort(), ['installId', 'nonce', 'userId', 'version']);
+  assert.equal(body.userId, 'a'.repeat(32));
   assert.match(body.installId, /^[0-9a-f]{32}$/);
   assert.equal(body.version, '1.4.0');
   await stats('1.4.0').report();
   assert.equal(calls.filter(c => c.path === '/v1/installs').at(-1)!.body!.installId, body.installId, 'the id is stable');
   assert.notEqual(calls.filter(c => c.path === '/v1/nonce').length, 1, 'each write fetches its own nonce');
+});
+
+test('the first name, last-name initial, promotion and campus are sent once known, never the full name', async () => {
+  const { calls, stats } = setup();
+  let reporter: Reporter = { userId: 'b'.repeat(32), firstName: 'Zoé', lastInitial: 'M', promotion: 2027, cursus: 'pge', campus: 'Paris' };
+  await stats('1.5.0', () => reporter).report();
+  const body = calls.find(c => c.path === '/v1/installs')!.body!;
+  assert.deepEqual([body.userId, body.firstName, body.lastInitial, body.promotion, body.cursus, body.campus] as unknown[], ['b'.repeat(32), 'Zoé', 'M', 2027, 'pge', 'Paris']);
+  calls.length = 0;
+  reporter = { userId: 'b'.repeat(32), promotion: 2027, cursus: null, campus: null };
+  await stats('1.5.0', () => reporter).report();
+  assert.deepEqual(Object.keys(calls.find(c => c.path === '/v1/installs')!.body!).sort(), ['installId', 'nonce', 'promotion', 'userId', 'version']);
 });
 
 test('an update is reported once, with the previous and the new version', async () => {

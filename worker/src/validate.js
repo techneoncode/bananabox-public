@@ -71,6 +71,62 @@ export function account(value) {
   return typeof value === 'string' && NAME.test(value) ? value : null;
 }
 
+export const SCOPES = ['user', 'uid', 'promotion', 'campus'];
+const USER_ID = /^[0-9a-f]{32}$/;
+const FIRST_NAME = /^[\p{L}][\p{L}' -]{0,39}$/u;
+const INITIAL = /^\p{Lu}$/u;
+const PROMOTION = /^(?:[a-z][a-z0-9-]{0,31}:)?\d{4}$/;
+const CAMPUS = /^[\p{L}][\p{L} '-]{0,63}$/u;
+const CURSUS = /^[A-Za-z][\w-]{0,31}$/;
+
+export function scope(value) {
+  if (value === undefined) return 'user';
+  if (!SCOPES.includes(value)) throw bad(`scope must be one of ${SCOPES.join(', ')}.`);
+  return value;
+}
+
+/** The target of a ban, checked against the alphabet of its scope. A campus keeps the case it was typed in. */
+export function target(kind, value) {
+  if (kind === 'user') return name(value);
+  if (kind === 'uid') {
+    if (typeof value !== 'string' || !USER_ID.test(value)) throw bad('a uid ban needs the 32 lowercase hex characters of the user id.');
+    return value;
+  }
+  const text = typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
+  if (kind === 'promotion' && PROMOTION.test(text.toLowerCase())) return text.toLowerCase();
+  if (kind === 'campus' && CAMPUS.test(text)) return text;
+  throw bad(kind === 'promotion' ? 'promotion must be a year such as 2027, or cursus:year.' : 'campus must be 1-64 letters, spaces, apostrophes or hyphens.');
+}
+
+/** Optional: whatever is unusable is dropped instead of failing the whole report. */
+export function identity(body) {
+  const campus = typeof body.campus === 'string' ? body.campus.trim() : '';
+  const first = typeof body.firstName === 'string' ? body.firstName.trim() : '';
+  const initial = typeof body.lastInitial === 'string' ? body.lastInitial.trim().toUpperCase() : '';
+  return {
+    userId: typeof body.userId === 'string' && USER_ID.test(body.userId) ? body.userId : null,
+    firstName: FIRST_NAME.test(first) ? first : null,
+    lastInitial: INITIAL.test(initial) ? initial : null,
+    promotion: Number.isInteger(body.promotion) && body.promotion >= 1990 && body.promotion <= 2100 ? body.promotion : null,
+    cursus: typeof body.cursus === 'string' && CURSUS.test(body.cursus) ? body.cursus : null,
+    campus: CAMPUS.test(campus) ? campus : null,
+  };
+}
+
+/** The dashboard's name for a ban: admin-only, so it is free text. */
+export function label(value) {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'string' || value.length > 64) throw bad('label must be a string of at most 64 characters.');
+  return value;
+}
+
+/** Hides the name of the admin who banned from the banned user. */
+export function anonymous(value) {
+  if (value === undefined) return false;
+  if (typeof value !== 'boolean') throw bad('anonymous must be a boolean.');
+  return value;
+}
+
 export function nonce(value) {
   if (typeof value !== 'string' || !NONCE.test(value)) throw bad('nonce must be 32 lowercase hex characters.');
   return value;

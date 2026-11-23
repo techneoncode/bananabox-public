@@ -57,7 +57,7 @@ test('responses are uniform JSON and unknown routes or methods are rejected clea
   const res = await call('GET', '/v1/config');
   assert.equal(res.json.ok, true);
   assert.equal(res.headers.get('cache-control'), 'no-store');
-  assert.deepEqual(Object.keys(res.json.data).sort(), ['admins', 'authorized', 'banned', 'latest', 'lens_active', 'my_api_active', 'version']);
+  assert.deepEqual(Object.keys(res.json.data).sort(), ['admins', 'authorized', 'banned', 'banned_groups', 'latest', 'lens_active', 'my_api_active', 'version']);
   const missing = await call('GET', '/nope');
   assert.deepEqual([missing.status, missing.json.ok, missing.json.error.code], [404, false, 'not_found']);
   const method = await call('DELETE', '/v1/config');
@@ -89,7 +89,10 @@ test('banned and authorized lists: add, duplicate, validate, list, delete, and p
     }
     assert.equal((await asAdmin('POST', `/v1/${kind}`, { name: 'ok', reason: 'x'.repeat(201) })).status, 400);
     const cfg = (await call('GET', '/v1/config')).json.data;
-    if (kind === 'banned') assert.deepEqual(cfg.banned, [{ user: 'mallory', features: ['lens_active', 'my_api_active'] }]);
+    if (kind === 'banned') {
+      assert.deepEqual(cfg.banned.map(({ since, ...rest }) => rest), [{ user: 'mallory', features: ['lens_active', 'my_api_active'], reason: 'test', by: 'admin.one' }]);
+      assert.equal(typeof cfg.banned[0].since, 'number');
+    }
     else assert.deepEqual(cfg.authorized, ['mallory']);
     assert.equal((await asAdmin('DELETE', `/v1/${kind}/${added.json.data.id}`)).status, 200);
     assert.equal((await asAdmin('DELETE', `/v1/${kind}/${added.json.data.id}`)).status, 404);
@@ -102,7 +105,7 @@ test('bans restrict features per account and can be changed afterwards', async (
   const lens = await asAdmin('POST', '/v1/banned', { name: 'alice', features: ['lens_active'] });
   const my = await asAdmin('POST', '/v1/banned', { name: 'bob', features: ['my_api_active', 'my_api_active'] });
   assert.deepEqual([lens.json.data.features, my.json.data.features], [['lens_active'], ['my_api_active']]);
-  assert.deepEqual((await call('GET', '/v1/config')).json.data.banned, [{ user: 'alice', features: ['lens_active'] }, { user: 'bob', features: ['my_api_active'] }]);
+  assert.deepEqual((await call('GET', '/v1/config')).json.data.banned.map(b => [b.user, b.features]), [['alice', ['lens_active']], ['bob', ['my_api_active']]]);
   for (const features of [[], ['other'], 'lens_active']) {
     assert.equal((await asAdmin('POST', '/v1/banned', { name: 'carol', features })).status, 400);
   }
@@ -111,6 +114,32 @@ test('bans restrict features per account and can be changed afterwards', async (
   assert.equal((await asAdmin('PUT', `/v1/banned/${lens.json.data.id}`, { features: [] })).status, 400);
   assert.equal((await asAdmin('PUT', '/v1/banned/999999', { features: ['lens_active'] })).status, 404);
   for (const entry of [lens, my]) await asAdmin('DELETE', `/v1/banned/${entry.json.data.id}`);
+});
+
+test('bans target a promotion or a campus, name the banner unless anonymous, and stay out of the legacy list', async () => {
+  const promo = await asAdmin('POST', '/v1/banned', { scope: 'promotion', name: ' PGE:2027 ', reason: 'abuse', features: ['my_api_active'] });
+  const campus = await asAdmin('POST', '/v1/banned', { scope: 'campus', name: 'Paris', anonymous: true });
+  assert.deepEqual([promo.status, promo.json.data.name, promo.json.data.banned_by, promo.json.data.anonymous], [201, 'pge:2027', 'admin.one@epitech.eu', false]);
+  assert.deepEqual([campus.status, campus.json.data.scope, campus.json.data.anonymous], [201, 'campus', true]);
+  assert.equal((await root('POST', '/v1/banned', { scope: 'campus', name: 'paris' })).status, 409, 'campuses compare without case');
+  assert.equal((await asAdmin('POST', '/v1/banned', { scope: 'promotion', name: 'pge:2027' })).status, 409);
+  for (const body of [{ scope: 'promotion', name: '27' }, { scope: 'promotion', name: 'abc' }, { scope: 'campus', name: 'Paris 1' }, { scope: 'campus', name: '' }, { scope: 'planet', name: 'earth' }, { name: 'x', anonymous: 'yes' }]) {
+    assert.equal((await asAdmin('POST', '/v1/banned', body)).status, 400, JSON.stringify(body));
+  }
+  const cfg = (await call('GET', '/v1/config')).json.data;
+  assert.ok(!cfg.banned.some(b => ['pge:2027', 'Paris'].includes(b.user)), 'an older extension would match them as account fragments');
+  const groups = cfg.banned_groups.map(({ since, ...rest }) => rest);
+  assert.deepEqual(groups, [
+    { scope: 'promotion', value: 'pge:2027', features: ['my_api_active'], reason: 'abuse', by: 'admin.one' },
+    { scope: 'campus', value: 'Paris', features: ['lens_active', 'my_api_active'], reason: null, by: null },
+  ]);
+  const shown = await asAdmin('PUT', `/v1/banned/${campus.json.data.id}`, { anonymous: false });
+  assert.equal(shown.json.data.anonymous, false);
+  assert.equal((await call('GET', '/v1/config')).json.data.banned_groups[1].by, 'admin.one');
+  const byRoot = await root('POST', '/v1/banned', { scope: 'campus', name: 'Lyon' });
+  assert.equal((await call('GET', '/v1/config')).json.data.banned_groups.at(-1).by, 'Bananabox');
+  for (const entry of [promo, campus, byRoot]) await asAdmin('DELETE', `/v1/banned/${entry.json.data.id}`);
+  assert.deepEqual((await call('GET', '/v1/config')).json.data.banned_groups, []);
 });
 
 test('policy: validated like the extension and reflected in the public config', async () => {
@@ -220,7 +249,7 @@ test('audit log: every administrative change is recorded with its actor, and onl
   assert.deepEqual(mine.map(l => l.action).reverse(), ['banned.add', 'banned.update', 'banned.delete', 'authorized.add']);
   const [rootEntry, , , addEntry] = mine;
   assert.deepEqual([addEntry.actor_type, addEntry.actor_email, addEntry.actor_id], ['admin', 'admin.one@epitech.eu', adminId]);
-  assert.deepEqual(addEntry.detail, { reason: 'because', features: ['lens_active'] });
+  assert.deepEqual(addEntry.detail, { scope: 'user', reason: 'because', features: ['lens_active'], anonymous: false });
   assert.deepEqual([rootEntry.actor_type, rootEntry.actor_email], ['root', null]);
   const update = mine.find(l => l.action === 'banned.update');
   assert.deepEqual(update.detail.from.features, ['lens_active']);
@@ -273,8 +302,7 @@ test('installs: launches deduplicate within a minute, versions and stats are tra
   assert.equal(await beat(a, '1.3.0', 'stats-alice'), 200);
   assert.equal(await beat(b, '1.3.4', 'not a valid name!'), 200, 'an unusable account name does not fail the report');
   const stats = (await asAdmin('GET', '/v1/stats')).json.data;
-  assert.ok(stats.users.includes('stats-alice'));
-  assert.ok(!stats.users.includes('not a valid name!'));
+  assert.ok(!JSON.stringify(stats.users).includes('stats-alice'), 'OS account names are no longer listed');
   assert.equal(stats.installs - base.installs, 2);
   assert.equal(stats.active - base.active, 2);
   assert.equal(stats.launches - base.launches, 2, 'a repeat within 60 s is not a new launch');
@@ -289,6 +317,38 @@ test('installs: launches deduplicate within a minute, versions and stats are tra
   assert.equal(stats.timeline.at(-1).new - base.timeline.at(-1).new, 2, 'both installs were created today');
   assert.equal(stats.timeline.reduce((n, d) => n + d.new, 0), stats.installs, 'every install of the last 30 days is counted once');
   assert.equal((await asAdmin('GET', '/v1/versions')).json.data.versions.length, stats.versions.length);
+});
+
+test('installs keep the person and identity reported once signed in, one row per person', async () => {
+  const [install, other] = [id(), id()];
+  const userId = 'a'.repeat(31) + 'b';
+  const beat = async (installId, body) => (await call('POST', '/v1/installs', { installId, nonce: await nonce(), version: '1.5.0', userId, ...body })).status;
+  const zoe = async () => (await asAdmin('GET', '/v1/stats')).json.data.users.filter(u => u.user_id === userId);
+  assert.equal(await beat(install, {}), 200);
+  assert.deepEqual((await zoe()).map(({ last_seen, ...rest }) => rest), [{ user_id: userId, first_name: null, last_initial: null, promotion: null, cursus: null, campus: null, version: '1.5.0', launches: 1 }]);
+  assert.equal(await beat(install, { firstName: 'Zoé', lastInitial: 'm', promotion: 2027, cursus: 'pge', campus: 'Paris' }), 200);
+  assert.equal(await beat(install, {}), 200, 'a report sent before sign-in must not erase the identity');
+  const [row] = await zoe();
+  assert.deepEqual([row.first_name, row.last_initial, row.promotion, row.cursus, row.campus], ['Zoé', 'M', 2027, 'pge', 'Paris']);
+  assert.equal(await beat(install, { promotion: 'soon', campus: 'x'.repeat(80), cursus: 'a b', firstName: '<b>', lastInitial: 'Mo' }), 200, 'unusable values are dropped, not rejected');
+  assert.deepEqual(Object.values(await zoe())[0].first_name, 'Zoé');
+  assert.equal(await beat(other, { promotion: 2028, campus: 'Lyon' }), 200);
+  const rows = await zoe();
+  assert.equal(rows.length, 1, 'two installations of one person are one row');
+  assert.deepEqual([rows[0].promotion, rows[0].campus, rows[0].launches], [2028, 'Lyon', 2]);
+  assert.equal(await beat(id(), { userId: 'not-hex' }), 200);
+});
+
+test('a uid ban carries a dashboard label that never reaches the public config', async () => {
+  const userId = 'c'.repeat(32);
+  const added = await asAdmin('POST', '/v1/banned', { scope: 'uid', name: userId, label: 'Zoé M.', reason: 'spam' });
+  assert.deepEqual([added.status, added.json.data.label], [201, 'Zoé M.']);
+  assert.equal((await asAdmin('POST', '/v1/banned', { scope: 'uid', name: 'zoe' })).status, 400);
+  assert.equal((await asAdmin('POST', '/v1/banned', { scope: 'uid', name: 'd'.repeat(32), label: 'x'.repeat(65) })).status, 400);
+  const cfg = (await call('GET', '/v1/config')).json.data;
+  assert.deepEqual(cfg.banned_groups.map(g => [g.scope, g.value]), [['uid', userId]]);
+  assert.ok(!JSON.stringify(cfg).includes('Zoé'));
+  await asAdmin('DELETE', `/v1/banned/${added.json.data.id}`);
 });
 
 test('updates: need a registered install, deduplicate and appear in the history', async () => {
