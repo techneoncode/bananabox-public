@@ -141,7 +141,7 @@ test('the subject read also stores the Makefile requirements, and older stored l
   const service = new SubjectFunctions(storage, async () => { reads++; return { name: 'my_ls.pdf', bytes: new Uint8Array() }; },
     async () => 'binary name: my_ls\ncompilation: via Makefile, including re, clean and fclean rules\nAuthorized functions: write, malloc', () => {});
   const project = { id: 7 } as ProjectVM;
-  data.set('bananabox.subjectFunctions.v1:s:7', { names: ['write'], doc: 'my_ls.pdf', at: 1 });
+  data.set('bananabox.subjectFunctions.v2:s:7', { names: ['write'], doc: 'my_ls.pdf', at: 1 });
   const vm = await service.ensure('s', project);
   assert.equal(reads, 1);
   assert.deepEqual(vm.makefile, { rules: ['re', 'clean', 'fclean'], binary: 'my_ls' });

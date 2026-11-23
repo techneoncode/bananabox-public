@@ -51,7 +51,8 @@ export class SubjectFunctions {
   ) {}
 
   private key(scope: string, projectId: number) {
-    return `bananabox.subjectFunctions.v1:${encodeURIComponent(scope)}:${projectId}`;
+    // v2: lists read before 1.7.1 missed most subject wordings, so every subject is read once more.
+    return `bananabox.subjectFunctions.v2:${encodeURIComponent(scope)}:${projectId}`;
   }
 
   private stored(scope: string, projectId: number): Stored | null {
