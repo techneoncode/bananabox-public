@@ -1,5 +1,5 @@
 import type { Memento } from 'vscode';
-import { parseAuthorizedFunctions } from '../domain/allowedFunctions';
+import { parseSubjectFunctions } from '../domain/allowedFunctions';
 import { validateFunctionNames } from '../domain/functionRules';
 import {
   parseSubjectMakefile,
@@ -13,6 +13,7 @@ const RETRY_MS = 10 * 60_000;
 
 interface Stored {
   names: string[];
+  forbidden?: string[];
   doc?: string;
   at: number;
   makefile?: SubjectMakefile;
@@ -61,6 +62,9 @@ export class SubjectFunctions {
 
     return {
       names: validateFunctionNames(raw.names) ?? [],
+      forbidden: raw.forbidden === undefined
+        ? undefined
+        : validateFunctionNames(raw.forbidden) ?? [],
       doc: typeof raw.doc === 'string' ? raw.doc : undefined,
       at: raw.at,
       makefile: validMakefile(raw.makefile),
@@ -73,14 +77,16 @@ export class SubjectFunctions {
       return {
         status: 'reading',
         names: this.stored(scope, projectId)?.names ?? [],
+        forbidden: this.stored(scope, projectId)?.forbidden,
       };
     }
 
     const s = this.stored(scope, projectId);
     if (s) {
       return {
-        status: s.names.length ? 'found' : 'none',
+        status: s.names.length || s.forbidden?.length ? 'found' : 'none',
         names: s.names,
+        forbidden: s.forbidden,
         doc: s.doc,
         at: s.at,
         makefile: s.makefile,
@@ -108,6 +114,8 @@ export class SubjectFunctions {
       !force
       && (current.status === 'found' || current.status === 'none')
       && current.makefile
+      // Read before forbidden lists were: read once more.
+      && current.forbidden
     ) {
       return current;
     }
@@ -133,14 +141,15 @@ export class SubjectFunctions {
       if (!doc) throw new Error('no_subject');
 
       const text = await this.extract(doc.bytes);
-      const names = parseAuthorizedFunctions(text) ?? [];
+      const { allowed: names, forbidden } = parseSubjectFunctions(text);
       const makefile = parseSubjectMakefile(text);
-      const stored: Stored = { names, doc: doc.name, at: this.now(), makefile };
+      const stored: Stored = { names, forbidden, doc: doc.name, at: this.now(), makefile };
       await this.storage.update(this.key(scope, project.id), stored);
       this.failed.delete(k);
       return {
-        status: names.length ? 'found' : 'none',
+        status: names.length || forbidden.length ? 'found' : 'none',
         names,
+        forbidden,
         doc: doc.name,
         at: stored.at,
         makefile,

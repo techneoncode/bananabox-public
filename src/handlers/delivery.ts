@@ -12,6 +12,7 @@ import {
   safeProjectPath,
   snapshot,
 } from '../delivery/git';
+import { effectiveFunctions } from '../domain/functionRules';
 import { parseRemote } from '../domain/git';
 import { gitBytes, validCommit } from '../git/commitData';
 import { remoteChangedFiles } from '../git/github';
@@ -122,12 +123,12 @@ export function projectRules(
 
   const scope = c.functionScope();
   const subject = c.subjectFunctions.get(scope, best.id);
-  if (subject.status !== 'reading' && !subject.makefile) {
+  if (subject.status !== 'reading' && (!subject.makefile || !subject.forbidden)) {
     void c.subjectFunctions.ensure(scope, project).catch(() => undefined);
   }
-  const allowedFunctions = subject.names.length
+  const allowedFunctions = (subject.names.length || subject.forbidden?.length)
     && !c.functionRules.disabled(scope, best.id)
-    ? [...new Set([...subject.names, ...customFunctions(c, best.id)])]
+    ? effectiveFunctions(subject, customFunctions(c, best.id))
     : undefined;
   return {
     root: best.root,
@@ -212,7 +213,7 @@ export async function checkReadiness(c: Controller, projectId?: number) {
   const allowed = c.functionRules.disabled(scope, project.id)
     ? null
     : c.subjectFunctions.ensure(scope, project).then(
-      s => [...new Set([...s.names, ...custom])],
+      s => effectiveFunctions(s, custom),
       () => custom,
     );
   return c.readiness.check(

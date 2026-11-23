@@ -1,7 +1,7 @@
-import { maskC } from './forbiddenFunctions';
+import { maskC, matchesName } from './forbiddenFunctions';
 
-// `!name` is an exception to a wildcard (`sfShape_*` except `!sfShape_getLocalBounds`).
-const NAME = /^!?[A-Za-z_]\w*\*?$/;
+// `!name` is forbidden (`sfShape_*` except `!sfShape_getLocalBounds`); `*` matches any prefix or suffix (`*fork*`).
+const NAME = /^!?\*?[A-Za-z_]\w*\*?$/;
 const HEADING =
   /^\s*(?:(?:[✓✔•◦▪▸►\-*]|\d(?=\s))\s*)?(?:(?:authori[sz]ed|allowed|permitted)(?:\s+(?:system|libc))*\s+(?:functions?|calls?|syscalls?)(?:\s*\(s\))?(?:\s+and\s+(?:libc\s+)?functions?)?|fonctions?\s+autoris[ée]es?)(?!\w)\s*:?\s*(.*)$/i;
 // Sentences that introduce a list anywhere in a line; group 1 is the list.
@@ -99,18 +99,74 @@ const libraryNames = (lib: string) =>
   LIBRARIES.find(([re]) => re.test(lib))?.[1] ?? [];
 
 /**
- * Whether `name` is allowed: listed, or under a library prefix such as `sf*`.
+ * Whether `name` is allowed: listed, or under a library prefix such as `sf*`,
+ * and not forbidden by a `!` entry.
  */
 export function isAllowedName(
   name: string,
   allowed: ReadonlySet<string>,
 ): boolean {
-  if (allowed.has(`!${name}`)) return false;
+  if (isBannedName(name, allowed)) return false;
   if (allowed.has(name)) return true;
   for (const entry of allowed) {
-    if (entry.endsWith('*') && name.startsWith(entry.slice(0, -1))) return true;
+    if (!entry.startsWith('!') && matchesName(entry, name)) return true;
   }
   return false;
+}
+
+/** Whether a `!` entry (`!sfShape_getLocalBounds`, `!*fork*`) forbids `name`. */
+function isBannedName(name: string, rules: ReadonlySet<string>): boolean {
+  if (rules.has(`!${name}`)) return true;
+  for (const entry of rules) {
+    if (entry.startsWith('!') && matchesName(entry.slice(1), name)) return true;
+  }
+  return false;
+}
+
+const FORBIDDEN_HEADING =
+  /^\s*(?:(?:[✓✔•◦▪▸►-]|\d(?=\s))\s*)?(?:(?:forbidden|prohibited|banned)(?:\s+(?:system|libc))*\s+(?:functions?|calls?|syscalls?)(?:\s*\(s\))?|fonctions?\s+interdites?)(?!\w)\s*:?\s*(.*)$/i;
+// Like BULLET, but a leading `*` belongs to a pattern such as `*fork*`.
+const PLAIN_BULLET = /^\s*(?:[✓✔•◦▪▸►-]|\d(?=\s))\s*/;
+
+/**
+ * The functions a subject forbids, from its "Forbidden functions" lines
+ * (`getpw*, *getsp*, *fork*, …, system`), wrapped lines included.
+ */
+export function parseForbiddenFunctions(text: string): string[] {
+  const lines = text.split(/\r?\n/);
+  const names: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const head = FORBIDDEN_HEADING.exec(lines[i]);
+    if (!head) continue;
+    const inline = listItems(head[1].replace(/[.;]\s*$/, ''));
+    if (!inline) continue;
+    names.push(...inline);
+    // `…, cuserid,` then `system` on the next line.
+    for (let j = i + 1; j < lines.length && /,\s*$/.test(lines[j - 1]); j++) {
+      const more = listItems(lines[j].replace(PLAIN_BULLET, '').trim().replace(/[.;]$/, ''));
+      if (!more) break;
+      names.push(...more);
+    }
+  }
+  return [...new Set(names.filter(n => !n.startsWith('!')))];
+}
+
+/**
+ * What a subject says about functions: the allowed list (empty when it gives
+ * none, e.g. "All the libC minus forbidden functions") and the forbidden one,
+ * wildcard exceptions such as `sfShape_getLocalBounds` included.
+ */
+export function parseSubjectFunctions(
+  text: string,
+): { allowed: string[]; forbidden: string[] } {
+  const listed = parseAuthorizedFunctions(text) ?? [];
+  return {
+    allowed: listed.filter(n => !n.startsWith('!')),
+    forbidden: [...new Set([
+      ...parseForbiddenFunctions(text),
+      ...listed.filter(n => n.startsWith('!')).map(n => n.slice(1)),
+    ])],
+  };
 }
 
 /**
@@ -253,6 +309,9 @@ export function projectNames(
  * Every call to a function the project does not provide and the allowed list
  * does not name. Macros spelled in capitals (`S_ISDIR`, `WEXITSTATUS`) are left
  * alone, as are calls through a struct (`ops->run(…)`).
+ * When `allowed` holds only `!` entries (the whole libC minus a forbidden
+ * list), only calls those entries forbid are reported; the project's own
+ * functions (`my_fork` under `*fork*`) never are.
  * `known` lists names the rest of the project provides, when only some of its
  * files are checked.
  */
@@ -265,13 +324,17 @@ export function findDisallowedCalls(
   const own = projectNames(files);
   const result: CallViolation[] = [];
   for (const name of known) own.add(name);
+  const listed = !allowed.size || [...allowed].some(n => !n.startsWith('!'));
   for (const { file, text } of files) {
     const code = withoutPreprocessor(maskC(text));
     for (const match of code.matchAll(/(\.|->)?\s*\b([A-Za-z_]\w*)\s*\(/g)) {
       const name = match[2];
       if (match[1] || KEYWORDS.has(name)) continue;
-      if (!forbidden.has(name)
-        && (isAllowedName(name, allowed)
+      const banned = forbidden.has(name)
+        || (!own.has(name) && isBannedName(name, allowed));
+      if (!banned
+        && (!listed
+          || isAllowedName(name, allowed)
           || own.has(name)
           || /^[A-Z_][A-Z0-9_]*$/.test(name)
           || (MACRO_OF[name] && allowed.has(MACRO_OF[name])))) {

@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { findDisallowedCalls, isTestPath, parseAuthorizedFunctions, pickSubjectForFunctions, projectNames } from '../domain/allowedFunctions';
+import { findDisallowedCalls, isAllowedName, isTestPath, parseAuthorizedFunctions, parseForbiddenFunctions, parseSubjectFunctions, pickSubjectForFunctions, projectNames } from '../domain/allowedFunctions';
+import { matchesName } from '../domain/forbiddenFunctions';
+import { effectiveFunctions } from '../domain/functionRules';
 import { SubjectFunctions } from '../services/subjectFunctions';
 import type { ProjectVM } from '../shared/types';
 
@@ -30,6 +32,53 @@ test('subject: my_hunter lists libc calls one per line and allows whole librarie
     return `Authorized functions\nHere is the full list of authorized functions.\n\nfrom the C library\n\n\n   3 malloc\n   3 free\n   3 memset\n   3 rand\n   3 srand\n
    3 time (only with srand)\n   3 (f)open\n   3 (f)read\n   3 (f)write\n   3 (f)close\n   3 getline\n\n\nfrom the CSFML library\nAll functions\n\nfrom the math library\nAll functions\n\n\n\nDelivery`;
   }
+});
+
+// As pdf.js extracts the header of the my_sudo subject.
+const MY_SUDO = `Compilation: via Makefile, including re, clean and fclean rules
+Authorized functions: All the libC minus forbidden functions.
+Forbidden functions: getpw*, *getsp*, getgr*, *fork*, *clone*, openat*, getpass, getlogin*, cuserid,
+system
+∇ Terminal - + x
+$> man my_sudo`;
+
+test('subject: the forbidden list is read, wildcards and wrapped lines included (my_sudo)', () => {
+  const forbidden = ['getpw*', '*getsp*', 'getgr*', '*fork*', '*clone*', 'openat*', 'getpass', 'getlogin*', 'cuserid', 'system'];
+  assert.deepEqual(parseForbiddenFunctions(MY_SUDO), forbidden);
+  assert.deepEqual(parseSubjectFunctions(MY_SUDO), { allowed: [], forbidden });
+  assert.deepEqual(parseForbiddenFunctions('Fonctions interdites : printf, scanf\nLivraison'), ['printf', 'scanf']);
+  assert.deepEqual(parseForbiddenFunctions('Forbidden functions: none of your business\nDelivery'), []);
+  assert.deepEqual(parseForbiddenFunctions('3 Allowed functions: getline, crypt'), []);
+});
+
+test('subject: wildcard patterns match a prefix, a suffix or anywhere', () => {
+  assert.ok(matchesName('*fork*', 'vfork') && matchesName('*fork*', 'forkpty') && matchesName('*fork*', 'fork'));
+  assert.ok(matchesName('getpw*', 'getpwnam') && !matchesName('getpw*', 'my_getpwnam'));
+  assert.ok(matchesName('*getsp*', 'lckpwdf_getspnam') && matchesName('system', 'system') && !matchesName('system', 'systemd'));
+  assert.ok(!isAllowedName('vfork', new Set(['sf*', '!*fork*'])) && isAllowedName('sfClock_create', new Set(['sf*', '!*fork*'])));
+});
+
+test('subject: the whole libC minus a forbidden list reports only forbidden calls', () => {
+  const rules = new Set(effectiveFunctions({ names: [], forbidden: parseSubjectFunctions(MY_SUDO).forbidden }, ['printf']));
+  assert.ok(!rules.has('printf'), 'allowing a name adds nothing when the whole libC is allowed');
+  const calls = findDisallowedCalls([{ file: 'sudo.c', text: `
+static int my_fork(void) { return 0; }
+int main(int ac, char **av) {
+    struct passwd *pw = getpwnam(av[1]);
+    printf("%s", strdup(av[0]));
+    if (vfork() == 0) execvp(av[1], av + 1);
+    system("id");
+    my_fork();
+    return setuid(0);
+}` }], rules);
+  assert.deepEqual(calls.map(c => c.message), ['getpwnam', 'vfork', 'system']);
+});
+
+test('subject: a forbidden list on top of an allowed list is applied too', () => {
+  const rules = new Set(effectiveFunctions({ names: ['write', 'malloc'], forbidden: ['malloc'] }, ['free']));
+  const calls = findDisallowedCalls([{ file: 'a.c', text: 'int main(void) { write(1, "a", 1); malloc(3); free(0); printf("x"); }' }], rules);
+  assert.deepEqual(calls.map(c => c.message), ['malloc', 'printf']);
+  assert.deepEqual(effectiveFunctions({ names: [] }, ['write']), ['write'], 'without a subject list the student names still form the list');
 });
 
 test('subject: exceptions to a wildcard stay disallowed (my_radar)', () => {
@@ -157,6 +206,25 @@ test('tests are not delivered code; the bootstrap is never the subject read', ()
   assert.equal(isTestPath('src/attest.c'), false);
   assert.deepEqual(pickSubjectForFunctions([{ name: 'B-PSU-100_bootstrap.pdf' }, { name: 'my_ls.pdf' }]), { name: 'my_ls.pdf' });
   assert.deepEqual(pickSubjectForFunctions([{ name: 'bootstrap.pdf' }]), { name: 'bootstrap.pdf' });
+});
+
+test('subject functions: the forbidden list is kept, and a list stored without one is read once more', async () => {
+  const store = new Map<string, unknown>();
+  const storage = { get: <T>(k: string) => store.get(k) as T, update: async (k: string, v: unknown) => { store.set(k, v); } };
+  let downloads = 0;
+  const service = new SubjectFunctions(storage as never, async () => { downloads++; return { name: 'my_sudo.pdf', bytes: new Uint8Array([1]) }; },
+    async () => MY_SUDO, () => undefined);
+  const project = { id: 9, name: 'my_sudo' } as ProjectVM;
+  store.set('bananabox.subjectFunctions.v2:s:9', { names: [], doc: 'my_sudo.pdf', at: 1, makefile: { rules: ['re'] } });
+  assert.equal(service.get('s', 9).status, 'none');
+  const vm = await service.ensure('s', project);
+  assert.equal(downloads, 1);
+  assert.equal(vm.status, 'found');
+  assert.deepEqual(vm.names, []);
+  assert.ok(vm.forbidden?.includes('*fork*') && vm.forbidden.includes('system'));
+  await service.ensure('s', project);
+  assert.equal(downloads, 1, 'kept once the forbidden list is stored');
+  assert.deepEqual(service.get('s', 9).forbidden, vm.forbidden);
 });
 
 test('subject functions: read once and kept, shared while reading, read again on demand, retried later after a failure', async () => {

@@ -1,5 +1,6 @@
 import type { Ctx } from '../ctx';
 import { h, icon } from '../dom';
+import { matchesName } from '../../domain/forbiddenFunctions';
 import { mergeFunctionNames, parseFunctionNames } from '../../domain/functionRules';
 import { waitLine } from '../ui';
 
@@ -41,6 +42,12 @@ export function renderFunctionRules(ctx: Ctx, id: number, busy: boolean): HTMLEl
   if (off) return h('div.function-rule-editor', h('div.fr-block', h('div.fr-head', icon('circle-slash'), h('span.fr-title', t('functions.checkOff')), h('span.spacer'), toggle)));
   // Whole libraries (math, ncurses) add hundreds of names: the chips show the first ones.
   const shown = subject.names.slice(0, 40), more = subject.names.length - shown.length;
+  // What the subject forbids, shown apart in red: never something the student can allow.
+  const banned = subject.forbidden ?? [];
+  const bannedBlock = banned.length > 0 && h('div.fr-forbidden',
+    h('div.fr-head', icon('circle-slash'), h('span.fr-title', t('functions.forbiddenBySubject', { n: banned.length }))),
+    h('div.function-rule-chips', banned.map(name => h('span.function-rule.is-forbidden', { title: t('functions.forbiddenHint', { name }) },
+      icon('circle-slash'), h('span.mono', name)))));
 
   return h('div.function-rule-editor',
     h('div.fr-head', h('span.spacer'), toggle),
@@ -48,8 +55,12 @@ export function renderFunctionRules(ctx: Ctx, id: number, busy: boolean): HTMLEl
     h('div.fr-block',
       h('div.fr-head', icon('file-pdf'), h('span.fr-title', t('functions.fromSubject')), subject.doc && h('span.fr-doc.ellipsis', { title: subject.doc }, subject.doc), h('span.spacer'), read),
       reading ? waitLine(t('functions.reading'))
-        : subject.status === 'found' ? h('div.function-rule-chips', shown.map(name => h('span.function-rule.from-subject', h('span.mono', name))),
-          more > 0 && h('span.function-rule.from-subject', { title: subject.names.slice(40).join(', ') }, t('functions.more', { n: more })))
+        : subject.status === 'found' ? h('div.fr-subject',
+          subject.names.length > 0
+            ? h('div.function-rule-chips', shown.map(name => h('span.function-rule.from-subject', h('span.mono', name))),
+              more > 0 && h('span.function-rule.from-subject', { title: subject.names.slice(40).join(', ') }, t('functions.more', { n: more })))
+            : h('p.fr-note', t('functions.allLibc')),
+          bannedBlock)
         : subject.status === 'none' ? h('p.fr-note', t('functions.noneInSubject', { doc: subject.doc ?? '' }))
         : subject.status === 'error' ? h('p.fr-note.bad', t('functions.readError'))
         : h('p.fr-note', t('functions.notRead')),
@@ -74,9 +85,9 @@ export function renderFunctionRules(ctx: Ctx, id: number, busy: boolean): HTMLEl
       error),
     // Called but not allowed
     outside.length > 0 && h('div.fr-block.fr-outside',
-      h('div.fr-head', icon('error'), h('span.fr-title', t('functions.outside', { n: outside.length }))),
+      h('div.fr-head', icon('error'), h('span.fr-title', t(subject.names.length || !banned.length ? 'functions.outside' : 'functions.forbiddenCalled', { n: outside.length }))),
       h('div.function-rule-chips', outside.map(name => h('span.function-rule.is-outside', h('span.mono', name),
-        !forbidden.includes(name) && h('button.btn.ghost.small', { type: 'button', disabled: locked, title: t('functions.allowHint', { name }),
+        !forbidden.includes(name) && !banned.some(p => matchesName(p, name)) && h('button.btn.ghost.small', { type: 'button', disabled: locked, title: t('functions.allowHint', { name }),
           onclick: () => save(mergeFunctionNames(names, [name])) }, icon('check'), t('functions.allow')))))),
     h('div.muted.tiny', t('functions.howItWorks')),
     forbidden.length > 0 && h('div.muted.tiny', t('functions.inherited', { names: forbidden.join(', ') })));

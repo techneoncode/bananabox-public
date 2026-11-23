@@ -116,9 +116,12 @@ const ctx = {
       { id: 'files', status: 'pass', detail: 'All required files are present' },
       screen === 'functions'
         ? { id: 'functions', status: 'fail', detail: '2 function(s) outside the allowed list: printf, memcpy', files: [{ file: 'src/display.c', line: 42, column: 9, message: 'printf' }, { file: 'src/sort.c', line: 17, column: 5, message: 'memcpy' }] }
-        : { id: 'functions', status: 'pass', detail: 'Only allowed functions (22 on the list)' },
+        : screen === 'functions-sudo'
+          ? { id: 'functions', status: 'fail', detail: '2 function(s) the subject forbids: vfork, getpwnam', files: [{ file: 'src/exec.c', line: 12, column: 9, message: 'vfork' }, { file: 'src/user.c', line: 8, column: 24, message: 'getpwnam' }] }
+          : { id: 'functions', status: 'pass', detail: 'Only allowed functions (22 on the list)' },
     ] }]]),
-  functionRules: new Map([[1, { names: ['strlen'], subject: { status: 'found', doc: 'B-PSU-100_my_ls.pdf', at: now - 3_600_000,
+  functionRules: new Map([[1, screen === 'functions-sudo' ? { names: [], subject: { status: 'found', doc: 'G-PSU-100_my_sudo.pdf', at: now - 3_600_000, names: [],
+    forbidden: ['getpw*', '*getsp*', 'getgr*', '*fork*', '*clone*', 'openat*', 'getpass', 'getlogin*', 'cuserid', 'system'] } } : { names: ['strlen'], subject: { status: 'found', doc: 'B-PSU-100_my_ls.pdf', at: now - 3_600_000,
     names: ['opendir', 'readdir', 'closedir', 'stat', 'lstat', 'write', 'getpwuid', 'getgrgid', 'time', 'ctime', 'readlink', 'va_start', 'va_arg', 'va_end', 'malloc', 'free', 'perror', 'strerror', 'exit', 'gnu_dev_major', 'gnu_dev_minor'] } }]]), reproductions: new Map(), guided: new Map(screen === 'guided' ? [[1, { projectId: 1, status: 'running', step: 'push', completed: ['save', 'check', 'review', 'commit'], message: null }]] : []),
   comparisonFiles: new Map(), graderCommands: new Map(), avatars: fakeAvatars(),
   post: (m: unknown) => console.log('post', JSON.stringify(m)), rerender: () => draw(), toast: () => {},
@@ -224,6 +227,7 @@ function draw(): void {
   } else {
     if (screen === 'lens_revoked') availability('lens_revoked');
     if (screen.startsWith('valgrind')) { ui.tab = 'valgrind'; valgrind(screen); }
+    if (screen === 'functions-sudo') ui.tab = 'prepare';
     ui.tab ??= (['history', 'subject', 'activities', 'details'].includes(screen) ? screen : 'grader') as UiState['tab'];
     if (screen === 'grader-clean' || screen === 'grader') ui.selectedResult[1] ??= history.at(-2)!.id;
     if (screen === 'empty-pipeline') { ctx.readiness.clear(); }
@@ -240,6 +244,7 @@ function draw(): void {
 }
 if (screen === 'fresh') markFresh(1);
 if (screen === 'functions') { const r = ctx.readiness.get(1); if (r) r.disallowed = ['printf', 'memcpy']; (ctx.ui.pipelineFocus ??= {})[1] = 'functions'; }
+if (screen === 'functions-sudo') { const r = ctx.readiness.get(1); if (r) r.disallowed = ['vfork', 'getpwnam']; (ctx.ui.pipelineFocus ??= {})[1] = 'functions'; }
 const preset = PALETTE_PRESETS.find(x => x.id === q.get('palette'));
 if (preset) { ctx.state.palette = preset.palette; applyPalette(preset.palette); }
 draw();

@@ -119,6 +119,8 @@ export interface GuidedVM {
 export interface SubjectFunctionsVM {
   status: 'idle' | 'reading' | 'found' | 'none' | 'error';
   names: string[];
+  /** What the subject forbids (`*fork*`, `sfShape_getLocalBounds`); absent when read before 1.8.0. */
+  forbidden?: string[];
   /** The PDF the list was read from. */
   doc?: string;
   at?: number;

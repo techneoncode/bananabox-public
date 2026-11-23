@@ -397,6 +397,11 @@ button.g-row:hover, .g-row.clickable:hover { background: var(--hover); }
 .fr-note.bad { color: var(--fail); }
 .function-rule.from-subject { padding: 0 8px; background: color-mix(in srgb, var(--pass) 12%, var(--raise)); }
 .fr-outside .fr-head .codicon { color: var(--fail); }
+.fr-subject { display: grid; gap: 8px; }
+.fr-forbidden { display: grid; gap: 4px; }
+.fr-forbidden > .fr-head { color: var(--fail); }
+.function-rule.is-forbidden { gap: 4px; padding: 0 8px 0 6px; color: var(--fail); background: color-mix(in srgb, var(--fail) 8%, var(--raise)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fail) 45%, transparent); }
+.function-rule.is-forbidden .codicon { font-size: 12px; }
 .function-rule.is-outside { gap: 4px; padding: 0 2px 0 8px; background: color-mix(in srgb, var(--fail) 14%, var(--raise)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fail) 35%, transparent); }
 .function-rule.is-outside .btn { height: 18px; padding: 0 6px; font-size: 0.9em; }
 .style-issues { list-style: none; padding: 0; display: grid; }

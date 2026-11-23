@@ -6,6 +6,19 @@ export function maskC(text: string): string {
   );
 }
 
+/**
+ * Whether `name` matches a subject pattern: `write`, `getpw*` (prefix),
+ * `*getsp*` (anywhere) or `*fork` (suffix).
+ */
+export function matchesName(pattern: string, name: string): boolean {
+  const lead = pattern.startsWith('*'), trail = pattern.endsWith('*');
+  const core = pattern.slice(lead ? 1 : 0, trail ? -1 : undefined);
+  if (lead && trail) return name.includes(core);
+  if (lead) return name.endsWith(core);
+  if (trail) return name.startsWith(core);
+  return name === core;
+}
+
 export function findForbiddenFunctions(
   text: string,
   names: readonly string[],

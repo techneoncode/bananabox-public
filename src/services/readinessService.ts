@@ -308,8 +308,12 @@ export class ReadinessService implements vscode.Disposable {
             })),
           );
       const names = [...new Set(violations.map((v) => v.message))];
+      const shortList = names.slice(0, 4).join(', ')
+        + (names.length > 4 ? '…' : '');
+      // `!` entries are what the subject forbids; the rest is its allowed list.
+      const listed = [...allowed].filter((n) => !n.startsWith('!')).length;
       vm.disallowed = names;
-      vm.allowedCount = allowed.size;
+      vm.allowedCount = listed;
       add({
         id: 'functions',
         status: allowed.size || forbidden.size
@@ -317,14 +321,14 @@ export class ReadinessService implements vscode.Disposable {
             ? 'fail'
             : 'pass'
           : 'unknown',
-        detail: allowed.size
+        detail: listed
           ? violations.length
-            ? this.t('delivery.outsideAllowed', {
-                n: names.length,
-                names: names.slice(0, 4).join(', ')
-                  + (names.length > 4 ? '…' : ''),
-              })
-            : this.t('delivery.onlyAllowed', { n: allowed.size })
+            ? this.t('delivery.outsideAllowed', { n: names.length, names: shortList })
+            : this.t('delivery.onlyAllowed', { n: listed })
+          : allowed.size
+            ? violations.length
+              ? this.t('delivery.forbiddenUsed', { n: names.length, names: shortList })
+              : this.t('delivery.noForbiddenUsed', { n: allowed.size })
           : forbidden.size
             ? this.t('delivery.functionsFound', { n: violations.length })
             : this.t(
