@@ -14,7 +14,7 @@ export function parseFunctionNames(text: string): string[] | null {
 export function validateFunctionNames(raw: unknown): string[] | null {
   if (!Array.isArray(raw) || raw.length > 1000
     || raw.some(name => typeof name !== 'string' || name.length > 128
-      || !/^[A-Za-z_]\w*\*?$/.test(name))) {
+      || !/^!?[A-Za-z_]\w*\*?$/.test(name))) {
     return null;
   }
   return [...new Set(raw)];

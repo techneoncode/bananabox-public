@@ -1,8 +1,23 @@
 import { maskC } from './forbiddenFunctions';
 
-const IDENT = /^[A-Za-z_]\w*$/;
+// `!name` is an exception to a wildcard (`sfShape_*` except `!sfShape_getLocalBounds`).
+const NAME = /^!?[A-Za-z_]\w*\*?$/;
 const HEADING =
-  /^\s*(?:authori[sz]ed|allowed|permitted)\s+(?:system\s+calls?\s+and\s+)?(?:libc\s+)?functions?\b\s*:?\s*(.*)$/i;
+  /^\s*(?:(?:[✓✔•◦▪▸►\-*]|\d(?=\s))\s*)?(?:(?:authori[sz]ed|allowed|permitted)(?:\s+(?:system|libc))*\s+(?:functions?|calls?|syscalls?)(?:\s*\(s\))?(?:\s+and\s+(?:libc\s+)?functions?)?|fonctions?\s+autoris[ée]es?)(?!\w)\s*:?\s*(.*)$/i;
+// Sentences that introduce a list anywhere in a line; group 1 is the list.
+const SENTENCES = [
+  /\bonly\s+(?:allowed\s+)?(?:(?:system|libc)\s+)*(?:functions?|calls?|syscalls?)(?:\s+allowed)?(?:\s+for\s+this\s+project)?\s+(?:is|are)\s*:?\s*(.*)$/i,
+  /\bonly\s+allowed\s+to\s+use\s+(?:the\s+)?(.+?)\s+(?:functions?|calls?)\b/i,
+  /\bthe\s+following\s+(?:system\s+)?(?:functions?|calls?)\s+(?:are|is)\s+(?:allowed|authori[sz]ed)\s*:?\s*(.*)$/i,
+  /\b(?:libc|c\s+library)\s+(?:is\s+forbidden|est\s+interdite),?\s+(?:except|sauf)\s+(.*)$/i,
+  // `malloc, free, read and write are the only syscalls allowed.`
+  /^\s*(.+?)\s+(?:is|are)\s+the\s+only\s+(?:(?:system|libc)\s+)*(?:functions?|calls?|syscalls?)\s+(?:allowed|authori[sz]ed|permitted)\b/i,
+];
+const PAGE_NUMBER = /^\d{1,3}$/;
+const ALL_LIBC = /\b(?:all|whole|entire|any)\s+(?:the\s+)?libc\b|\blibc\s+(?:minus|except)\b/i;
+const FORBIDDEN_LINE = /^(?:forbidden|interdit|prohibited|not\s+allowed|banned)/i;
+const SINGLE = /^[a-z_]\w*$/;
+const NOT_A_NAME = new Set(['none', 'nothing', 'all', 'any', 'see', 'the', 'below', 'above', 'following']);
 const BULLET = /^\s*(?:[✓✔•◦▪▸►\-*]|\d(?=\s))\s*/;
 
 /**
@@ -13,15 +28,37 @@ function cleanNames(raw: string): string[] {
   const name = raw.trim()
     .replace(/\(\s*\d*\s*\)$/, '')
     .replace(/\s+\([^()]*\)$/, '')
-    .trim();
+    .trim()
+    // shortcut: `sfRenderWindow_draw*Shape` widens to `sfRenderWindow_draw*`; match
+    // inner wildcards if a subject's grading relies on it.
+    .replace(/^([A-Za-z_]\w*)\*\w*$/, '$1*');
   const pair = /^\(([A-Za-z_]\w*)\)(\w+)$/.exec(name);
   if (pair) return [pair[2], pair[1] + pair[2]];
   return name ? [name] : [];
 }
 
+/** `write, malloc and free`, `a, b, or c`: split on commas and and/or. */
 function listItems(line: string): string[] | null {
-  const parts = line.split(/\s*,\s*/).flatMap(cleanNames);
-  return parts.length && parts.every(p => IDENT.test(p)) ? parts : null;
+  const parts = line
+    // `sfShape_* (except _getLocalBounds and _getGlobalBounds)`: the exceptions become `!sfShape_getLocalBounds`, …
+    .replace(/\b([A-Za-z_]\w*)\*\s*\(\s*except\s+([^()]*)\)/gi, (_, prefix: string, list: string) =>
+      [`${prefix}*`, ...list.split(/\s*,\s*|\s+(?:and|or)\s+/).filter(Boolean).map(e =>
+        `!${e.startsWith(prefix) ? e : e.startsWith('_') ? prefix.replace(/_$/, '') + e : prefix + e}`)].join(', '))
+    // Notes such as ` (only with srand)` or ` (except _getLocalBounds and …)`; `(f)open` stays.
+    .replace(/\s+\((?=[^()]*\s)[^()]*\)/g, '')
+    .split(/\s*,\s*(?:(?:and|or)\s+)?|\s+(?:and|or)\s+/)
+    .flatMap(cleanNames);
+  return parts.length && parts.every(p => NAME.test(p)) ? parts : null;
+}
+
+/**
+ * The text after a line that opens a list ("Authorized functions:", "The only
+ * allowed functions are ..."), or null when the line opens none or says the
+ * whole libc is allowed (`All the libc minus …`).
+ */
+function listStart(line: string): string | null {
+  const m = [HEADING, ...SENTENCES].map(re => re.exec(line)).find(Boolean);
+  return m && !ALL_LIBC.test(m[1]) ? m[1] : null;
 }
 
 const MATH = [
@@ -68,6 +105,7 @@ export function isAllowedName(
   name: string,
   allowed: ReadonlySet<string>,
 ): boolean {
+  if (allowed.has(`!${name}`)) return false;
   if (allowed.has(name)) return true;
   for (const entry of allowed) {
     if (entry.endsWith('*') && name.startsWith(entry.slice(0, -1))) return true;
@@ -81,25 +119,31 @@ export function isAllowedName(
  */
 export function parseAuthorizedFunctions(text: string): string[] | null {
   const lines = text.split(/\r?\n/);
+  // Every list the subject states counts (`only my_putchar` and `Allowed function: write`).
+  const names: string[] = [];
   for (let i = 0; i < lines.length; i++) {
-    const head = HEADING.exec(lines[i]);
-    if (!head) continue;
-    const names: string[] = [];
+    const tail = listStart(lines[i]);
+    if (tail === null) continue;
+    const before = names.length;
     const inline = listItems(
-      head[1].replace(BULLET, '').replace(/[.;]\s*$/, ''),
+      tail.replace(BULLET, '').replace(/[.;]\s*$/, ''),
     );
     if (inline) names.push(...inline);
 
-    let started = names.length > 0;
+    let started = names.length > before;
     let prose = 0;
-    let open = /,\s*$/.test(head[1]);
+    let open = /,\s*$/.test(tail);
     let library = '';
-    for (let j = i + 1; j < lines.length && j < i + 60; j++) {
+    const colon = /:\s*$/.test(lines[i]);
+    for (let j = i + 1; j < lines.length && j < i + 150; j++) {
       const raw = lines[j].trim();
       if (!raw) {
         if (started) open = false;
         continue;
       }
+      // Page footer: the list goes on on the next page.
+      if (PAGE_NUMBER.test(raw)) continue;
+      if (FORBIDDEN_LINE.test(raw.replace(BULLET, ''))) break;
       const from = FROM_LIBRARY.exec(raw);
       if (from) {
         library = from[1];
@@ -125,12 +169,17 @@ export function parseAuthorizedFunctions(text: string): string[] | null {
         open = /,\s*$/.test(raw);
         continue;
       }
+      // A lone name under a "...:" heading, e.g. `Authorized functions:\nwrite`.
+      if (!started && prose === 0 && colon && SINGLE.test(body) && !NOT_A_NAME.has(body)) {
+        names.push(body);
+        started = true;
+        continue;
+      }
       if (started) break;
       if (++prose > 3) break;
     }
-    if (names.length) return [...new Set(names)];
   }
-  return null;
+  return names.length ? [...new Set(names)] : null;
 }
 
 /**

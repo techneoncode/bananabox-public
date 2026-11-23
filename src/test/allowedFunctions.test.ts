@@ -32,12 +32,74 @@ test('subject: my_hunter lists libc calls one per line and allows whole librarie
   }
 });
 
+test('subject: exceptions to a wildcard stay disallowed (my_radar)', () => {
+  const names = parseAuthorizedFunctions('Authorized functions\nfrom the CSFML library\n3 sfClock_*\n3 sfShape_* (except _getLocalBounds and _getGlobalBounds)\nfrom the math library\nAll functions')!;
+  assert.ok(names.includes('sfShape_*') && names.includes('!sfShape_getLocalBounds') && names.includes('!sfShape_getGlobalBounds'));
+  const calls = findDisallowedCalls([{ file: 'a.c', text: 'int main(void) { sfShape_setPosition(s, p); sfShape_getGlobalBounds(s); sfClock_create(); }' }], new Set(names));
+  assert.deepEqual(calls.map(c => c.message), ['sfShape_getGlobalBounds']);
+});
+
 test('subject: other wordings of the list are understood; no list means null', () => {
   assert.deepEqual(parseAuthorizedFunctions('Authorized functions: malloc, free, write(2).\nDelivery'), ['malloc', 'free', 'write']);
   assert.deepEqual(parseAuthorizedFunctions('ALLOWED FUNCTIONS\n✓ open, read,\nclose, write\nRequirements'), ['open', 'read', 'close', 'write']);
   assert.deepEqual(parseAuthorizedFunctions('Authorised functions\n• malloc\n• free\nThe project'), ['malloc', 'free']);
   assert.equal(parseAuthorizedFunctions('Introduction\nYou may use any function of the libc.'), null);
   assert.equal(parseAuthorizedFunctions('Authorized functions\nEverything in the libc is authorized, except printf.\nDelivery\nMore text\nAnd more\nStill more'), null);
+});
+
+test('subject: "Allowed system function(s)" and "system calls" headings are read', () => {
+  assert.deepEqual(parseAuthorizedFunctions('Allowed system function(s): write, malloc, free\nDelivery'), ['write', 'malloc', 'free']);
+  assert.deepEqual(parseAuthorizedFunctions('Allowed system calls:\nwrite, malloc\nDelivery'), ['write', 'malloc']);
+  assert.deepEqual(parseAuthorizedFunctions('Authorized syscalls\nwrite, malloc\nDelivery'), ['write', 'malloc']);
+  assert.deepEqual(parseAuthorizedFunctions('Fonctions autorisées : write, malloc\nLivrables'), ['write', 'malloc']);
+});
+
+test('subject: a single inline function under a heading is read', () => {
+  assert.deepEqual(parseAuthorizedFunctions('Allowed system function(s): write\nDelivery'), ['write']);
+});
+
+test('subject: "The only allowed ... is/are" sentences are read', () => {
+  assert.deepEqual(parseAuthorizedFunctions('The only allowed system call for this project is write.'), ['write']);
+  assert.deepEqual(parseAuthorizedFunctions('The only allowed functions are write, malloc and free.'), ['write', 'malloc', 'free']);
+});
+
+test('subject: "The whole libC is forbidden, except ..." lists the allowed functions, also when wrapped', () => {
+  assert.deepEqual(parseAuthorizedFunctions('The whole libC is forbidden, except write, va_start, va_arg, va_end, malloc, free.'),
+    ['write', 'va_start', 'va_arg', 'va_end', 'malloc', 'free']);
+  assert.deepEqual(parseAuthorizedFunctions('The whole libC is forbidden, except write, va_start, va_arg,\nva_end, malloc, free.'),
+    ['write', 'va_start', 'va_arg', 'va_end', 'malloc', 'free']);
+  assert.deepEqual(parseAuthorizedFunctions('La libC est interdite, sauf write, malloc.'), ['write', 'malloc']);
+});
+
+test('subject: "You are only allowed to use the X function" is read mid-line', () => {
+  assert.deepEqual(parseAuthorizedFunctions('- You are only allowed to use the my_putchar function to complete the following tasks, but don\'t push'), ['my_putchar']);
+});
+
+test('subject: "The following functions are allowed:" is read', () => {
+  assert.deepEqual(parseAuthorizedFunctions('The following functions are allowed: write, malloc'), ['write', 'malloc']);
+});
+
+test('subject: a "libc minus" or "all libc" heading is not read, nor the forbidden list after it', () => {
+  assert.equal(parseAuthorizedFunctions('Authorized functions: All the libC minus forbidden functions.\nForbidden functions: getpw*, *getsp*, getgr*, *fork*, *clone*, openat*, getpass, getlogin*, cuserid,\nsystem'), null);
+  assert.equal(parseAuthorizedFunctions('Authorized functions: All the libC minus forbidden functions.\nForbidden functions: system, fork, execve'), null);
+});
+
+test('subject: a forbidden line ends a continued list', () => {
+  assert.deepEqual(parseAuthorizedFunctions('Authorized functions:\nwrite, malloc,\nForbidden: system, fork, execve'), ['write', 'malloc']);
+  assert.equal(parseAuthorizedFunctions('Authorized functions:\nForbidden: system, fork, execve'), null);
+});
+
+test('subject: a lone lowercase name under a "...:" heading is read; stopwords and capitalized words are not', () => {
+  assert.deepEqual(parseAuthorizedFunctions('Authorized functions:\nwrite\nDelivery'), ['write']);
+  assert.equal(parseAuthorizedFunctions('Authorized functions:\nnone\nDelivery'), null);
+  assert.equal(parseAuthorizedFunctions('Authorized functions:\nWrite\nDelivery'), null);
+});
+
+test('subject: list items may end in a wildcard, and "and"/"or" separate the last two', () => {
+  assert.deepEqual(parseAuthorizedFunctions('Allowed functions: sf*, malloc\nDelivery'), ['sf*', 'malloc']);
+  assert.deepEqual(parseAuthorizedFunctions('Authorized functions: write, malloc, and free\nDelivery'), ['write', 'malloc', 'free']);
+  assert.deepEqual(parseAuthorizedFunctions('Authorized functions: write or malloc.\nDelivery'), ['write', 'malloc']);
+  assert.deepEqual(parseAuthorizedFunctions('Authorized functions: write, malloc;\nDelivery'), ['write', 'malloc']);
 });
 
 const files = [
