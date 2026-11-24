@@ -29,6 +29,10 @@
 
 /* the day as a list: time column, then one card per session */
 .app-agenda .ag-list { display: grid; gap: 8px; }
+.app-agenda .ag-lanes { display: flex; gap: 6px; min-width: 0; }
+.app-agenda .ag-lanes > .ag-card { flex: 1 1 0; }
+.app-agenda .ag-gap { display: flex; align-items: center; padding-left: 60px; color: var(--fg-3); font-size: var(--t-sm); }
+.app-agenda .ag-gap span { padding-left: 10px; border-left: 2px dotted var(--fg-3); line-height: 1.6; }
 .app-agenda .ag-row { display: grid; grid-template-columns: 50px minmax(0, 1fr); gap: 10px; align-items: start; }
 .app-agenda .ag-time { display: grid; padding-top: 13px; color: var(--fg-2); font-size: var(--t-sm); text-align: right; line-height: 1.3; font-variant-numeric: tabular-nums; }
 .app-agenda .ag-time span { color: var(--fg-3); }

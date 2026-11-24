@@ -123,3 +123,11 @@ test('calendar: the automation plan says what happens to each open required sess
   assert.deepEqual(autoPlan(events, prefs, now).map(p => [p.event.id, p.action]), [[1, 'register'], [2, 'manual'], [3, 'manual'], [4, 'book'], [5, 'manual']]);
   assert.equal(autoPlan(events, { ...prefs, autoRegister: false }, now)[0].action, 'off');
 });
+
+test('calendar: overlapping sessions share a group, separate ones do not', async () => {
+  const { overlapGroups } = await import('../domain/calendar');
+  const s = (start: string, end: string) => ({ start: `2030-11-10T${start}:00Z`, end: `2030-11-10T${end}:00Z` });
+  const groups = overlapGroups([s('09:30', '12:00'), s('10:00', '11:00'), s('11:30', '13:00'), s('13:00', '14:00'), s('16:00', '17:00')]);
+  assert.deepEqual(groups.map(g => g.items.length), [3, 1, 1]);
+  assert.equal(groups[0].end, Date.parse('2030-11-10T13:00:00Z'));
+});

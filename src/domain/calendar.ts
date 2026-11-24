@@ -179,6 +179,17 @@ export const canRegister = (e: CalendarEventVM, now = Date.now()) =>
   !e.registered && !e.alternative && Date.parse(e.start) > now
     && (!e.deadline || Date.parse(e.deadline) > now);
 
+/** Groups sessions sorted by start into runs that overlap in time; each run carries its end. */
+export function overlapGroups<T extends { start: string; end: string }>(sorted: T[]): Array<{ items: T[]; end: number }> {
+  const groups: Array<{ items: T[]; end: number }> = [];
+  for (const e of sorted) {
+    const last = groups[groups.length - 1];
+    if (last && Date.parse(e.start) < last.end) { last.items.push(e); last.end = Math.max(last.end, Date.parse(e.end)); }
+    else groups.push({ items: [e], end: Date.parse(e.end) });
+  }
+  return groups;
+}
+
 export function validatePrefs(raw: unknown): CalendarPrefs | null {
   const r = record(raw);
   if (typeof r.autoRegister !== 'boolean'
