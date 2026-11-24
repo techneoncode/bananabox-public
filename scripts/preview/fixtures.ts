@@ -271,6 +271,8 @@ if (screen === 'functions-sudo') { const r = ctx.readiness.get(1); if (r) r.disa
     from: at(0, 0), to: at(7, 0), loading: false, error: null, pending: null, log: [],
     prefs: { autoRegister: false, preferences: [] },
     events: [
+      ev(4, 'Bootstrap my_sudo', 'Bootstrap', 0, 9, { start: at(0, 9, 30), end: at(0, 12), unitCode: 'B-PSU-100', unitName: 'Unix System Programming', projectId: 2, registered: true }),
+      ev(5, 'Workshop C', 'Workshop', 0, 14, { start: at(0, 14, 30), end: at(0, 15, 30), room: 'Paris · Room 2.01', full: true }),
       ev(1, 'Follow-up review', 'Follow-up', 0, 14, { registered: true, required: true, mySlot: { start: at(0, 14, 30), end: at(0, 14, 50) }, slots: true }),
       ev(2, 'Kick-off raytracer', 'Kick-off', 0, 16, { unitCode: 'B-MUL-100', unitName: 'Multimedia', projectId: 3 }),
       ev(3, 'Defense', 'Defense', 2, 15, { required: true, slots: true }),

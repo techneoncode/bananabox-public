@@ -7,7 +7,7 @@
 <p align="center">Your Epitech projects, grader and coding style, inside VS Code.</p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/techneoncode/bananabox-public/main/images/readme/home.png" width="820" alt="Home: project timeline, latest grader attempts and upcoming events" />
+  <img src="https://raw.githubusercontent.com/techneoncode/bananabox-public/main/images/readme/app-wide.png" width="820" alt="Wide sidebar: tab rail and project board on the left, the grader page of the open project on the right" />
 </p>
 
 ## What it does
@@ -18,12 +18,29 @@
 | **Grader** | Tokens left, run the grader, read results, compare attempts, track your score. |
 | **Before you run** | Checks coding style, build, local tests, required files and allowed functions before you spend a token. |
 | **Activities** | Book, switch or cancel slots. See who is in which group. |
-| **Calendar** | Required sessions by day or week. Optional automatic registration. |
+| **Agenda** | Your week at a glance, free time and overlapping sessions shown as they are. Register in one tap, optional automatic registration. |
 | **Defense reminders** | A full-screen countdown 60, 30 and 15 minutes before your slot. |
 | **Coding style** | epiclang findings as you type, with optional corrections you review first. |
 | **Commit diffs** | Compare a graded commit with your current code. |
 
 ## Screenshots
+
+The sidebar works like a phone app: Home, Projects, Agenda and Me in a tab bar, a sheet with one-tap actions for every project, and two panes when you make it wider than 600px.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/techneoncode/bananabox-public/main/images/readme/app-home.png" width="200" alt="Home tab: what needs you and the project open in this window" />
+  <img src="https://raw.githubusercontent.com/techneoncode/bananabox-public/main/images/readme/app-projects.png" width="200" alt="Projects tab: the open project on top, the others as cards by In progress, Upcoming and Done" />
+  <img src="https://raw.githubusercontent.com/techneoncode/bananabox-public/main/images/readme/app-sheet.png" width="200" alt="Project sheet: run the grader, check, subject and repository in one tap" />
+  <img src="https://raw.githubusercontent.com/techneoncode/bananabox-public/main/images/readme/app-agenda.png" width="200" alt="Agenda tab: week strip, sessions of the day with free time and overlapping sessions side by side" />
+  <br /><em>Home, Projects, a project's quick sheet and the Agenda.</em>
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/techneoncode/bananabox-public/main/images/readme/app-project.png" width="260" alt="Project screen: time left, best score, tokens and every page of the project" />
+  &nbsp;&nbsp;
+  <img src="https://raw.githubusercontent.com/techneoncode/bananabox-public/main/images/readme/app-grader.png" width="260" alt="Grader page in the sidebar: score, history chart, severity breakdown and tasks" />
+  <br /><em>A project's screen and its grader results.</em>
+</p>
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/techneoncode/bananabox-public/main/images/readme/functions.png" width="820" alt="Grader page with the pre-run checklist and allowed functions read from the subject" />
@@ -41,10 +58,8 @@
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/techneoncode/bananabox-public/main/images/readme/list.png" width="260" alt="Sidebar with project carousel, timeline and project list" />
-  &nbsp;&nbsp;
   <img src="https://raw.githubusercontent.com/techneoncode/bananabox-public/main/images/readme/reminder.png" width="520" alt="Defense reminder countdown" />
-  <br /><em>Sidebar and defense reminder.</em>
+  <br /><em>Defense reminder.</em>
 </p>
 
 ## Get started
