@@ -1,8 +1,8 @@
 {
   "lens_active": true,
   "my_api_active": true,
-  "version": "1.8.0",
-  "latest": "https://github.com/techneoncode/bananabox-public/releases/download/v1.8.0/bananabox-1.8.0.vsix",
+  "version": "2.0.0",
+  "latest": "https://github.com/techneoncode/bananabox-public/releases/download/v2.0.0/bananabox-2.0.0.vsix",
   "authorizedUsers": [],
   "bannedUsers": [],
   "bannedFeatures": ["lens_active", "my_api_active"]
