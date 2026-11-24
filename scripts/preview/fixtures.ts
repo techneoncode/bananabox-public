@@ -9,8 +9,9 @@ import { renderLogin } from '../../src/webview/views/login';
 import { renderAvailability, renderLensRestriction } from '../../src/webview/views/availability';
 import { remoteStatus, type RemoteConfig, type RemoteFeature } from '../../src/domain/remotePolicy';
 import { h } from '../../src/webview/dom';
-import { markFresh } from '../../src/webview/motion';
+import { markFresh, setClockLang } from '../../src/webview/motion';
 import { renderAppearance } from '../../src/webview/views/appearance';
+import { renderApp } from '../../src/webview/app/shell';
 import { applyPalette } from '../../src/webview/palette';
 import { PALETTE_PRESETS } from '../../src/shared/palette';
 
@@ -98,7 +99,7 @@ const results = new Map(history.map((s, i) => [s.id, { loading: false, detail: d
 // A run with a clean coding style (the green block in the report).
 if (screen === 'grader-clean') for (const r of results.values()) r.detail.style = { fatal: 0, major: 0, minor: 0, info: 0 };
 const ctx = {
-  surface, fixedProjectId: null, lang, ui, t: createT(lang),
+  surface, fixedProjectId: null, lang, ui, t: createT(lang), calendarSlots: new Map(), calendarPeople: new Map(),
   state: { auth: { status: 'signedIn', login: 'sam.durand@epitech.eu', firstname: 'Sam', lastname: 'Durand', promotion: 2030, cursus: 'bachelor/classic', campus: 'PAR', expiresAt: null, busy: false, error: null, pending: null },
     projects, loading: false, error: null, currentProjectId: 1, lastUpdated: now - 120_000, lang, partialErrors: [],
     commitStates: { 1: { head: sha(9), dirty: true, ahead: 2, hasUpstream: true, dirtyCount: 2 } }, availability: undefined, apiActivity: { startedAt: now, endpoints: [] },
@@ -203,8 +204,16 @@ function valgrind(kind: string): void {
 function draw(): void {
   const app = document.getElementById('app')!;
   let node: HTMLElement;
+  let chrome: HTMLElement[] = [];
   const p = projects[0];
-  if (screen === 'list') node = renderList(ctx);
+  // `screen=app&ui={...}`: the sidebar app with that UI state merged in (appTab, sheetProject, sidebarProject, tab, ...).
+  if (screen === 'app') {
+    if (!(draw as { merged?: boolean }).merged) { Object.assign(ui, JSON.parse(q.get('ui') ?? '{}')); (draw as { merged?: boolean }).merged = true; }
+    document.documentElement.classList.add('fixed');
+    const view = renderApp(ctx as never);
+    node = view.node; chrome = view.chrome;
+  }
+  else if (screen === 'list') node = renderList(ctx);
   else if (surface === 'sidebar' && ['summary', 'running', 'fresh', 'summary-other', 'summary-local'].includes(screen)) {
     ui.tab = null;
     node = renderProject(ctx, screen === 'summary-other' ? projects[1] : screen === 'summary-local' ? projects[4] : p);
@@ -239,12 +248,35 @@ function draw(): void {
   if (surface === 'panel' && !screen.startsWith('login') && !(ctx.state as { availability?: unknown }).availability) shell.append(h('div.toolbar', h('span.brand', h('img', { src: document.body.dataset.logo, alt: '', width: 16, height: 16 }), 'Bananabox'), h('span.who', 'sam.durand@epitech.eu'), h('span.spacer'), h('span', ctx.t('toolbar.updated', { when: '2 min ago' }))));
   const net = ctx.state.network;
   const paused = net?.pausedUntil ? h('div.notice.warn', h('span.codicon.codicon-shield'), h('span', ctx.t('net.paused'), ' ', h('b', '14:32'))) : null;
-  shell.append(h('div.scroll', h('div.content', paused, node)));
+  shell.append(h('div.scroll', h('div.content', paused, node)), ...chrome);
   app.replaceChildren(shell);
 }
+setClockLang(lang as 'en' | 'fr');
+// `banana`: the Banana theme setting is on (buttons in the accent).
+if (q.has('banana')) { (ctx.state as { bananaTheme?: boolean }).bananaTheme = true; document.body.classList.add('bb-brand'); }
+// `fresh-grader`: project 1 has never been graded (first-run grader page).
+if (q.has('fresh-grader')) { const g = ctx.graders.get(1); if (g) { g.history = []; g.runs = []; g.running = false; } }
 if (screen === 'fresh') markFresh(1);
 if (screen === 'functions') { const r = ctx.readiness.get(1); if (r) r.disallowed = ['printf', 'memcpy']; (ctx.ui.pipelineFocus ??= {})[1] = 'functions'; }
 if (screen === 'functions-sudo') { const r = ctx.readiness.get(1); if (r) r.disallowed = ['vfork', 'getpwnam']; (ctx.ui.pipelineFocus ??= {})[1] = 'functions'; }
+// Agenda: a loaded week of sessions (one booked defense, one required follow-up, one open kick-off).
+{
+  const day = new Date(now); day.setHours(0, 0, 0, 0);
+  const at = (d: number, h: number, m = 0) => new Date(day.getTime() + d * 86_400_000 + (h * 60 + m) * 60_000).toISOString();
+  const ev = (id: number, title: string, type: string, d: number, h: number, extra: Record<string, unknown> = {}) => ({
+    id, activityId: id * 10, title, type, kind: 'defense', start: at(d, h), end: at(d, h + 1), room: 'Paris · Room 3.04', unitCode: 'B-CPE-110',
+    unitInstance: 'PAR-1-1', schoolYear: 2026, unitName: 'Elementary Programming in C', projectId: 1, slots: false, registered: false,
+    required: false, alternative: false, sessions: 1, mySlot: null, count: 12, capacity: 30, full: false, deadline: null, exam: false, ...extra });
+  (ctx as { calendar?: unknown }).calendar = {
+    from: at(0, 0), to: at(7, 0), loading: false, error: null, pending: null, log: [],
+    prefs: { autoRegister: false, preferences: [] },
+    events: [
+      ev(1, 'Follow-up review', 'Follow-up', 0, 14, { registered: true, required: true, mySlot: { start: at(0, 14, 30), end: at(0, 14, 50) }, slots: true }),
+      ev(2, 'Kick-off raytracer', 'Kick-off', 0, 16, { unitCode: 'B-MUL-100', unitName: 'Multimedia', projectId: 3 }),
+      ev(3, 'Defense', 'Defense', 2, 15, { required: true, slots: true }),
+    ],
+  };
+}
 const preset = PALETTE_PRESETS.find(x => x.id === q.get('palette'));
 if (preset) { ctx.state.palette = preset.palette; applyPalette(preset.palette); }
 draw();

@@ -399,6 +399,7 @@ export class Controller implements vscode.Disposable {
       network: this.client.guard.snapshot(),
       localProjects: this.localProjects(),
       palette: this.palette(),
+      bananaTheme: config.bananaTheme(),
       disabledChecks: config.disabledChecks(),
     };
   }

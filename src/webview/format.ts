@@ -42,20 +42,17 @@ export function relative(iso: string | null | undefined, lang: Lang, now = Date.
   return rtf.format(Math.round(diff / 1000), 'second');
 }
 
-/** "2d 4h" style compact remaining time. */
-export function compactDuration(ms: number): string {
+/** "2d 4h" (English) or "2 j 4 h" (French) compact remaining time; non-breaking spaces keep it on one line. */
+export function compactDuration(ms: number, lang: Lang = 'en'): string {
   if (!Number.isFinite(ms)) return '—';
   const total = Math.max(0, Math.floor(ms / 60_000));
   const d = Math.floor(total / 1440);
   const hh = Math.floor((total % 1440) / 60);
   const m = total % 60;
-  if (d > 0) {
-    return `${d}d ${hh}h`;
-  }
-  if (hh > 0) {
-    return `${hh}h ${m.toString().padStart(2, '0')}m`;
-  }
-  return `${m}m`;
+  const fr = lang === 'fr';
+  if (d > 0) return fr ? `${d}\u00a0j\u00a0${hh}\u00a0h` : `${d}d\u00a0${hh}h`;
+  if (hh > 0) return fr ? `${hh}\u00a0h\u00a0${m.toString().padStart(2, '0')}` : `${hh}h\u00a0${m.toString().padStart(2, '0')}m`;
+  return fr ? `${m}\u00a0min` : `${m}m`;
 }
 
 export function seconds(from: string | null, to: string | null): string | null {

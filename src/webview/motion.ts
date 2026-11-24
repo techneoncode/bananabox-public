@@ -8,40 +8,16 @@
  */
 import { compactDuration } from './format';
 
+/** Language of the live clocks beyond a day ("2d 4h" / "2 j 4 h"); main.ts sets it with the state. */
+let clockLang: 'en' | 'fr' = 'en';
+export function setClockLang(lang: 'en' | 'fr'): void { clockLang = lang; }
+
 const DAY = 86_400_000;
 /** How long after entering a route its entrance choreography may still be running. */
 export const ENTRY_WINDOW = 1400;
 
 export const reducedMotion = (): boolean =>
   typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-// ───────────────────────── navigation ─────────────────────────
-
-export type NavDirection = 'push' | 'pop' | 'swap';
-
-interface ViewTransitionDoc { startViewTransition?: (update: () => void) => { finished: Promise<void> } }
-
-/**
- * Runs a DOM swap as a navigation. With the View Transitions API the old and new pages are snapshotted
- * and shared elements (`view-transition-name`) morph; without it the new shell slides in by CSS class.
- */
-export function navigate(direction: NavDirection, swap: () => void, shell: HTMLElement): void {
-  const doc = document as unknown as ViewTransitionDoc;
-  if (reducedMotion()) { swap(); return; }
-  if (typeof doc.startViewTransition === 'function') {
-    const root = document.documentElement;
-    root.dataset.nav = direction;
-    try {
-      const vt = doc.startViewTransition(swap);
-      void vt.finished.catch(() => undefined).finally(() => { if (root.dataset.nav === direction) delete root.dataset.nav; });
-      return;
-    } catch {
-      delete root.dataset.nav;
-    }
-  }
-  shell.classList.add(`nav-${direction}`);
-  swap();
-}
 
 // ───────────────────────── entrances ─────────────────────────
 
@@ -153,7 +129,7 @@ export function resetMotion(): void {
 
 /** Under a day the countdown beats to the second; beyond, it reads in days and hours. */
 export function countdownText(ms: number): string {
-  if (ms >= DAY) return compactDuration(ms);
+  if (ms >= DAY) return compactDuration(ms, clockLang);
   const s = Math.max(0, Math.floor(ms / 1000));
   const hh = Math.floor(s / 3600), mm = Math.floor((s % 3600) / 60), ss = s % 60;
   return `${hh}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;

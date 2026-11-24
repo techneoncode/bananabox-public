@@ -1,0 +1,116 @@
+/* ═════════════ sidebar app: Projects board and project quick sheet (board.ts, projectSheet.ts) ═════════════ */
+.surface-sidebar .board { display: grid; gap: 10px; min-width: 0; }
+.surface-sidebar .bd-title { flex: 0 1 auto; min-width: 0; margin: 0; overflow: hidden; font-family: var(--display); font-size: 1.6em; font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; text-overflow: ellipsis; white-space: nowrap; }
+
+/* signature numerals: condensed Archivo for deadlines, scores and counts */
+.surface-sidebar .bd-num { font-family: var(--display); font-stretch: 75%; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* three columns must fit the narrowest sidebar without the switch scrolling */
+.surface-sidebar .board .segl { gap: 0; }
+.surface-sidebar .board .segl-opt { min-width: 0; padding: 0 6px; gap: 4px; font-size: var(--t-sm); }
+
+/* search field, revealed by the app bar action */
+.surface-sidebar .bd-search { display: flex; align-items: center; gap: 8px; min-height: var(--tap); padding: 0 12px; border-radius: 10px; background: var(--layer-2); color: var(--fg-2); }
+.surface-sidebar .bd-input { flex: 1; min-width: 0; min-height: var(--tap); border: 0; background: transparent; color: var(--fg); font: inherit; outline: none; }
+.surface-sidebar .bd-search:focus-within { box-shadow: inset 0 0 0 1px var(--focus); }
+
+.surface-sidebar .bd-note { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--warn); font-size: var(--t-sm); }
+
+/* the columns: one full-width column per status, swiped sideways */
+.surface-sidebar .bd-strip { display: flex; align-items: flex-start; min-width: 0; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: var(--vscode-scrollbarSlider-background, color-mix(in srgb, var(--fg) 20%, transparent)) transparent; overscroll-behavior-x: contain; }
+.surface-sidebar .bd-strip::-webkit-scrollbar { height: 6px; background: transparent; }
+.surface-sidebar .bd-strip::-webkit-scrollbar-track { background: transparent; }
+.surface-sidebar .bd-strip::-webkit-scrollbar-thumb { background: var(--vscode-scrollbarSlider-background, color-mix(in srgb, var(--fg) 20%, transparent)); border-radius: 3px; }
+.surface-sidebar .bd-strip::-webkit-scrollbar-thumb:hover { background: var(--vscode-scrollbarSlider-hoverBackground, color-mix(in srgb, var(--fg) 32%, transparent)); }
+.surface-sidebar .bd-col { display: grid; flex: 0 0 100%; min-width: 0; align-content: start; gap: 10px; padding: 2px 1px 14px; box-sizing: border-box; scroll-snap-align: start; scroll-snap-stop: always; }
+
+/* project card: the whole card is one button */
+.surface-sidebar .bd-card { display: grid; gap: 10px; width: 100%; min-width: 0; padding: 14px; border: 0; border-radius: var(--r-card); background: var(--layer-1); color: inherit; font: inherit; text-align: left; cursor: pointer; box-shadow: inset 0 0 0 1px var(--line-soft), var(--shadow); transition: background-color 140ms var(--ease); }
+.surface-sidebar .bd-card:hover { background: var(--hover); }
+.surface-sidebar .bd-card:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.surface-sidebar .bd-card.current { gap: 12px; padding: 18px; background: linear-gradient(var(--banana-wash), var(--banana-wash)), var(--layer-1); box-shadow: inset 0 0 0 1.5px var(--banana), var(--shadow); }
+.surface-sidebar .bd-card.current .bd-name { font-size: 1.4em; white-space: normal; overflow-wrap: anywhere; }
+.surface-sidebar .bd-card.current .bd-rail { height: 8px; }
+.surface-sidebar .bd-card.bd-skel { cursor: default; pointer-events: none; }
+
+.surface-sidebar .bd-head { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+.surface-sidebar .bd-titles { display: grid; flex: 1; gap: 2px; min-width: 0; }
+.surface-sidebar .bd-head > svg { flex-shrink: 0; }
+.surface-sidebar .bd-name { display: block; overflow: hidden; font-family: var(--display); font-size: 1.12em; font-weight: 650; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.surface-sidebar .bd-unit { display: block; overflow: hidden; color: var(--fg-2); font-size: var(--t-sm); text-overflow: ellipsis; white-space: nowrap; }
+.surface-sidebar .bd-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.surface-sidebar .bd-deadline { display: grid; gap: 5px; }
+.surface-sidebar .bd-rail { position: relative; display: block; height: 6px; overflow: hidden; border-radius: 3px; background: var(--layer-2); }
+.surface-sidebar .bd-rail i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--banana-ink); }
+.surface-sidebar .bd-time { color: var(--fg-2); font-size: var(--t-sm); }
+.surface-sidebar .bd-deadline.urgent .bd-rail i { background: var(--fail); }
+.surface-sidebar .bd-deadline.urgent .bd-time { color: var(--fail); font-weight: 600; }
+
+.surface-sidebar .bd-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-width: 0; color: var(--fg-2); }
+.surface-sidebar .bd-stat { display: inline-flex; align-items: baseline; gap: 4px; }
+.surface-sidebar .bd-stat b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+.surface-sidebar .bd-stat small { font-size: var(--t-sm); }
+
+/* skeletons while the projects load */
+.surface-sidebar .bd-sk { display: block; height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--layer-2) 25%, var(--hover) 50%, var(--layer-2) 75%); background-size: 200% 100%; animation: bd-shimmer 1.4s linear infinite; }
+.surface-sidebar .bd-sk.w40 { width: 40%; }
+.surface-sidebar .bd-sk.w60 { width: 60%; height: 16px; }
+.surface-sidebar .bd-sk.w80 { width: 80%; }
+@keyframes bd-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* project quick sheet */
+.surface-sidebar .bd-sheet-head { display: grid; gap: 4px; padding-right: 40px; min-width: 0; }
+.surface-sidebar .bd-name-lg { margin: 0; overflow-wrap: anywhere; font-family: var(--display); font-size: 1.35em; font-weight: 700; line-height: 1.15; }
+.surface-sidebar .bd-unit { margin: 0; }
+.surface-sidebar .bd-status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 4px 0 0; color: var(--fg-2); font-size: var(--t-sm); }
+.surface-sidebar .bd-status .codicon { font-size: 14px; }
+
+.surface-sidebar .bd-keys { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding-top: 12px; border-top: 1px solid var(--line-soft); }
+.surface-sidebar .bd-key { display: grid; justify-items: start; gap: 4px; min-width: 0; }
+.surface-sidebar .bd-key-v { font-size: 1.25em; overflow-wrap: anywhere; }
+.surface-sidebar .bd-key-l { color: var(--fg-2); font-size: var(--t-sm); overflow-wrap: anywhere; }
+
+.surface-sidebar .bd-actions { display: grid; gap: 10px; }
+.surface-sidebar .bd-hint { margin: 0; color: var(--fg-2); font-size: var(--t-sm); }
+.surface-sidebar .bd-round-row { display: flex; gap: 8px; }
+.surface-sidebar .bd-round { display: grid; flex: 1 1 0; justify-items: center; gap: 6px; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--fg); font: inherit; font-size: var(--t-sm); cursor: pointer; }
+.surface-sidebar .bd-round:disabled { opacity: 0.5; cursor: default; }
+.surface-sidebar .bd-round:focus-visible .bd-round-ic { outline: 2px solid var(--focus); outline-offset: 2px; }
+.surface-sidebar .bd-round-ic { display: grid; place-items: center; width: var(--tap); height: var(--tap); border-radius: 50%; background: var(--btn2-bg); color: var(--btn2-fg); }
+.surface-sidebar .bd-round-ic .codicon { font-size: 18px; }
+.surface-sidebar .bd-round-l { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* high contrast: tints and shadows collapse to borders */
+body.vscode-high-contrast .surface-sidebar .bd-card,
+body.vscode-high-contrast-light .surface-sidebar .bd-card { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+body.vscode-high-contrast .surface-sidebar .bd-card.current,
+body.vscode-high-contrast-light .surface-sidebar .bd-card.current { box-shadow: inset 0 0 0 2px var(--banana); }
+body.vscode-high-contrast .surface-sidebar .bd-search,
+body.vscode-high-contrast-light .surface-sidebar .bd-search { box-shadow: inset 0 0 0 1px var(--line); }
+
+@media (prefers-reduced-motion: reduce) {
+  .surface-sidebar .bd-sk { animation: none; }
+  .surface-sidebar .bd-card { transition: none; }
+  .surface-sidebar .bd-strip { scroll-behavior: auto; }
+}
+.surface-sidebar .bd-num { word-spacing: 0.18em; }
+
+/* sheet bottom: open the folder (wide) + open the project's screen (arrow) */
+.surface-sidebar .bd-open { display: flex; gap: 8px; }
+.surface-sidebar .bd-open > .bb { flex: 1 1 auto; min-width: 0; }
+.surface-sidebar .bd-view { display: grid; place-items: center; flex: none; width: 56px; min-height: var(--tap); border: 1px solid var(--vscode-button-border, transparent); border-radius: 10px; background: var(--btn2-bg); color: var(--btn2-fg); cursor: pointer; }
+.surface-sidebar .bd-view .codicon { font-size: 18px; }
+.surface-sidebar .bd-view:hover { background: var(--btn2-hover); }
+.surface-sidebar .bd-view:active { transform: translateY(1px); }
+
+/* the project open in this window, pinned between the title and the columns */
+.surface-sidebar .bd-pinned { display: grid; gap: 6px; margin-bottom: 18px; }
+
+/* last grader score: a bar coloured by the score itself (fail -> warn -> pass) */
+.surface-sidebar .bd-score { display: flex; align-items: center; gap: 10px; }
+.surface-sidebar .bd-score-rail { position: relative; flex: 1; height: 6px; border-radius: 3px; background: var(--line-soft); overflow: hidden; }
+.surface-sidebar .bd-score-rail > i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; }
+.surface-sidebar .bd-score-l { display: inline-flex; align-items: baseline; gap: 4px; flex: none; font-variant-numeric: tabular-nums; }
+.surface-sidebar .bd-score-l small { color: var(--fg-2); font-size: var(--t-sm); }
+body.vscode-high-contrast .surface-sidebar .bd-score-rail, body.vscode-high-contrast-light .surface-sidebar .bd-score-rail { box-shadow: inset 0 0 0 1px var(--line); background: transparent; }

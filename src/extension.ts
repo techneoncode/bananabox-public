@@ -105,11 +105,6 @@ export async function activate(
       { webviewOptions: { retainContextWhenHidden: true } },
     ),
     vscode.window.registerWebviewViewProvider(
-      SidebarProvider.calendarViewType,
-      new SidebarProvider(context.extensionUri, controller, true),
-      { webviewOptions: { retainContextWhenHidden: true } },
-    ),
-    vscode.window.registerWebviewViewProvider(
       AdminView.viewType,
       adminView,
       { webviewOptions: { retainContextWhenHidden: true } },

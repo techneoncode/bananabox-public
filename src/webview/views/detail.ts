@@ -73,7 +73,8 @@ function separateNotice(ctx: Ctx, p: ProjectVM): HTMLElement | null {
     h('button.btn.small', { onclick: () => ctx.post({ type: 'openExternal', url: 'https://teams.microsoft.com/' }) }, icon('link-external'), ctx.t('group.requestSeparate')));
 }
 
-function tabBody(ctx: Ctx, p: ProjectVM, tab: Tab): HTMLElement {
+/** The body of one project page (grader, prepare, valgrind, history, activities, subject, details). */
+export function tabBody(ctx: Ctx, p: ProjectVM, tab: Tab): HTMLElement {
   if (tab === 'subject' && !ctx.subjects.has(p.id)) {
     ctx.subjects.set(p.id, { status: 'loading' });
     ctx.post({ type: 'loadSubject', projectId: p.id });

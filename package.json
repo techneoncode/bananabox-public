@@ -52,11 +52,6 @@
           "icon": "media/activity.svg"
         },
         {
-          "id": "bananabox-calendar",
-          "title": "%view.calendar.container%",
-          "icon": "media/calendar.svg"
-        },
-        {
           "id": "bananabox-admin",
           "title": "%view.admin.container%",
           "icon": "media/dashboard.svg"
@@ -70,14 +65,6 @@
           "id": "bananabox.sidebar",
           "name": "Bananabox",
           "icon": "media/activity.svg"
-        }
-      ],
-      "bananabox-calendar": [
-        {
-          "type": "webview",
-          "id": "bananabox.calendar",
-          "name": "%view.calendar.name%",
-          "icon": "media/calendar.svg"
         }
       ],
       "bananabox-admin": [
@@ -550,6 +537,11 @@
           "type": "boolean",
           "default": true,
           "markdownDescription": "Show the grader summary (remaining tokens and latest score) in the status bar when a project repository is open."
+        },
+        "bananabox.bananaTheme": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Paint Bananabox buttons and focus rings with the Banana accent (or your chosen colours) instead of the VS Code theme's. High contrast themes are never overridden."
         },
         "bananabox.language": {
           "type": "string",

@@ -32,7 +32,7 @@ export function deliveryChecks(ctx: Ctx, p: ProjectVM, event = milestoneEvent(ct
     detail: git ? gitReadinessDetail({ dirty: git.dirtyCount ?? (git.dirty ? 1 : 0), ahead: git.ahead ?? 0, hasUpstream: git.hasUpstream ?? false }, t) : t('delivery.noGit') });
   const remaining = Date.parse(event.date) - Date.now();
   checks.push({ id: 'deadline', status: Number.isFinite(remaining) ? remaining > 0 ? 'pass' : 'fail' : 'unknown',
-    detail: remaining > 0 ? t('milestone.in', { time: compactDuration(remaining) }) : t('timeline.closed', { when: dateTime(event.date, ctx.lang) }) });
+    detail: remaining > 0 ? t('milestone.in', { time: compactDuration(remaining, ctx.lang) }) : t('timeline.closed', { when: dateTime(event.date, ctx.lang) }) });
   checks.push({ id: 'grader', status: !g?.quota || g.error ? 'unknown' : !g.canRun || g.running || g.quota.remaining <= 0 ? 'fail' : 'pass',
     detail: g?.running ? t('grader.running') : g && !g.canRun ? t(`grader.reason.${g.reason}`) : g?.quota?.remaining === 0 ? t('grader.noTokens') : g?.quota ? t('run.tokens', { left: g.quota.remaining, total: g.quota.total }) : t('grader.noQuota') });
   const disabled = withOff ? [] : ctx.state.disabledChecks?.[event.kind];

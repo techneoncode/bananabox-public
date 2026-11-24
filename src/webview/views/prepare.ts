@@ -35,7 +35,7 @@ export function renderMilestoneStrip(ctx: Ctx, p: ProjectVM, current?: Milestone
         h('span.ms-name', t(`milestone.prepare.${event.kind}`)),
         h('span.ms-meter', { 'aria-hidden': 'true', style: { gridTemplateColumns: `repeat(${checks.length}, minmax(0, 1fr))` } }, checks.map(c => h('i', { class: c.status }))),
         h('span.ms-foot',
-          h('span.sb-tile-sub', left > 0 ? t('milestone.in', { time: compactDuration(left) }) : dateOnly(event.date, lang)),
+          h('span.sb-tile-sub', left > 0 ? t('milestone.in', { time: compactDuration(left, lang) }) : dateOnly(event.date, lang)),
           h('span.spacer'),
           h('span.num.small', `${passed}/${checks.length}`),
           chip(VERDICT_TONE[verdict] ?? '', t(`sb.verdict.${verdict}`))));

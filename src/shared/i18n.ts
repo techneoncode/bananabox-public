@@ -1,3 +1,8 @@
+import { shellStrings } from './appStrings/shell';
+import { boardStrings } from './appStrings/board';
+import { projectStrings } from './appStrings/project';
+import { homeStrings } from './appStrings/home';
+
 export type Lang = 'en' | 'fr';
 
 type Dict = Record<string, string>;
@@ -2582,7 +2587,10 @@ const fr: Dict = {
   "availability.appealHint": "Si vous pensez que c’est une erreur, faites appel sur Microsoft Teams. Vous pouvez aussi désinstaller Bananabox.",
 };
 
-export const dictionaries: Record<Lang, Dict> = { en, fr };
+export const dictionaries: Record<Lang, Dict> = {
+  en: { ...en, ...shellStrings.en, ...boardStrings.en, ...projectStrings.en, ...homeStrings.en },
+  fr: { ...fr, ...shellStrings.fr, ...boardStrings.fr, ...projectStrings.fr, ...homeStrings.fr },
+};
 
 // Host builds may set the product name while retaining the same translations.
 declare const __BANANABOX_IDE__: string | undefined;

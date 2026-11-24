@@ -59,12 +59,14 @@ function control(ctx: Ctx, p: ProjectVM, state: State, running: boolean): HTMLEl
     delete drafts[p.id];
     ctx.rerender();
   };
+  // Valgrind builds and runs the code of the folder open in this window: only that project can run it.
+  const here = ctx.state.currentProjectId === p.id;
   return h('div.panel.vg-control', { class: running ? 'running' : '' },
     h('span.sb-sweep', { 'aria-hidden': 'true' }),
     h('div.section-head', h('h2', t('valgrind.title'))),
     h('label.small', { htmlFor: id }, t('valgrind.command')),
     h('form.command-form', { onsubmit: save }, input, dirty && h('button.btn.small', { type: 'submit' }, icon('check'), t('command.save'))),
-    h('button.btn.primary.block.vg-run-btn', { type: 'button', 'aria-busy': running ? 'true' : undefined, disabled: running || saving || dirty || building || !state.command.trim(), title: dirty ? t('valgrind.saveFirst') : undefined,
+    h('button.btn.primary.block.vg-run-btn', { type: 'button', 'aria-busy': running ? 'true' : undefined, disabled: running || saving || dirty || building || !state.command.trim() || !here, title: !here ? t('app.project.valgrindOpenFirst') : dirty ? t('valgrind.saveFirst') : undefined,
       onclick: () => {
         // Running from the click: the host confirms (or reports why not) a moment later.
         const run: ValgrindVM = { status: 'running', command: state.command, leaks: [], lost: '', bytes: 0, heap: null, durationMs: 0, history: [], omitted: 0, unlocated: 0,
@@ -75,6 +77,7 @@ function control(ctx: Ctx, p: ProjectVM, state: State, running: boolean): HTMLEl
       } },
     running ? icon('loading', 'spin') : icon('debug-alt'), running ? t('valgrind.executing') : t('valgrind.run'),
     running && h('span.vg-btn-clock', liveElapsed(new Date(state.run!.at).toISOString()))),
+    !here && !running && h('p.small.muted', { role: 'note' }, icon('info'), ' ', t('app.project.valgrindOpenFirst')),
     running && h('div.vg-live', { role: 'status' },
       h('span', t('valgrind.underValgrind')),
       h('button.btn.small', { type: 'button', onclick: () => ctx.post({ type: 'cancelValgrind', projectId: p.id }) }, icon('debug-stop'), t('valgrind.stop'))),

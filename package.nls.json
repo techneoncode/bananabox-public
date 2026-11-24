@@ -1,8 +1,6 @@
 {
   "extension.description": "Your Epitech projects, grader, commit diffs and coding style, right in VS Code.",
   "view.commits.name": "Commit diffs",
-  "view.calendar.name": "Calendar",
-  "view.calendar.container": "Bananabox Calendar",
   "view.admin.container": "Bananabox admin",
   "view.admin.name": "Admin dashboard",
   "pkg.sign.in.with.microsoft": "Sign In with Microsoft",

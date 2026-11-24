@@ -279,6 +279,11 @@ export async function handleMessage(
       const project = c.projects.get(m.projectId);
       const root = project && await c.localRoot(project);
       if (!project) return;
+      // Valgrind runs the code of the folder open in this window, never another project's clone.
+      if (m.type === 'runValgrind' && project.id !== c.projects.currentProjectId) {
+        c.toast('warn', createT(config.language())('app.project.valgrindOpenFirst'));
+        return void (await c.pushValgrind(project.id));
+      }
       if (!root || !c.style.api?.runValgrind) {
         c.toast('warn', createT(config.language())('valgrind.noLocalCopy'));
         return;
@@ -534,6 +539,11 @@ export async function handleMessage(
         await vscode.env.openExternal(vscode.Uri.parse(m.url));
       }
       return;
+    case 'setBananaTheme':
+      return void (await vscode.workspace.getConfiguration('bananabox').update('bananaTheme', m.value === true, vscode.ConfigurationTarget.Global));
+    case 'openSettings':
+      // Only the two setting searches the app offers; anything else falls back to the Bananabox filter.
+      return void (await vscode.commands.executeCommand('workbench.action.openSettings', m.query === 'bananabox.language' ? m.query : 'bananabox'));
     case 'copy':
       if (typeof m.text !== 'string') return;
       await vscode.env.clipboard.writeText(m.text);

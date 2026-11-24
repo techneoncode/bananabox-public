@@ -32,7 +32,7 @@ export function renderAppearance(ctx: Ctx): HTMLElement {
   const custom = PALETTE_KEYS.some(k => palette[k]);
   return h('div.appearance',
     h('header.sb-nav', { style: { viewTransitionName: 'sb-nav' } },
-      h('button.sb-back', { type: 'button', title: t('action.back'), onclick: back }, icon('chevron-left'), h('span', t(ctx.home ? 'appearance.backHome' : 'sb.projects'))),
+      h('button.sb-back', { type: 'button', title: t('action.back'), onclick: back }, icon('chevron-left'), h('span', t(ctx.home ? 'appearance.backHome' : ctx.surface === 'sidebar' ? `app.tab.${ctx.ui.appTab ?? 'projects'}` : 'sb.projects'))),
       h('span.spacer'),
       h('button.btn.small', { type: 'button', disabled: !custom, title: t('appearance.resetAllHint'), onclick: () => { save(ctx, {}); ctx.rerender(); } }, icon('discard'), t('appearance.resetAll'))),
     h('div.sb-page-head.rise', { style: { '--i': '0' } }, h('h1', t('appearance.title')), h('span.sub', t('appearance.sub'))),

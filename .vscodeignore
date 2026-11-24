@@ -26,3 +26,6 @@ api.json
 worker/**
 .admin_token
 *.vsix
+.impeccable/**
+DESIGN.md
+PRODUCT.md

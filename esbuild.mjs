@@ -1,6 +1,6 @@
 // @ts-check
 import esbuild from 'esbuild';
-import { cpSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
+import { cpSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const production = process.argv.includes('--production');
@@ -46,7 +46,9 @@ if (tests) {
 /** Static assets copied next to the bundles so the webview can load them. */
 function copyAssets() {
   mkdirSync('dist/webview', { recursive: true });
-  cpSync('src/webview/styles.css', 'dist/webview/styles.css');
+  // The sidebar app's stylesheets (src/webview/app/*.css) ship appended to the main one, in name order.
+  const appCss = readdirSync('src/webview/app').filter(f => f.endsWith('.css')).sort().map(f => readFileSync(`src/webview/app/${f}`, 'utf8'));
+  writeFileSync('dist/webview/styles.css', [readFileSync('src/webview/styles.css', 'utf8'), ...appCss].join('\n'));
   cpSync('node_modules/@vscode/codicons/dist/codicon.css', 'dist/webview/codicon.css');
   cpSync('node_modules/@vscode/codicons/dist/codicon.ttf', 'dist/webview/codicon.ttf');
   cpSync('media/fonts/archivo.woff2', 'dist/webview/archivo.woff2');

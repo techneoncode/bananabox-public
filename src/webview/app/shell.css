@@ -1,0 +1,72 @@
+/* ═════════════ sidebar app: shell (tab bar, wide panes, sheet), Me, Agenda ═════════════
+   Concatenated after kit.css by esbuild. The scroller (.scroll) is kept across renders, so the bar is ordered with CSS. */
+body[data-surface='sidebar'] #app { container: app / inline-size; }
+
+/* bottom tab bar: after the scroller; the scroller takes the rest, so nothing sits behind the bar */
+.surface-sidebar > .scroll { order: 0; }
+.surface-sidebar > .tabbar { order: 1; display: flex; flex-shrink: 0; height: var(--bar-h); border-top: 1px solid var(--line-soft); background: var(--vscode-sideBar-background, var(--ground)); }
+.tb { position: relative; flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 0; min-height: var(--tap); padding: 4px 2px; border: 0; background: transparent; color: var(--fg-2); font: inherit; font-size: 11px; line-height: 1.1; cursor: pointer; }
+.tb .codicon { font-size: 20px; }
+.tb:hover { color: var(--fg); background: var(--hover); }
+.tb.on { color: var(--fg); }
+/* the banana glint marks the open tab: an indicator, the label keeps its colour */
+.tb.on::before { content: ''; position: absolute; top: 0; left: 28%; right: 28%; height: 3px; border-radius: 0 0 3px 3px; background: var(--glint); }
+.tb:focus-visible { outline: 1px solid var(--vscode-focusBorder, var(--fg)); outline-offset: -2px; }
+.tb-label { max-width: 100%; padding-bottom: 1px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@container app (max-width: 240px) { .tb-label { display: none; } }
+
+/* connection and lens notices at phone scale: full width under the top of the screen */
+.surface-sidebar .content > .notice, .surface-sidebar .content > .connection-notice { margin: 0 0 12px; }
+
+/* wide: the bar becomes a left rail; Projects and Home open a project beside their list */
+@container app (min-width: 600px) {
+  .surface-sidebar { flex-direction: row; }
+  .surface-sidebar > .tabbar { order: -1; flex-direction: column; width: 84px; height: auto; padding: 8px 0; border-top: 0; border-right: 1px solid var(--line-soft); }
+  .surface-sidebar > .tabbar .tb { flex: 0 0 auto; width: 100%; min-height: 64px; }
+  .surface-sidebar > .tabbar .tb.on::before { top: 14px; bottom: 14px; left: 0; right: auto; width: 3px; height: auto; border-radius: 0 3px 3px 0; }
+  .surface-sidebar > .scroll { flex: 1 1 0; min-width: 0; }
+  .surface-sidebar .scroll:has(> .content > .app > .app-split) { overflow: hidden; }
+  .surface-sidebar .content:has(> .app > .app-split) { display: flex; flex-direction: column; height: 100%; padding: 0; }
+  .surface-sidebar .content > .app:has(> .app-split) { flex: 1 1 0; min-height: 0; }
+  .app-split { display: grid; grid-template-columns: minmax(260px, 2fr) minmax(0, 3fr); height: 100%; }
+  .app-split > .pane { min-width: 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 12px var(--pad) 32px; }
+  .app-split > .pane-list { box-shadow: inset -1px 0 0 var(--line-soft); }
+  /* the quick sheet is a centred card, not a full-width drawer */
+  .sheet-layer { justify-content: center; }
+  .sheet { width: min(100%, 480px); margin: 0 auto; border-radius: 16px; padding-bottom: 12px; }
+}
+
+/* Me */
+.me-tab { display: grid; gap: 20px; }
+.me-card { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: var(--r-card); background: var(--layer-1); box-shadow: inset 0 0 0 1px var(--line-soft); }
+.me-avatar { display: grid; place-items: center; flex-shrink: 0; width: 52px; height: 52px; border-radius: 50%; background: var(--banana-wash); color: var(--banana-ink); font-family: var(--display); font-size: 18px; font-weight: 700; }
+.me-id { display: grid; gap: 2px; min-width: 0; }
+.me-id strong { font-weight: 650; overflow-wrap: anywhere; }
+.me-id > span { color: var(--fg-2); font-size: var(--t-sm); overflow-wrap: anywhere; }
+.me-meta { color: var(--fg-3) !important; }
+
+
+/* Agenda: the calendar's own date row is the screen title (one header row, as on the other tabs) */
+.app-agenda .cal-range { font-family: var(--display); font-size: 1.35em; font-weight: 700; letter-spacing: -0.015em; }
+/* events: a full tinted outline instead of a bar down one side */
+.app-agenda .cal-ev { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 45%, transparent); }
+.app-agenda .cal-ev.open { box-shadow: inset 0 0 0 1px var(--tone), 0 4px 12px -6px rgba(0, 0, 0, 0.5); }
+body.vscode-high-contrast .app-agenda .cal-ev, body.vscode-high-contrast-light .app-agenda .cal-ev { box-shadow: inset 0 0 0 1px var(--tone); }
+
+/* Me: on/off switch row */
+.me-switch { position: relative; flex: none; width: 40px; height: 24px; border-radius: 12px; background: var(--raise-2); box-shadow: inset 0 0 0 1px var(--line-soft); transition: background-color 140ms var(--ease); }
+.me-knob { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--fg-2); transition: transform 140ms var(--ease); }
+.me-switch.on { background: var(--banana); box-shadow: none; }
+.me-switch.on .me-knob { transform: translateX(16px); background: var(--banana-on); }
+body.vscode-high-contrast .me-switch.on, body.vscode-high-contrast-light .me-switch.on { background: transparent; box-shadow: inset 0 0 0 1px var(--banana); }
+body.vscode-high-contrast .me-switch.on .me-knob, body.vscode-high-contrast-light .me-switch.on .me-knob { background: var(--banana); }
+@media (prefers-reduced-motion: reduce) { .me-switch, .me-knob { transition: none; } }
+
+/* Banana theme (setting): buttons and focus wear the accent instead of the VS Code theme; high contrast keeps the theme */
+body.bb-brand:not(.vscode-high-contrast):not(.vscode-high-contrast-light) {
+  --btn-bg: var(--banana);
+  --btn-fg: var(--banana-on);
+  --btn-hover: color-mix(in oklab, var(--banana) 88%, #000);
+  --focus: var(--banana);
+}
+body.vscode-light.bb-brand:not(.vscode-high-contrast-light) { --btn-fg: #1e1e1e; --btn-hover: color-mix(in oklab, var(--banana) 90%, #fff); }

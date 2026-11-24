@@ -20,7 +20,9 @@ import { renderAvailability, renderLensRestriction } from './views/availability'
 import { hostTab } from './ctx';
 import { notice } from './ui';
 import { applyPalette } from './palette';
-import { enterRoute, entrySince, reducedMotion, liveCountdown, markFresh, navigate, resetMotion, tickClocks, type NavDirection } from './motion';
+import { renderApp } from './app/shell';
+import { setClockLang } from './motion';
+import { enterRoute, entrySince, reducedMotion, liveCountdown, markFresh, resetMotion, tickClocks } from './motion';
 
 declare function acquireVsCodeApi(): { postMessage(msg: unknown): void; getState(): unknown; setState(state: unknown): void };
 const vscode = acquireVsCodeApi();
@@ -85,10 +87,21 @@ const ctx: Ctx = {
 // ───────────────────────── rendering ─────────────────────────
 
 let frame = 0;
-/** True while a view transition waits to swap the page; renders asked meanwhile run right after. */
-let swapping = false, deferred = false;
+/** A render asked while the pointer is down waits for the click to land: replacing the pressed button eats it. */
+let pressed = false, held = false, holdTimer = 0;
+function release(): void {
+  if (!pressed) return;
+  pressed = false;
+  clearTimeout(holdTimer);
+  if (held) { held = false; setTimeout(schedule, 0); }
+}
+window.addEventListener('pointerdown', () => { pressed = true; clearTimeout(holdTimer); holdTimer = window.setTimeout(release, 1500); }, true);
+window.addEventListener('pointerup', release, true);
+window.addEventListener('pointercancel', release, true);
+window.addEventListener('blur', release);
+
 function schedule(): void {
-  if (swapping) { deferred = true; return; }
+  if (pressed) { held = true; return; }
   if (!frame) {
     frame = requestAnimationFrame(() => {
       frame = 0;
@@ -101,12 +114,15 @@ const requested = new Set<number>(), peeked = new Set<number>();
 let focused: number | null | undefined;
 let lastRoute = '';
 let pendingTab: UiState['tab'] = null;
-const savedUi = vscode.getState() as { sections?: Record<string, boolean>; nav?: { project: number | null; tab: UiState['tab']; list: boolean } } | null;
+const savedUi = vscode.getState() as { sections?: Record<string, boolean>; nav?: { project: number | null; tab: UiState['tab']; list: boolean; app?: UiState['appTab'] } } | null;
 if (surface === 'sidebar' && !isCalendar && savedUi?.nav) {
   ui.sidebarProject = typeof savedUi.nav.project === 'number' ? savedUi.nav.project : null;
   ui.showList = savedUi.nav.list === true;
+  ui.appTab = savedUi.nav.app;
   pendingTab = savedUi.nav.tab ?? null;
 }
+/** The sidebar app's tab bar and sheet, drawn by the last route and pinned around the scroller. */
+let appChrome: HTMLElement[] = [];
 const detailsChoice = new Map<string, boolean>(Object.entries(savedUi?.sections ?? {}).filter((entry): entry is [string, boolean] => typeof entry[1] === 'boolean'));
 
 function route(): { key: string; node: HTMLElement } {
@@ -120,8 +136,14 @@ function route(): { key: string; node: HTMLElement } {
     return { key: 'login', node: renderLogin(ctx) };
   }
   if (isCalendar) return { key: 'calendar', node: renderCalendar(ctx) };
-  if (ui.page === 'appearance' && (isHome || surface === 'sidebar')) {
+  // The sidebar app draws its own pages (renderApp), so only the Home panel routes here.
+  if (ui.page === 'appearance' && isHome) {
     return { key: 'appearance', node: renderAppearance(ctx) };
+  }
+  if (surface === 'sidebar' && fixedProjectId === null) {
+    const view = renderApp(ctx);
+    appChrome = view.chrome;
+    return { key: view.key, node: view.node };
   }
   if (isHome) {
     return { key: 'home', node: renderHome(ctx, (id) => { if (!requested.has(id)) { requested.add(id); ctx.post({ type: 'loadProject', projectId: id }); } }) };
@@ -149,7 +171,7 @@ function route(): { key: string; node: HTMLElement } {
   return { key: `p${project.id}`, node: renderProject(ctx, project) };
 }
 
-let lastView = '', lastDepth = -1, renderGen = 0;
+let lastView = '', renderGen = 0;
 
 function render(): void {
   const gen = ++renderGen;
@@ -162,7 +184,7 @@ function render(): void {
   const keptScroll = new Map<string, number>();
   app.querySelectorAll<HTMLElement>('[data-keep-scroll]').forEach(el => keptScroll.set(el.dataset.keepScroll!, el.scrollLeft));
 
-  const shownProject = fixedProjectId ?? (!ui.showList ? ui.sidebarProject ?? ctx.state.currentProjectId : null);
+  const shownProject = fixedProjectId ?? (surface === 'sidebar' ? ui.sidebarProject ?? ui.sheetProject ?? null : null);
   // Tell the host which project the sidebar shows in detail: only that one gets its delivery state polled.
   if (surface === 'sidebar' && ctx.state.auth.status === 'signedIn' && !isHome && !isCalendar && shownProject !== focused) {
     focused = shownProject;
@@ -176,19 +198,18 @@ function render(): void {
     lastRoute = nextKey;
   }
   if (pendingTab) { ui.tab = pendingTab; pendingTab = null; }
+  appChrome = [];
   const { key, node } = route();
 
   // A view is a route plus, in the sidebar, the page pushed over it; views decide entrances and navigation.
   const project = key.startsWith('p');
   const view = surface === 'sidebar' && project ? `${key}/${ui.tab ?? ''}` : key;
-  const depth = key === 'list' ? 0 : key === 'appearance' ? 1 : project ? (surface === 'sidebar' && ui.tab ? 2 : 1) : -1;
   const changedView = view !== lastView;
   if (changedView) enterRoute();
-  const direction: NavDirection | null = changedView && surface === 'sidebar' && lastDepth >= 0 && depth >= 0
-    ? depth > lastDepth ? 'push' : depth < lastDepth ? 'pop' : 'swap' : null;
+  // The sidebar app swaps screens without view transitions or entrance cascades: they stuttered in the editor.
+  const animated = surface !== 'sidebar';
   lastView = view;
-  lastDepth = depth;
-  const since = reducedMotion() ? null : entrySince();
+  const since = reducedMotion() || !animated ? null : entrySince();
 
   // Every surface enters the same way: anchored to when the view opened, so a re-render continues the entrance.
   const shell = h('div.shell', { class: `surface-${surface}${isHome ? ' surface-home' : ''}${since !== null ? ' sb-enter' : ''}` });
@@ -202,7 +223,7 @@ function render(): void {
   const paused = ctx.state.auth.status === 'signedIn' && net?.pausedUntil ? notice('warn', 'shield',
     h('span', ctx.t('net.paused'), ' ', h('b', liveCountdown(new Date(net.pausedUntil).toISOString())))) : null;
   const content = h('div.scroll', h('div.content', paused, renderLensRestriction(ctx), node));
-  shell.append(content);
+  shell.append(content, ...appChrome);
 
   const swap = () => {
     if (gen !== renderGen) return;
@@ -215,9 +236,15 @@ function render(): void {
     if (oldShell && kept) {
       oldShell.className = shell.className;
       oldShell.style.cssText = shell.style.cssText;
-      Array.from(oldShell.children).forEach(child => { if (child !== kept) child.remove(); });
-      Array.from(shell.children).forEach(child => { if (child !== content) oldShell.insertBefore(child, kept); });
-      kept.replaceChildren(...Array.from(content.childNodes));
+      // Nothing visible changed (a network tick, a peek that changed no number): keep the very same nodes, so a
+      // button pressed now still gets its click and hover does not flicker.
+      const oldChrome = Array.from(oldShell.children).filter(child => child !== kept);
+      const newChrome = Array.from(shell.children).filter(child => child !== content);
+      if (oldChrome.map(c => c.outerHTML).join('') !== newChrome.map(c => c.outerHTML).join('')) {
+        oldChrome.forEach(child => child.remove());
+        newChrome.forEach(child => oldShell.insertBefore(child, kept));
+      }
+      if (kept.innerHTML !== content.innerHTML) kept.replaceChildren(...Array.from(content.childNodes));
       scroller = kept;
     } else {
       clear(app);
@@ -254,18 +281,7 @@ function render(): void {
     }
   };
 
-  if (direction) {
-    swapping = true;
-    navigate(direction, () => {
-      swapping = false;
-      swap();
-      if (deferred) { deferred = false; schedule(); }
-    }, shell);
-    // Should the transition never call back, never leave rendering frozen.
-    setTimeout(() => { if (swapping) { swapping = false; swap(); if (deferred) { deferred = false; schedule(); } } }, 600);
-  } else {
-    swap();
-  }
+  swap();
   if (changedView && surface === 'sidebar') persist();
 }
 
@@ -273,12 +289,13 @@ function render(): void {
 function persist(): void {
   vscode.setState({
     sections: Object.fromEntries([...detailsChoice].slice(-500)),
-    nav: surface === 'sidebar' && !isCalendar ? { project: ui.sidebarProject ?? null, tab: ui.tab, list: ui.showList } : undefined,
+    nav: surface === 'sidebar' && !isCalendar ? { project: ui.sidebarProject ?? null, tab: ui.tab, list: ui.showList, app: ui.appTab } : undefined,
   });
 }
 
-/** One step back in the sidebar: a pushed page to its summary, a summary to the overview. */
+/** One step back in the sidebar: the sheet closes, a pushed page to its project, a project to its tab. */
 function goBack(): boolean {
+  if (surface === 'sidebar' && ui.sheetProject != null) { ui.sheetProject = null; schedule(); return true; }
   if (ui.page && ctx.state.auth.status === 'signedIn') {
     ui.page = null;
     ui.paletteDraft = undefined;
@@ -288,8 +305,7 @@ function goBack(): boolean {
   }
   if (surface !== 'sidebar' || ctx.state.auth.status !== 'signedIn') return false;
   if (ui.tab) { ui.tab = null; schedule(); return true; }
-  if (!ui.showList && fixedProjectId === null && (ui.sidebarProject ?? ctx.state.currentProjectId) !== null) {
-    ui.showList = true;
+  if (fixedProjectId === null && ui.sidebarProject != null) {
     ui.sidebarProject = null;
     schedule();
     return true;
@@ -355,9 +371,11 @@ window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
     case 'state': {
       received = true;
       applyPalette(m.state.palette);
+      document.body.classList.toggle('bb-brand', m.state.bananaTheme === true);
       if (m.state.lang !== ctx.lang) {
         ctx.lang = m.state.lang;
         ctx.t = createT(m.state.lang);
+        setClockLang(m.state.lang);
       }
       if (ctx.state.auth.status === 'signedIn' && (m.state.auth.status !== 'signedIn' || m.state.auth.login !== ctx.state.auth.login || m.state.availability?.myApiActive === false)) {
         requested.clear();
@@ -393,10 +411,6 @@ window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
         resetMotion();
         ui.sidebarProject = null;
         vscode.setState({ sections: {} });
-      }
-      if (m.state.currentProjectId !== ctx.state.currentProjectId && m.state.currentProjectId !== null) {
-        ui.showList = false;
-        ui.sidebarProject = null;
       }
       document.documentElement.lang = m.state.lang;
       ctx.state = m.state;

@@ -26,7 +26,7 @@ function deadline(ctx: Ctx, p: ProjectVM): HTMLElement {
   const mid = projectMidpoint(p, ctx.activities?.get(p.id));
   const midPos = mid.date ? progress(p.startDate, p.endDate, Date.parse(mid.date)) : null;
   const label = p.status === 'ongoing' ? t('gauge.closesIn') : p.status === 'upcoming' ? t('gauge.opensIn') : t('gauge.closed');
-  const value = p.status === 'ongoing' ? compactDuration(left) : p.status === 'upcoming' ? compactDuration(Date.parse(p.startDate) - now) : relative(p.endDate, lang);
+  const value = p.status === 'ongoing' ? compactDuration(left, lang) : p.status === 'upcoming' ? compactDuration(Date.parse(p.startDate) - now, lang) : relative(p.endDate, lang);
   return gauge(ctx, label, 'details',
     h('div.gauge-value', { class: urgent ? 'urgent' : p.status === 'past' ? 'sha none' : '' }, value),
     h('div.deadline-rail', { class: urgent ? 'urgent' : '', role: 'progressbar', 'aria-label': t('milestone.elapsed', { pct: Math.round(pos * 100) }), 'aria-valuenow': String(Math.round(pos * 100)), 'aria-valuemin': '0', 'aria-valuemax': '100' },

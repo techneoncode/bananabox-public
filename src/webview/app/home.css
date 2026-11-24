@@ -1,0 +1,40 @@
+/* Home tab: what needs the student now. Surfaces are flat; the glint marks only progress (the rail). */
+.home-tab { display: grid; gap: 24px; padding: 0 var(--pad) 24px; }
+.hm-head { display: grid; gap: 2px; padding: 4px 0 8px; }
+.hm-row { display: flex; align-items: center; gap: 4px; min-height: var(--tap); }
+.hm-title { flex: 1; min-width: 0; margin: 0; font-family: var(--display); font-size: var(--t-title); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.hm-sub { margin: 0; color: var(--fg-2); }
+.hm-lines { display: grid; gap: 1px; min-width: 0; }
+.hm-sec { display: grid; gap: 8px; }
+.hm-h { margin: 0; padding: 0 4px; color: var(--fg-2); font-family: var(--sans); font-size: var(--t-sm); font-weight: 600; }
+.hm-stack { display: grid; gap: 8px; }
+.hm-muted { margin: 0; color: var(--fg-2); font-size: var(--t-sm); }
+.hm-soon { display: flex; align-items: center; gap: 12px; width: 100%; min-height: var(--row); padding: 10px 12px;
+  border: 0; border-radius: var(--r-card); background: var(--layer-1); box-shadow: inset 0 0 0 1px var(--line-soft);
+  color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
+.hm-soon:hover { background: var(--hover); }
+.hm-soon:focus-visible, .hm-open-head:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.hm-text { display: grid; min-width: 0; flex: 1; gap: 2px; }
+.hm-text strong { min-width: 0; font-weight: 600; }
+.hm-why { color: var(--fg-2); font-size: var(--t-sm); }
+.hm-clear { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: var(--r-card);
+  background: var(--layer-1); box-shadow: inset 0 0 0 1px var(--line-soft); }
+.hm-clear-ic { flex-shrink: 0; font-size: 22px; color: var(--pass); }
+.hm-clear p { margin: 4px 0 0; }
+.hm-open { display: grid; gap: 12px; padding: 14px; border-radius: var(--r-lg); background: var(--layer-2);
+  box-shadow: inset 0 0 0 1px var(--line-soft); }
+.hm-open-head { display: grid; gap: 2px; padding: 0; border: 0; background: transparent; color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
+.hm-open-name { font-family: var(--display); font-size: var(--t-lg); font-weight: 600; overflow-wrap: anywhere; }
+.hm-time { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; color: var(--fg-2); font-size: var(--t-sm); }
+.hm-time .num { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+.hm-rail { height: 6px; border-radius: 3px; background: var(--line-soft); overflow: hidden; }
+.hm-rail-fill { display: block; height: 100%; background: var(--glint); }
+.hm-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0; }
+.hm-stats dt { color: var(--fg-2); font-size: var(--t-sm); }
+.hm-stats dd { margin: 2px 0 0; font-size: var(--t-lg); font-weight: 600; font-variant-numeric: tabular-nums; }
+.hm-day { display: grid; place-items: center; flex-shrink: 0; width: 44px; padding: 4px 0; border-radius: 10px;
+  background: var(--raise-2); line-height: 1.1; text-align: center; }
+.hm-day b { font-size: var(--t-lg); font-variant-numeric: tabular-nums; }
+.hm-day span { color: var(--fg-2); font-size: 11px; text-transform: uppercase; }
+.hm-soon-time { color: var(--fg-2); font-size: var(--t-sm); font-variant-numeric: tabular-nums; }
+.hm-skel { display: flex; align-items: center; gap: 8px; padding: 16px 0; color: var(--fg-2); }

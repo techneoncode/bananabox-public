@@ -47,6 +47,8 @@ export const config = {
   showStatusBar: (): boolean =>
     cfg().get<boolean>('showStatusBarItem') ?? true,
   statistics: (): boolean => cfg().get<boolean>('anonymousStatistics') ?? true,
+  /** Bananabox's own accent on buttons instead of the theme's. */
+  bananaTheme: (): boolean => cfg().get<boolean>('bananaTheme') === true,
   language: (): 'en' | 'fr' => {
     const v = cfg().get<string>('language') ?? 'auto';
     if (v === 'en' || v === 'fr') {

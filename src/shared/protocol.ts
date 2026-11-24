@@ -74,6 +74,8 @@ export interface StateSnapshot {
   localProjects?: number[];
   /** Colours chosen by the student; missing keys follow the theme. */
   palette?: Palette;
+  /** Setting: buttons wear the Banana accent instead of the theme's. */
+  bananaTheme?: boolean;
   /** Checks turned off on the Prepare page, per event (setting). */
   disabledChecks?: DisabledChecks;
 }
@@ -182,6 +184,7 @@ export type WebviewMessage =
   | { type: 'loadProject'; projectId: number; peek?: boolean }
   | { type: 'focusProject'; projectId: number | null }
   | { type: 'setPalette'; palette: Palette }
+  | { type: 'setBananaTheme'; value: boolean }
   | { type: 'loadActivities'; projectId: number }
   | { type: 'testDefensePopup'; projectId: number }
   | {
@@ -251,5 +254,6 @@ export type WebviewMessage =
       target: 'editor' | 'browser' | 'desktop' | 'binaries';
     }
   | { type: 'openExternal'; url: string }
+  | { type: 'openSettings'; query: 'bananabox' | 'bananabox.language' }
   | { type: 'openCommit'; projectId: number; commit: string }
   | { type: 'copy'; text: string; what?: string };

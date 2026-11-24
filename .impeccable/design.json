@@ -1,0 +1,469 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-24T14:46:41+00:00",
+  "title": "Design System: Bananabox",
+  "extensions": {
+    "colorMeta": {
+      "banana-glint": {
+        "role": "primary",
+        "displayName": "Banana Glint",
+        "canonical": "#ffd84d",
+        "tonalRamp": [
+          "#3a2e00",
+          "#5c4a00",
+          "#7a5a00",
+          "#a67d00",
+          "#d9a300",
+          "#ffd84d",
+          "#ffe58a",
+          "#fff4c7"
+        ]
+      },
+      "banana-glint-deep": {
+        "role": "primary",
+        "displayName": "Banana Glint Deep",
+        "canonical": "#ffae2e",
+        "tonalRamp": [
+          "#3a2200",
+          "#5e3800",
+          "#844f00",
+          "#b06a00",
+          "#e08a00",
+          "#ffae2e",
+          "#ffc977",
+          "#ffe6c0"
+        ]
+      },
+      "banana-glint-light": {
+        "role": "primary",
+        "displayName": "Banana Glint (light themes)",
+        "canonical": "#d9a300"
+      },
+      "banana-glint-light-deep": {
+        "role": "primary",
+        "displayName": "Banana Glint Deep (light themes)",
+        "canonical": "#e08a00"
+      },
+      "banana-ink-light": {
+        "role": "primary",
+        "displayName": "Banana Ink (light themes)",
+        "canonical": "#7a5a00"
+      },
+      "banana-on": {
+        "role": "primary",
+        "displayName": "Banana On",
+        "canonical": "#1e1e1e"
+      },
+      "hc-accent": {
+        "role": "secondary",
+        "displayName": "High-contrast Accent",
+        "canonical": "var(--vscode-contrastActiveBorder, #f38518)"
+      },
+      "hc-light-accent": {
+        "role": "secondary",
+        "displayName": "High-contrast Light Accent",
+        "canonical": "#b5200d"
+      },
+      "pass": {
+        "role": "tertiary",
+        "displayName": "Pass",
+        "canonical": "var(--vscode-testing-iconPassed, #73c991)"
+      },
+      "fail": {
+        "role": "tertiary",
+        "displayName": "Fail",
+        "canonical": "var(--vscode-errorForeground, #f48771)"
+      },
+      "warn": {
+        "role": "tertiary",
+        "displayName": "Warn",
+        "canonical": "var(--vscode-editorWarning-foreground, #e0a458)"
+      },
+      "style-fatal": {
+        "role": "tertiary",
+        "displayName": "Style Fatal",
+        "canonical": "var(--vscode-bananalens-inline-fatalForeground, #f28b82)"
+      },
+      "style-major": {
+        "role": "tertiary",
+        "displayName": "Style Major",
+        "canonical": "var(--vscode-bananalens-inline-majorForeground, #e0a458)"
+      },
+      "style-minor": {
+        "role": "tertiary",
+        "displayName": "Style Minor",
+        "canonical": "var(--vscode-bananalens-inline-minorForeground, #80c7d9)"
+      },
+      "style-info": {
+        "role": "tertiary",
+        "displayName": "Style Info",
+        "canonical": "var(--vscode-bananalens-inline-infoForeground, #b5a2e0)"
+      },
+      "link": {
+        "role": "neutral",
+        "displayName": "Theme Link",
+        "canonical": "var(--vscode-textLink-foreground, #3794ff)"
+      },
+      "focus": {
+        "role": "neutral",
+        "displayName": "Theme Focus",
+        "canonical": "var(--vscode-focusBorder, #007fd4)"
+      },
+      "button-primary": {
+        "role": "neutral",
+        "displayName": "Theme Button",
+        "canonical": "var(--vscode-button-background, #0e639c)"
+      },
+      "button-primary-fg": {
+        "role": "neutral",
+        "displayName": "Theme Button Text",
+        "canonical": "var(--vscode-button-foreground, #ffffff)"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Theme Ink",
+        "canonical": "var(--vscode-foreground, #cccccc)"
+      },
+      "ground": {
+        "role": "neutral",
+        "displayName": "Theme Ground",
+        "canonical": "var(--vscode-editor-background, #1e1e1e)"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Panel readout gauge values (days, tokens, score). Archivo at 92% width, tabular."
+      },
+      "numeral": {
+        "displayName": "Numeral",
+        "purpose": "Sidebar app numbers: stat tiles, deadline times, scores, counts. Archivo 700 at 75% width, tabular."
+      },
+      "app-title": {
+        "displayName": "App title",
+        "purpose": "Large title at the top of each sidebar tab root."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Panel page titles (h1)."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Card names and section titles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "All running UI text, at the user's VS Code font size."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Meta lines, units, details, chips, captions."
+      },
+      "group-label": {
+        "displayName": "Group label",
+        "purpose": "Title above a grouped list or Home section, secondary ink, sentence case."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Gutter, side values, SHAs, axes, function names."
+      }
+    },
+    "shadows": [
+      {
+        "name": "raised",
+        "value": "inset 0 0 0 1px color-mix(in srgb, var(--fg) 9%, transparent), inset 0 1px 0 color-mix(in srgb, var(--fg) 7%, transparent), 0 1px 2px rgba(0,0,0,0.18), 0 8px 24px -12px rgba(0,0,0,0.45)",
+        "purpose": "Panels and readout tiles. Light themes use edge rgba(255,255,255,0.7) and drop 0 1px 2px rgba(0,0,0,0.06), 0 8px 24px -14px rgba(0,0,0,0.22). None in high contrast."
+      },
+      {
+        "name": "pressable",
+        "value": "0 1px 0 rgba(255,255,255,0.08) inset, 0 1px 2px rgba(0,0,0,0.25)",
+        "purpose": "Primary buttons."
+      },
+      {
+        "name": "segment-selected",
+        "value": "0 1px 2px rgba(0,0,0,0.18)",
+        "purpose": "Active option in a segmented filter."
+      },
+      {
+        "name": "overlay",
+        "value": "0 6px 20px rgba(0,0,0,0.28)",
+        "purpose": "Overflow menus."
+      },
+      {
+        "name": "tooltip",
+        "value": "0 4px 14px rgba(0,0,0,0.25)",
+        "purpose": "Chart tooltips."
+      },
+      {
+        "name": "sheet",
+        "value": "0 -8px 30px rgba(0,0,0,0.35), inset 0 1px 0 color-mix(in srgb, var(--fg) 7%, transparent)",
+        "purpose": "Bottom sheet, over a rgba(0,0,0,0.45) backdrop. Top border only in high contrast."
+      },
+      {
+        "name": "sticky-bar",
+        "value": "0 -1px 0 color-mix(in srgb, var(--fg) 9%, transparent), 0 -10px 24px -14px rgba(0,0,0,0.55)",
+        "purpose": "Project screen's sticky action bar."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The single easing for all state transitions."
+      },
+      {
+        "name": "pointer",
+        "value": "140ms",
+        "purpose": "Background and colour response on buttons, rows, tabs, segments."
+      },
+      {
+        "name": "press",
+        "value": "translateY(1px)",
+        "purpose": "Active state on buttons."
+      },
+      {
+        "name": "rise",
+        "value": "opacity 0, translateY(6px), blur(2px) to rest",
+        "purpose": "Route entrance, once per route, never on re-render."
+      },
+      {
+        "name": "pulse",
+        "value": "1.4s ease-in-out infinite, opacity 0.35 at 50%",
+        "purpose": "Running status mark."
+      },
+      {
+        "name": "ring",
+        "value": "stroke-dasharray 600ms",
+        "purpose": "Ring chart value changes."
+      },
+      {
+        "name": "sheet-rise",
+        "value": "260ms translateY(100%) to rest, shared ease",
+        "purpose": "Bottom sheet entrance."
+      },
+      {
+        "name": "backdrop-fade",
+        "value": "220ms opacity 0 to rest, shared ease",
+        "purpose": "Sheet backdrop."
+      },
+      {
+        "name": "push",
+        "value": "340ms slide from right (pop: from left), shared ease; View Transitions groups 380ms",
+        "purpose": "Pushed project screens and pages."
+      },
+      {
+        "name": "swap",
+        "value": "160ms fade-out, 220ms fade-in",
+        "purpose": "Tab switches."
+      },
+      {
+        "name": "shimmer",
+        "value": "1.4s linear infinite",
+        "purpose": "Board skeleton bars while projects load."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "page-xs",
+        "value": "340px"
+      },
+      {
+        "name": "page-sm",
+        "value": "420px"
+      },
+      {
+        "name": "page-md",
+        "value": "560px"
+      },
+      {
+        "name": "page-lg",
+        "value": "640px"
+      },
+      {
+        "name": "page-xl",
+        "value": "720px"
+      },
+      {
+        "name": "page-2xl",
+        "value": "900px"
+      },
+      {
+        "name": "app-icons-only",
+        "value": "240px"
+      },
+      {
+        "name": "app-two-pane",
+        "value": "600px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Theme button colours with a pressable shadow; presses 1px on click.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Run the grader</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 2px 11px; border: 1px solid transparent; border-radius: 4px; font: inherit; font-size: 13px; line-height: 20px; cursor: pointer; transition: background-color 140ms cubic-bezier(0.16,1,0.3,1), transform 160ms cubic-bezier(0.16,1,0.3,1); } .ds-btn-primary { background: var(--vscode-button-background, #0e639c); color: var(--vscode-button-foreground, #fff); box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 1px 2px rgba(0,0,0,0.25); } .ds-btn-primary:hover { background: var(--vscode-button-hoverBackground, #1177bb); } .ds-btn:active { transform: translateY(1px); } .ds-btn:focus-visible { outline: 1px solid var(--vscode-focusBorder, #007fd4); outline-offset: 1px; }"
+    },
+    {
+      "name": "Chips",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "One shape for status, labels and counts; state tinted at 13%.",
+      "html": "<span class=\"ds-chip\">3 attempts</span> <span class=\"ds-chip ds-chip-pass\">passed</span> <span class=\"ds-chip ds-chip-fail\">2 failed</span> <span class=\"ds-chip ds-chip-accent\">current</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 3px; background: rgba(204,204,204,0.07); color: var(--vscode-descriptionForeground, rgba(204,204,204,0.72)); font-size: 11.5px; line-height: 1; font-variant-numeric: tabular-nums; } .ds-chip-pass { color: #73c991; background: rgba(115,201,145,0.13); } .ds-chip-fail { color: #f48771; background: rgba(244,135,113,0.13); } .ds-chip-accent { color: #ffd84d; background: rgba(255,216,77,0.08); }"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Theme input with inset focus outline.",
+      "html": "<input class=\"ds-input\" placeholder=\"Allowed function, e.g. malloc\" />",
+      "css": ".ds-input { min-height: 26px; padding: 2px 8px; border: 1px solid var(--vscode-input-border, rgba(204,204,204,0.18)); border-radius: 4px; background: var(--vscode-input-background, rgba(204,204,204,0.04)); color: var(--vscode-input-foreground, #ccc); font: inherit; font-size: 13px; } .ds-input::placeholder { color: var(--vscode-input-placeholderForeground, rgba(204,204,204,0.6)); } .ds-input:focus { outline: 1px solid var(--vscode-focusBorder, #007fd4); outline-offset: -1px; }"
+    },
+    {
+      "name": "Gutter Row",
+      "kind": "custom",
+      "refersTo": "gutter-row",
+      "description": "Signature list row: 30px mono gutter with a status mark, main text, mono side value.",
+      "html": "<div class=\"ds-g-list\"><button class=\"ds-g-row ds-g-focus\"><span class=\"ds-gut\"><i class=\"ds-mark\" style=\"background:#ffd84d\"></i></span><span>Coding style</span><span class=\"ds-side\">0 major</span></button><button class=\"ds-g-row\"><span class=\"ds-gut\">2<i class=\"ds-mark\" style=\"background:#f48771\"></i></span><span>Local tests</span><span class=\"ds-side\">12/14</span></button></div>",
+      "css": ".ds-g-list { display: grid; width: 320px; } .ds-g-row { display: grid; grid-template-columns: 30px minmax(0,1fr) auto; align-items: center; column-gap: 10px; min-height: 30px; padding: 0 8px 0 0; border: 0; border-radius: 3px; background: transparent; color: var(--vscode-foreground, #ccc); font: inherit; font-size: 13px; text-align: left; cursor: pointer; transition: background-color 140ms cubic-bezier(0.16,1,0.3,1); } .ds-g-row:hover { background: var(--vscode-list-hoverBackground, rgba(204,204,204,0.08)); } .ds-g-row:focus-visible { outline: 1px solid var(--vscode-focusBorder, #007fd4); outline-offset: -1px; } .ds-g-focus { background: rgba(255,216,77,0.08); } .ds-gut { display: flex; align-items: center; justify-content: flex-end; gap: 6px; align-self: stretch; padding-right: 7px; box-shadow: inset -1px 0 0 rgba(204,204,204,0.09); color: rgba(204,204,204,0.58); font-family: var(--vscode-editor-font-family, ui-monospace, monospace); font-size: 10.5px; font-variant-numeric: tabular-nums; } .ds-g-focus .ds-gut { box-shadow: inset -2px 0 0 #ffd84d; } .ds-mark { width: 3px; height: 16px; border-radius: 2px; } .ds-side { color: rgba(204,204,204,0.72); font-family: var(--vscode-editor-font-family, ui-monospace, monospace); font-size: 11.5px; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Readout Tile",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Raised gauge tile: label, condensed display value, drawn rail or token pills.",
+      "html": "<div class=\"ds-gauge\"><div class=\"ds-gauge-label\">Tokens left</div><div class=\"ds-gauge-value\">3<small>/ 5</small></div><div class=\"ds-toks\"><i class=\"on\"></i><i class=\"on\"></i><i class=\"on\"></i><i></i><i></i></div></div>",
+      "css": ".ds-gauge { display: grid; gap: 4px; width: 200px; padding: 12px 14px; border-radius: 8px; background: rgba(204,204,204,0.035); box-shadow: inset 0 0 0 1px rgba(204,204,204,0.09), inset 0 1px 0 rgba(204,204,204,0.07), 0 1px 2px rgba(0,0,0,0.18), 0 8px 24px -12px rgba(0,0,0,0.45); color: var(--vscode-foreground, #ccc); } .ds-gauge-label { color: rgba(204,204,204,0.72); font-size: 11.5px; } .ds-gauge-value { display: flex; align-items: baseline; gap: 6px; font-family: 'Bananabox Display', system-ui, sans-serif; font-size: 24.7px; font-weight: 700; font-stretch: 92%; line-height: 1.15; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; } .ds-gauge-value small { font-size: 0.42em; font-weight: 400; color: rgba(204,204,204,0.72); letter-spacing: 0; } .ds-toks { display: flex; gap: 3px; margin: 6px 0 4px; } .ds-toks i { flex: 1; max-width: 26px; height: 8px; border-radius: 2px; background: rgba(204,204,204,0.09); } .ds-toks i.on { background: linear-gradient(180deg, #ffd84d, #ffae2e); }"
+    },
+    {
+      "name": "Big Button (primary)",
+      "kind": "button",
+      "refersTo": "app-button-primary",
+      "description": "Sidebar app primary action, one per sheet or screen.",
+      "html": "<button class=\"ds-bb ds-bb-primary\">Run the grader</button>",
+      "css": ".ds-bb { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; padding: 0 16px; border: 1px solid transparent; border-radius: 10px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background-color 140ms cubic-bezier(0.16,1,0.3,1), transform 160ms cubic-bezier(0.16,1,0.3,1); } .ds-bb:active { transform: translateY(1px); } .ds-bb:focus-visible { outline: 1px solid var(--vscode-focusBorder, #007fd4); outline-offset: 1px; } .ds-bb-primary { background: var(--vscode-button-background, #0e639c); color: var(--vscode-button-foreground, #fff); box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 1px 2px rgba(0,0,0,0.25); } .ds-bb-primary:hover { background: var(--vscode-button-hoverBackground, #1177bb); }"
+    },
+    {
+      "name": "Big Button (secondary)",
+      "kind": "button",
+      "refersTo": "app-button-secondary",
+      "description": "Sidebar app secondary action, e.g. Open the project.",
+      "html": "<button class=\"ds-bb ds-bb-secondary\">Open the project</button>",
+      "css": ".ds-bb { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; padding: 0 16px; border: 1px solid transparent; border-radius: 10px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background-color 140ms cubic-bezier(0.16,1,0.3,1), transform 160ms cubic-bezier(0.16,1,0.3,1); } .ds-bb:active { transform: translateY(1px); } .ds-bb:focus-visible { outline: 1px solid var(--vscode-focusBorder, #007fd4); outline-offset: 1px; } .ds-bb-secondary { background: var(--vscode-button-secondaryBackground, rgba(204,204,204,0.07)); color: var(--vscode-button-secondaryForeground, #ccc); } .ds-bb-secondary:hover { background: var(--vscode-button-secondaryHoverBackground, rgba(204,204,204,0.12)); }"
+    },
+    {
+      "name": "Large Segmented Switch",
+      "kind": "nav",
+      "refersTo": "segmented-large",
+      "description": "Board status columns with counts.",
+      "html": "<div class=\"ds-segl\"><button class=\"ds-segl-opt on\">In progress <span>4</span></button><button class=\"ds-segl-opt\">Upcoming <span>2</span></button><button class=\"ds-segl-opt\">Done <span>2</span></button></div>",
+      "css": ".ds-segl { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: color-mix(in srgb, var(--vscode-foreground, #ccc) 6.5%, transparent); font-size: 13px; } .ds-segl-opt { flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--vscode-descriptionForeground, #9d9d9d); font: inherit; font-weight: 500; cursor: pointer; transition: background-color 140ms cubic-bezier(0.16,1,0.3,1), color 140ms cubic-bezier(0.16,1,0.3,1); } .ds-segl-opt span { font-size: 0.85em; font-variant-numeric: tabular-nums; } .ds-segl-opt:hover { color: var(--vscode-foreground, #ccc); } .ds-segl-opt.on { background: var(--vscode-sideBar-background, #181818); color: var(--vscode-foreground, #ccc); box-shadow: 0 1px 2px rgba(0,0,0,0.18); } .ds-segl-opt:focus-visible { outline: 1px solid var(--vscode-focusBorder, #007fd4); }"
+    },
+    {
+      "name": "Project Card (current)",
+      "kind": "card",
+      "refersTo": "project-card-current",
+      "description": "The current project on the board: glint outline and wash, score ring, deadline rail, condensed numerals.",
+      "html": "<button class=\"ds-card\"><span class=\"ds-card-head\"><span><b class=\"ds-card-name\">hashtable</b><small>B-CPE-110 · Elementary Programming</small></span><svg width=\"48\" height=\"48\" viewBox=\"0 0 48 48\"><circle cx=\"24\" cy=\"24\" r=\"21.5\" fill=\"none\" stroke=\"rgba(204,204,204,0.09)\" stroke-width=\"5\"/><circle cx=\"24\" cy=\"24\" r=\"21.5\" fill=\"none\" stroke=\"#ffd84d\" stroke-width=\"5\" stroke-linecap=\"round\" stroke-dasharray=\"97 135\" transform=\"rotate(-90 24 24)\"/></svg></span><span class=\"ds-rail\"><i style=\"width:80%\"></i></span><span class=\"ds-num\">2 d 13 h</span><span class=\"ds-foot\"><b class=\"ds-num\">72%</b> last score <b class=\"ds-num\">3/5</b> tokens</span></button>",
+      "css": ".ds-card { display: grid; gap: 12px; width: 280px; padding: 18px; border: 0; border-radius: 12px; background: linear-gradient(color-mix(in srgb, #ffd84d 8%, transparent), color-mix(in srgb, #ffd84d 8%, transparent)), color-mix(in srgb, var(--vscode-foreground, #ccc) 3.5%, transparent); box-shadow: inset 0 0 0 1.5px #ffd84d, 0 1px 2px rgba(0,0,0,0.18), 0 8px 24px -12px rgba(0,0,0,0.45); color: var(--vscode-foreground, #ccc); font: inherit; font-size: 13px; text-align: left; cursor: pointer; transition: background-color 140ms cubic-bezier(0.16,1,0.3,1); } .ds-card:focus-visible { outline: 2px solid var(--vscode-focusBorder, #007fd4); outline-offset: 2px; } .ds-card-head { display: flex; justify-content: space-between; gap: 10px; } .ds-card-head > span { display: grid; gap: 2px; } .ds-card-name { font-family: \"Bananabox Display\", system-ui, sans-serif; font-size: 1.4em; font-weight: 650; } .ds-card small { color: var(--vscode-descriptionForeground, #9d9d9d); font-size: 0.885em; } .ds-rail { position: relative; height: 8px; border-radius: 3px; overflow: hidden; background: color-mix(in srgb, var(--vscode-foreground, #ccc) 6.5%, transparent); } .ds-rail i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: #ffd84d; } .ds-num { font-family: \"Bananabox Display\", system-ui, sans-serif; font-stretch: 75%; font-weight: 700; font-variant-numeric: tabular-nums; } .ds-foot { color: var(--vscode-descriptionForeground, #9d9d9d); } .ds-foot b { color: var(--vscode-foreground, #ccc); }"
+    },
+    {
+      "name": "Grouped List",
+      "kind": "custom",
+      "refersTo": "list-row",
+      "description": "Sidebar app list: 12px group of 48px rows with icon tile, label, meta, chevron.",
+      "html": "<div class=\"ds-lg\"><span class=\"ds-lg-title\">Sections</span><div class=\"ds-lg-body\"><button class=\"ds-lr\"><span class=\"ds-lr-ic\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\"><path d=\"M6 1v5L2 13.5A1 1 0 0 0 3 15h10a1 1 0 0 0 1-1.5L10 6V1\" fill=\"none\" stroke=\"currentColor\"/></svg></span><span class=\"ds-lr-label\">Grader</span><span class=\"ds-lr-meta\">72%</span><span class=\"ds-chev\">&#8250;</span></button><button class=\"ds-lr\"><span class=\"ds-lr-ic ok\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\"><path d=\"M3 8.5l3 3 7-7\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/></svg></span><span class=\"ds-lr-label\">History</span><span class=\"ds-lr-meta\">5 runs</span><span class=\"ds-chev\">&#8250;</span></button></div></div>",
+      "css": ".ds-lg { display: grid; gap: 6px; width: 300px; font-size: 13px; } .ds-lg-title { padding: 0 4px; color: var(--vscode-descriptionForeground, #9d9d9d); font-size: 0.885em; font-weight: 600; } .ds-lg-body { display: grid; border-radius: 12px; overflow: hidden; background: color-mix(in srgb, var(--vscode-foreground, #ccc) 3.5%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vscode-foreground, #ccc) 9%, transparent); } .ds-lr { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 8px 12px; border: 0; background: transparent; color: var(--vscode-foreground, #ccc); font: inherit; text-align: left; cursor: pointer; } .ds-lr + .ds-lr { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vscode-foreground, #ccc) 9%, transparent); } .ds-lr:hover { background: var(--vscode-list-hoverBackground, rgba(204,204,204,0.08)); } .ds-lr:focus-visible { outline: 1px solid var(--vscode-focusBorder, #007fd4); outline-offset: -1px; } .ds-lr-ic { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: color-mix(in srgb, var(--vscode-foreground, #ccc) 7%, transparent); color: var(--vscode-descriptionForeground, #9d9d9d); } .ds-lr-ic.ok { color: #73c991; background: color-mix(in srgb, #73c991 14%, transparent); } .ds-lr-label { flex: 1; font-weight: 500; } .ds-lr-meta { color: var(--vscode-descriptionForeground, #9d9d9d); font-size: 0.885em; font-variant-numeric: tabular-nums; } .ds-chev { color: color-mix(in srgb, var(--vscode-foreground, #ccc) 58%, transparent); font-size: 16px; }"
+    },
+    {
+      "name": "Bottom Tab Bar",
+      "kind": "nav",
+      "refersTo": "tab-bar",
+      "description": "Sidebar app navigation: 56px, four tabs, glint indicator on the open tab.",
+      "html": "<nav class=\"ds-tabbar\"><button class=\"ds-tb\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 20 20\"><path d=\"M3 9l7-6 7 6v8H3z\" fill=\"none\" stroke=\"currentColor\"/></svg><span>Home</span></button><button class=\"ds-tb on\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 20 20\"><rect x=\"3\" y=\"3\" width=\"14\" height=\"14\" rx=\"2\" fill=\"none\" stroke=\"currentColor\"/><path d=\"M8 3v14M12 3v9\" stroke=\"currentColor\"/></svg><span>Projects</span></button><button class=\"ds-tb\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 20 20\"><rect x=\"3\" y=\"4\" width=\"14\" height=\"13\" rx=\"1\" fill=\"none\" stroke=\"currentColor\"/><path d=\"M3 8h14\" stroke=\"currentColor\"/></svg><span>Agenda</span></button><button class=\"ds-tb\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 20 20\"><circle cx=\"10\" cy=\"10\" r=\"7.5\" fill=\"none\" stroke=\"currentColor\"/><circle cx=\"10\" cy=\"8\" r=\"2.5\" fill=\"none\" stroke=\"currentColor\"/></svg><span>Me</span></button></nav>",
+      "css": ".ds-tabbar { display: flex; width: 300px; height: 56px; border-top: 1px solid color-mix(in srgb, var(--vscode-foreground, #ccc) 9%, transparent); background: var(--vscode-sideBar-background, #181818); } .ds-tb { position: relative; flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 44px; border: 0; background: transparent; color: var(--vscode-descriptionForeground, #9d9d9d); font: inherit; font-size: 0.85em; cursor: pointer; } .ds-tb:hover { color: var(--vscode-foreground, #ccc); background: var(--vscode-list-hoverBackground, rgba(204,204,204,0.08)); } .ds-tb.on { color: var(--vscode-foreground, #ccc); } .ds-tb.on::before { content: \"\"; position: absolute; top: 0; left: 28%; right: 28%; height: 3px; border-radius: 0 0 3px 3px; background: linear-gradient(90deg, #ffd84d, #ffae2e); } .ds-tb:focus-visible { outline: 1px solid var(--vscode-focusBorder, #007fd4); outline-offset: -2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Lens Gutter",
+    "overview": "Bananabox lives inside someone else's room. The VS Code theme owns the ground, the text colour, the buttons, the inputs, the focus ring and the hover, and Bananabox never repaints them. Depth comes from two faint tinted layers of the theme's own foreground. One warm yellow, the Banana Glint, marks the one thing that is \"now\": the current project, the open tab, deadline progress, tokens left, the score line. Data is drawn, not described: deadlines are rails, tokens are pills, scores are rings and sparklines, coding-style findings are stacked bars in the severity colours. Numbers are set in the Archivo display face with tabular figures, so they read like an instrument.\n\nThe system has two scales on one set of tokens. Editor panels keep the editor's density: 13px body, 26px controls, 30px rows hung off a mono gutter like line numbers beside code. The sidebar is a pocket phone app: a bottom tab bar (a left rail when the sidebar is 600px or wider), a board of big project cards in swipeable status columns, a bottom sheet with the three actions that matter, pushed full screens built from grouped 48px rows, and 44px targets everywhere. Same ground, same layers, same glint, same numerals; only the touch scale changes.\n\nThe feel is friendly and tactile, not sterile. Buttons press down 1px, rows and segments answer the pointer within 140ms, raised tiles carry a top highlight edge and a soft drop, and sheets rise from the bottom on the shared ease. All of it stays inside native VS Code conventions. High-contrast themes drop every tint, shadow and gradient in favour of contrast borders, and reduced motion removes every animation.",
+    "keyCharacteristics": [
+      "Theme-native: every neutral, control and state colour resolves through `--vscode-*` variables, and the hex values here are only fallbacks.",
+      "One accent, the Banana Glint, only for \"current\" and \"progress\".",
+      "Data drawn as rails, pills, rings, sparklines and stacked bars, with condensed Archivo numerals.",
+      "Two scales: editor density in panels (26px controls, 30px gutter rows), phone grammar in the sidebar (44px targets, 48px rows, 12px cards, 16px sheet).",
+      "Tactile micro-motion with one shared ease, fully removed under reduced motion.",
+      "Students can override the palette (`applyPalette`, `bb-palette`), so the system must hold with any accent."
+    ],
+    "rules": [
+      {
+        "name": "The Borrowed Ground Rule",
+        "body": "Every neutral and control colour is a `var(--vscode-*, fallback)` or a `color-mix` of the theme foreground. A raw hex outside the accent and state fallbacks is a bug.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Glint Rule",
+        "body": "The Banana Glint marks current state and progress only: the open tab, the current card, rails, tokens, rings. It never decorates headings, labels or empty space, and a screen shows it in a handful of places at most.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tint Not Paint Rule",
+        "body": "State surfaces are the state colour at 10-14% over the ground, with the solid colour reserved for text, icons and marks. Row icon tiles follow it: the state colour at 14% behind a solid icon.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Every number that can change, such as counts, times, scores and SHAs, is set with `tabular-nums` so columns never jitter.",
+        "section": "typography"
+      },
+      {
+        "name": "The Condensed Numeral Rule",
+        "body": "In the sidebar app, a number that is the point of its element (score, deadline, tokens, count) is Archivo at 700 and 75% width. Words never take the 75% width.",
+        "section": "typography"
+      },
+      {
+        "name": "The Em Rule",
+        "body": "Type sizes are `em` multiples of the user's VS Code font size and are never fixed px. Chart and calendar axes at 10px are the only exception.",
+        "section": "typography"
+      },
+      {
+        "name": "The Space Not Boxes Rule",
+        "body": "In panels a section is a title plus space. Raise a container only when it is a tile, panel or card with data inside, never to group prose.",
+        "section": "layout"
+      },
+      {
+        "name": "The Thumb Reach Rule",
+        "body": "In the sidebar app every pointer target is at least 44px tall, list rows are at least 48px, and long French strings wrap or ellipsize inside the row rather than shrinking the target.",
+        "section": "layout"
+      },
+      {
+        "name": "The Contrast Collapse Rule",
+        "body": "In high-contrast themes depth turns into borders: cards, groups, stat tiles and rails become a 1px contrast outline, the current card a 2px accent outline, the sheet and sticky bar a top border. A shadow, gradient or tint that survives in high contrast is a bug.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** resolve every neutral and control colour through `var(--vscode-*, fallback)`, and tint with `color-mix(in srgb, var(--fg) N%, transparent)`.",
+      "**Do** reserve the Banana Glint (#ffd84d to #ffae2e) for the current item and for progress: the open tab's indicator, the current card's outline and wash, rails, tokens, rings and chart lines.",
+      "**Do** draw data (rails, pills, sparklines, rings, stacked bars) instead of writing it out as sentences, and set its numbers in condensed Archivo with tabular figures.",
+      "**Do** give every sidebar target at least 44px and every app list row at least 48px; use 12px cards and groups, a 16px sheet, 10px big buttons and 16px screen gutters.",
+      "**Do** build app screens from grouped lists and big buttons, and keep panel lists on the 30px gutter row.",
+      "**Do** size type in `em` from the user's VS Code font size, and use the Archivo display face for titles and numbers only.",
+      "**Do** give pointer feedback within 140ms using `cubic-bezier(0.16, 1, 0.3, 1)` with a 1px press on buttons, and remove all motion (sheet rise, push and pop, shimmer) under `prefers-reduced-motion`.",
+      "**Do** check every surface in dark, light, high-contrast and high-contrast light themes, with a student palette override, and in the sidebar at 260px, 300px and 600px or wider.",
+      "**Do** use container queries, not viewport media queries, because the same views run in the sidebar and in a full panel."
+    ],
+    "donts": [
+      "**Don't** repaint the theme's ground, buttons, inputs, focus ring or links.",
+      "**Don't** let a shadow, gradient or tint survive in high-contrast themes; use contrast borders instead.",
+      "**Don't** use Epitech logos, colours or anything that makes Bananabox look official.",
+      "**Don't** use the glint for decoration, headings, labels or any border other than the current card, or spread it across more than a handful of elements per screen.",
+      "**Don't** wrap prose sections in boxes; separate them with space. Raise only cards, groups, tiles and panels that hold data.",
+      "**Don't** set fixed px font sizes or fixed widths that clip longer French strings; let labels wrap or ellipsize.",
+      "**Don't** animate on re-render. A route entrance or a sheet rise plays once."
+    ]
+  }
+}

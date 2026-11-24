@@ -4,12 +4,10 @@ import { buildHtml } from './webviewHtml';
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
   static readonly viewType = 'bananabox.sidebar';
-  static readonly calendarViewType = 'bananabox.calendar';
 
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly controller: Controller,
-    private readonly calendar = false,
   ) {}
 
   resolveWebviewView(view: vscode.WebviewView): void {
@@ -25,9 +23,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       webview,
       this.extensionUri,
       'sidebar',
-      undefined,
-      false,
-      this.calendar,
     );
     const detach = this.controller.attach(webview, 'sidebar');
     view.onDidDispose(detach);

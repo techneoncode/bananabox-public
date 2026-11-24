@@ -18,7 +18,7 @@ const themes = {
 for (const [name, vars] of Object.entries(themes)) {
   const cls = name === 'light' ? 'vscode-light' : name === 'hc' ? 'vscode-high-contrast' : 'vscode-dark';
   await writeFile(`${out}/${name}.html`, `<!doctype html><html lang="en"><meta charset="utf-8"><title>Bananabox preview · ${name}</title>
-<link rel="stylesheet" href="${webview}/codicon.css"><link rel="stylesheet" href="${webview}/styles.css"><style>${vars} html,body,#app,.shell{height:auto!important;overflow:visible!important}.scroll{overflow:visible!important}html.still *,html.still *::before,html.still *::after{animation:none!important;transition:none!important}</style>
+<link rel="stylesheet" href="${webview}/codicon.css"><link rel="stylesheet" href="${webview}/styles.css"><style>${vars} html,body,#app,.shell{height:auto!important;overflow:visible!important}.scroll{overflow:visible!important}html.fixed,html.fixed body,html.fixed #app,html.fixed .shell{height:100%!important;overflow:hidden!important}html.fixed .scroll{overflow-y:auto!important}html.still *,html.still *::before,html.still *::after{animation:none!important;transition:none!important}</style>
 <body class="${cls}" data-logo="${logo}"><div id="app"></div><script>
 const s=new URLSearchParams(location.search).get('surface')||'panel';document.body.dataset.surface=s;
 // Captures show the end state of every entrance; the live page keeps its motion.

@@ -86,7 +86,7 @@ export function renderSeason(ctx: Ctx, opts: { selected: number | null; onSelect
     const urgent = p.status === 'ongoing' && remaining < DAY;
     const isCurrent = p.id === ctx.state.currentProjectId;
     const selected = p.id === opts.selected;
-    const when = p.status === 'ongoing' ? t('card.left', { time: compactDuration(remaining) }) : p.status === 'upcoming' ? t('card.opensOn', { date: dateOnly(p.startDate, lang) }) : t('timeline.closed', { when: dateOnly(p.endDate, lang) });
+    const when = p.status === 'ongoing' ? t('card.left', { time: compactDuration(remaining, ctx.lang) }) : p.status === 'upcoming' ? t('card.opensOn', { date: dateOnly(p.startDate, lang) }) : t('timeline.closed', { when: dateOnly(p.endDate, lang) });
     const reg = p.endRegistrationDate && Date.parse(p.endRegistrationDate) > now && Date.parse(p.endRegistrationDate) < w.end ? pct(Date.parse(p.endRegistrationDate), w) : null;
     const label = `${p.name} · ${dateTime(p.startDate, lang)} → ${dateTime(p.endDate, lang)} · ${when}`;
     body.append(h('div.lane', { role: 'listitem', class: `${p.status} ${selected ? 'selected' : ''} ${isCurrent ? 'current' : ''} ${urgent ? 'urgent' : ''}` },

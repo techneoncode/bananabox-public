@@ -1,0 +1,157 @@
+/* ═════════════ sidebar project screen (project.ts) and its pages: phone scale, narrow widths ═════════════
+   Scoped to .app-project (the sidebar's app wrapper for a project), so the editor panel keeps its layout. */
+
+/* screen frame: 16px gutters (the shell's .content adds 12px) */
+.app-project .ps { display: grid; gap: 0; padding: 0 4px; min-width: 0; }
+/* the sticky bar must reach the scroller's bottom: no padding below the screen, the pane's or the content's */
+.content > .app-project { margin-bottom: -32px; }
+.app-split > .pane.app-project { padding-bottom: 0; }
+.app-split > .pane.app-project .ps-bar { margin-inline: calc(-1 * (var(--pad) + 4px)); }
+.app-project .ps-page .ab { padding-top: 4px; }
+.app-project .ab-title { font-size: 1.05em; }
+.app-project .ab .icon-btn, .app-project .ab .ia { width: var(--tap); height: var(--tap); }
+.app-project .ab-back { max-width: 64%; }
+.app-project .ab-back .ellipsis { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* hero */
+.app-project .ps-hero { display: grid; gap: 16px; min-width: 0; padding: 4px 0 0; }
+.app-project .ps-id { display: grid; gap: 4px; min-width: 0; }
+.app-project .ps-name { margin: 0; font-family: var(--display); font-size: 1.7em; font-weight: 700; line-height: 1.12; letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.app-project .ps-unit { margin: 0; color: var(--fg-2); font-size: var(--t-sm); overflow-wrap: anywhere; }
+.app-project .ps-chips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.app-project .ps-chips .chip { height: auto; min-height: 22px; white-space: normal; text-align: left; }
+
+/* deadline rail */
+.app-project .ps-deadline { display: grid; gap: 6px; min-width: 0; }
+.app-project .ps-dl-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; min-width: 0; }
+.app-project .ps-dl-label { color: var(--fg-2); font-size: var(--t-sm); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-project .ps-dl-time { flex: none; font-family: var(--display); font-size: 1.3em; font-weight: 700; font-stretch: 75%; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.app-project .ps-rail { position: relative; height: 8px; border-radius: 4px; background: var(--layer-2); overflow: hidden; }
+.app-project .ps-rail i { position: absolute; top: 0; bottom: 0; left: 0; border-radius: inherit; background: var(--banana); }
+.app-project .ps-deadline.urgent .ps-rail i { background: var(--fail); }
+.app-project .ps-deadline.urgent .ps-dl-time { color: var(--fail); }
+.app-project .ps-dl-sub { color: var(--fg-2); font-size: 0.82em; overflow-wrap: anywhere; }
+
+/* key state: best score with its attempts, tokens left */
+.app-project .ps-key { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; min-width: 0; }
+.app-project .ps-key:has(> :only-child) { grid-template-columns: minmax(0, 1fr); }
+.app-project .ps-stat { display: grid; align-content: start; gap: 4px; min-width: 0; padding: 12px; border-radius: var(--r-card); background: var(--layer-1); box-shadow: inset 0 0 0 1px var(--line-soft); }
+.app-project .ps-stat-label { color: var(--fg-2); font-size: var(--t-sm); line-height: 1.25; overflow-wrap: anywhere; }
+.app-project .ps-big { font-family: var(--display); font-size: 2em; font-weight: 700; font-stretch: 75%; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.app-project .ps-big small { margin-left: 2px; color: var(--fg-2); font-size: 0.45em; font-weight: 600; }
+.app-project .ps-big.none { color: var(--fg-3); }
+.app-project .ps-stat-sub { color: var(--fg-2); font-size: 0.82em; overflow-wrap: anywhere; }
+.app-project .ps-stat svg { display: block; width: 100%; height: 36px; }
+.app-project .ps-stat .tokens, .app-project .ps-stat .tok-blocks { max-width: 100%; }
+
+/* groups: 48px rows, long text wraps or truncates, never pushes the screen wide */
+.app-project .ps-groups { display: grid; gap: 20px; margin-top: 20px; min-width: 0; }
+.app-project .lg { min-width: 0; }
+.app-project .lg-body { min-width: 0; }
+.app-project .lr { min-width: 0; }
+.app-project .lr-text { min-width: 0; flex: 1 1 auto; }
+.app-project .lr-label { display: block; min-width: 0; overflow-wrap: anywhere; line-height: 1.25; }
+.app-project .lr-detail { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-project .lr-detail { color: var(--fg-2); font-size: 0.85em; }
+.app-project .lr-meta { flex: none; max-width: 40%; min-width: 0; overflow: hidden; text-align: right; color: var(--fg-2); font-variant-numeric: tabular-nums; }
+.app-project .lr-meta .chip { max-width: 100%; height: auto; min-height: 18px; white-space: normal; text-align: left; }
+.app-project .ps-score { font-family: var(--display); font-size: 1.1em; font-weight: 700; font-stretch: 75%; font-variant-numeric: tabular-nums; color: var(--fg); }
+.app-project .ps-warn { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; color: var(--warn); font-size: 0.9em; overflow-wrap: anywhere; }
+.app-project .ps-warn .codicon { flex: none; font-size: 12px; }
+.app-project .ps-warn + .ps-warn::before { content: '·'; margin-right: 4px; }
+
+/* sticky action bar, pinned above the tab bar */
+.app-project .ps-bar { position: sticky; bottom: 0; z-index: 5; display: grid; gap: 6px; margin: 16px -16px 0; padding: 8px 16px 10px; background: var(--side); box-shadow: 0 -1px 0 var(--line-soft), 0 -10px 24px -14px rgba(0, 0, 0, 0.55); }
+.app-project .ps-bar-status { display: flex; align-items: center; gap: 6px; min-width: 0; margin: 0; color: var(--fg-2); font-size: 0.82em; font-variant-numeric: tabular-nums; }
+.app-project .ps-bar-status span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-project .ps-bar-status .codicon { flex: none; font-size: 12px; }
+.app-project .ps-bar-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.app-project .ps-bar .bb { min-width: 0; min-height: var(--tap); padding-inline: 8px; }
+.app-project .ps-bar .bb span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* pages: the existing renderers, made single-column and touch-sized */
+.app-project .ps-body { min-width: 0; padding-bottom: 24px; }
+.app-project .ps-body .loop { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.app-project .ps-body .loop > .report-col { padding-left: 0; box-shadow: none; min-width: 0; }
+.app-project .ps-body .loop > .pipeline-col { min-width: 0; }
+.app-project .ps-body .run-cta { grid-template-columns: minmax(0, 1fr); }
+.app-project .ps-body .chip { height: auto; min-height: 18px; max-width: 100%; white-space: normal; text-align: left; line-height: 1.35; padding-block: 2px; }
+.app-project .ps-body .btn { min-height: 36px; max-width: 100%; }
+.app-project .ps-body .btn.primary { min-height: var(--tap); }
+.app-project .ps-body .btn.small { min-height: 32px; }
+.app-project .ps-body .icon-btn { width: var(--tap); height: var(--tap); }
+.app-project .ps-body .btn-tag { min-height: 36px; max-width: 100%; }
+.app-project .ps-body .btn-tag { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* grader task rows: name wraps, chips drop under it, the count never overlaps */
+.app-project .ps-body .g-row { min-height: var(--tap); align-items: center; }
+.app-project .ps-body button.g-row { padding-top: 4px; padding-bottom: 4px; }
+.app-project .ps-body .g-main { flex-wrap: wrap; align-items: center; column-gap: 8px; row-gap: 4px; min-width: 0; padding: 6px 0; }
+.app-project .ps-body .g-main > .name { flex: 1 1 min(100%, 12em); min-width: 0; overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
+.app-project .ps-body .g-main > .chip { flex: none; }
+.app-project .ps-body .g-main > .chev { flex: none; }
+.app-project .ps-body .g-side { flex: none; white-space: nowrap; }
+.app-project .ps-body .g-row > .gut { min-width: 0; }
+.app-project .ps-body .lr-label, .app-project .ps-body .lr-detail { white-space: normal; overflow-wrap: anywhere; }
+
+/* high contrast: tints and shadows collapse to borders */
+body.vscode-high-contrast .app-project .ps-stat,
+body.vscode-high-contrast-light .app-project .ps-stat { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+body.vscode-high-contrast .app-project .ps-bar,
+body.vscode-high-contrast-light .app-project .ps-bar { box-shadow: none; border-top: 1px solid var(--line); }
+body.vscode-high-contrast .app-project .ps-rail,
+body.vscode-high-contrast-light .app-project .ps-rail { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+
+/* activities: filters wrap, slot summary wraps its load bar under the title */
+.app-project .seg { display: flex; flex-wrap: wrap; max-width: 100%; }
+.app-project .seg .filter { height: auto; min-height: 32px; white-space: normal; text-align: left; }
+.app-project .activity-slots > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-height: var(--tap); min-width: 0; }
+.app-project .activity-slots .slot-load { flex: 1 1 100%; min-width: 0; }
+.app-project .next-up { margin-top: 20px; min-width: 0; }
+.app-project .ps-body select { max-width: 100%; min-width: 0; }
+
+/* grader: the style distribution sits under the trend as a short horizontal bar with its legend, not a tall side slab */
+.app-project .ps-body .report-visuals { grid-template-columns: minmax(0, 1fr); }
+.app-project .ps-body .report-visuals .style-dist { min-width: 0; max-width: none; width: 100%; }
+.app-project .ps-body .report-visuals .stack-bar { height: 10px; min-height: 10px; width: 100%; }
+/* condensed numerals squeeze word gaps: keep "2 j 13 h" readable */
+.app-project .ps-dl-time, .app-project .ps-big, .app-project .ps-score { word-spacing: 0.18em; }
+
+/* grader page before the first run: what will be graded, then one Run */
+.app-project .fr { display: grid; gap: 16px; }
+.app-project .fr-empty { display: flex; align-items: center; gap: 8px; color: var(--fg-2); }
+.app-project .fr-empty .codicon { font-size: 18px; color: var(--fg-3); }
+.app-project .fr-next { display: grid; gap: 8px; padding: 12px 14px 14px; border-radius: var(--r-card); background: var(--layer-1); box-shadow: inset 0 0 0 1px var(--line-soft); }
+.app-project .fr-next-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -6px -8px -4px 0; }
+.app-project .fr-next-title { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.app-project .fr-sha { display: flex; align-items: center; gap: 10px; min-height: var(--tap); padding: 0 12px; border: 0; border-radius: 10px; background: var(--layer-2); color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
+.app-project .fr-sha:hover { background: var(--hover); }
+.app-project .fr-sha-id { font-family: var(--display); font-size: 1.5em; font-weight: 700; font-stretch: 75%; letter-spacing: 0.02em; color: var(--banana-ink); }
+.app-project .fr-branch { display: inline-flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; color: var(--fg-2); font-size: var(--t-sm); text-overflow: ellipsis; white-space: nowrap; }
+.app-project .fr-copy { margin-left: auto; color: var(--fg-3); }
+.app-project .fr-muted { color: var(--fg-2); font-size: var(--t-sm); }
+.app-project .fr-warn { display: flex; align-items: flex-start; gap: 6px; font-size: var(--t-sm); }
+.app-project .fr-hint { text-align: center; }
+body.vscode-high-contrast .app-project .fr-next, body.vscode-high-contrast-light .app-project .fr-next { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+body.vscode-high-contrast .app-project .fr-sha, body.vscode-high-contrast-light .app-project .fr-sha { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+/* commit warnings sit on their own line under the row's status, never glued to it */
+.app-project .lr-detail .ps-warn { display: flex; align-items: flex-start; gap: 4px; margin-top: 3px; white-space: normal; }
+.app-project .lr-detail .ps-warn .codicon { margin-top: 2px; }
+.app-project .lr-detail .ps-warn + .ps-warn::before { content: none; }
+.app-project .lr-detail:has(.ps-warn) { white-space: normal; overflow: visible; }
+.app-project .fr-warn + .fr-warn::before { content: none; }
+
+/* Details page */
+.app-project .ps-details { display: grid; gap: 20px; }
+.app-project .ps-details .lg + .lg { margin-top: 0; }
+.app-project .ps-desc { color: var(--fg-2); line-height: 1.55; overflow-wrap: anywhere; }
+.app-project .ps-when { display: grid; justify-items: end; gap: 1px; font-variant-numeric: tabular-nums; }
+.app-project .ps-when > span:first-child { color: var(--fg); font-weight: 600; }
+.app-project .ps-when-t { color: var(--fg-2); font-size: 0.92em; }
+.app-project .ps-details .lr-meta { max-width: 55%; white-space: normal; overflow: visible; }
+.app-project .ps-details .person { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+.app-project .ps-details .person-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-project .ps-unit-desc { border-radius: var(--r-card); background: var(--layer-1); box-shadow: inset 0 0 0 1px var(--line-soft); }
+.app-project .ps-unit-desc > summary { display: flex; align-items: center; gap: 8px; min-height: var(--row); padding: 0 12px; font-weight: 500; }
+.app-project .ps-unit-desc[open] > summary .chev { transform: rotate(90deg); }
+.app-project .ps-unit-body { padding: 0 14px 14px; color: var(--fg-2); overflow-wrap: anywhere; }
+body.vscode-high-contrast .app-project .ps-unit-desc, body.vscode-high-contrast-light .app-project .ps-unit-desc { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }

@@ -19,6 +19,10 @@ interface RepoInfo {
 
 const REPO_CACHE_KEY = 'bananabox.repoInfo.v1';
 const LOCAL_PATHS_KEY = 'bananabox.localPaths.v1';
+/** Last project list per account: a reloaded window (Open folder) draws it at once, then refreshes. */
+const PROJECTS_CACHE_KEY = 'bananabox.projects.v1';
+
+interface ProjectsCache { login: string; at: number; projects: ProjectVM[] }
 
 export class ProjectService implements vscode.Disposable {
   private readonly emitter = new vscode.EventEmitter<void>();
@@ -65,6 +69,7 @@ export class ProjectService implements vscode.Disposable {
     this.noResultsUntil.clear();
     this.repoInfo = {};
     void this.memento.update(REPO_CACHE_KEY, undefined);
+    void this.memento.update(PROJECTS_CACHE_KEY, undefined);
     void vscode.commands.executeCommand(
       'setContext',
       'bananabox.hasCurrentProject',
@@ -84,6 +89,7 @@ export class ProjectService implements vscode.Disposable {
     this.resourceRequests.clear();
     this.loading = true;
     this.error = null;
+    if (!this.projects && (await this.seedFromCache()) && gen !== this.generation) return;
     this.emitter.fire();
 
     const base = config.apiBaseUrl();
@@ -131,7 +137,22 @@ export class ProjectService implements vscode.Disposable {
     this.loading = false;
     await this.detectCurrent();
     this.emitter.fire();
+    const login = this.login();
+    if (login && partial.length === 0) {
+      void this.memento.update(PROJECTS_CACHE_KEY, { login, at: this.lastUpdated, projects: this.projects } satisfies ProjectsCache);
+    }
     void this.enrichRepoLinks(gen);
+  }
+
+  /** Shows the account's last project list while the fresh one loads. True when it seeded something. */
+  private async seedFromCache(): Promise<boolean> {
+    const login = this.login();
+    const cached = login ? this.memento.get<ProjectsCache>(PROJECTS_CACHE_KEY) : undefined;
+    if (!cached || cached.login !== login || !Array.isArray(cached.projects)) return false;
+    this.projects = sortProjects(cached.projects.map((p) => this.withCachedRepo(p)));
+    this.lastUpdated = cached.at;
+    await this.detectCurrent();
+    return true;
   }
 
   /** Re-evaluates which project (if any) matches the folders opened in VS Code. */

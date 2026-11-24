@@ -126,7 +126,7 @@ function row(ctx: Ctx, p: ProjectVM, index = 0): HTMLElement {
         p.repoEnabled && h('span', { title: t('badge.repo') }, icon('repo')),
         p.groupSizeMax > 1 && h('span', { title: t('overview.groupSize') }, icon('organization'), `${p.groupSizeMin}–${p.groupSizeMax}`)),
       p.status === 'ongoing' && h('span.rail-thin', { class: urgent ? 'urgent' : '' }, h('span', { style: { width: `${Math.round(progress(p.startDate, p.endDate, now) * 100)}%` } }))),
-    h('span.row-side', p.status === 'ongoing' && h('span', { class: urgent ? 'urgent' : '' }, t('card.left', { time: compactDuration(left) })), p.status === 'upcoming' && h('span', relative(p.startDate, lang))),
+    h('span.row-side', p.status === 'ongoing' && h('span', { class: urgent ? 'urgent' : '' }, t('card.left', { time: compactDuration(left, ctx.lang) })), p.status === 'upcoming' && h('span', relative(p.startDate, lang))),
     (ctx.surface === 'sidebar' || ctx.home) && progressStrip(ctx, p, index));
 }
 

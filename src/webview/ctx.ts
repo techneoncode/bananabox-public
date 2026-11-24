@@ -17,7 +17,16 @@ export interface ResultEntry {
   error: string | null;
 }
 
+/** Sidebar app: the bottom tabs. */
+export type AppTab = 'home' | 'projects' | 'agenda' | 'me';
+
 export interface UiState {
+  /** Sidebar app: the bottom tab shown; unset opens Projects. */
+  appTab?: AppTab;
+  /** Sidebar app: the project whose quick sheet is open over the current screen. */
+  sheetProject?: number | null;
+  /** Sidebar app: the board column shown on the Projects tab. */
+  boardColumn?: 'ongoing' | 'upcoming' | 'past';
   /** A page shown instead of the surface's own content (sidebar overview, Home). */
   page?: 'appearance' | null;
   /** Colours being edited on the appearance page, before and while they are saved. */

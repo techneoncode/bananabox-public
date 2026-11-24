@@ -122,7 +122,7 @@ function card(ctx: Ctx, p: ProjectVM, index: number, total: number, inner: numbe
       h('span.sb-pcard-name',
         h('span.name.ellipsis', { style: { viewTransitionName: `sb-title-${p.id}` } }, p.name),
         h('span.unit.ellipsis', [p.unitCode, p.unitName].filter(Boolean).join(' · '))),
-      ring(clock.elapsed, { size: 36, stroke: 4, tone: clock.urgent ? 'urgent' : 'live', label: compactDuration(left).split(' ')[0], aria: `${t(`gauge.${clock.key}`)} ${compactDuration(left)}` })),
+      ring(clock.elapsed, { size: 36, stroke: 4, tone: clock.urgent ? 'urgent' : 'live', label: compactDuration(left, ctx.lang).split('\u00a0').slice(0, ctx.lang === 'fr' ? 2 : 1).join('\u00a0'), aria: `${t(`gauge.${clock.key}`)} ${compactDuration(left)}` })),
     h('span.sb-pcard-foot',
       latest?.score != null ? h('span.sb-pcard-score', rollNumber(`score:${p.id}`, latest.score), h('small', '%'))
         : graderPending(ctx, p) ? waitLine(t('readout.loading')) : h('span.sb-pcard-score.none', '—'),

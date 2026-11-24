@@ -10,14 +10,14 @@ const DAY = 86_400_000;
 const HOUR_PX = 40;
 
 type View = NonNullable<Ctx['ui']['calendar']>;
-const view = (ctx: Ctx): View => ctx.ui.calendar ??= { mode: 'day', date: isoDay(new Date()), open: null, confirm: null };
-const parseDay = (iso: string) => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); };
-const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+export const view = (ctx: Ctx): View => ctx.ui.calendar ??= { mode: 'day', date: isoDay(new Date()), open: null, confirm: null };
+export const parseDay = (iso: string) => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); };
+export const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 /** Slot times as the timetable shows them: 24h mono, the same in both languages. */
-const timeOnly = (iso: string, lang: string) => new Intl.DateTimeFormat(lang, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso));
+export const timeOnly = (iso: string, lang: string) => new Intl.DateTimeFormat(lang, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso));
 
 /** What a session means for the student: drives colour, icon and label together (never colour alone). */
-function state(e: CalendarEventVM): { tone: Tone; glyph: string; key: string } {
+export function state(e: CalendarEventVM): { tone: Tone; glyph: string; key: string } {
   if (e.registered) return { tone: 'pass', glyph: 'pass-filled', key: 'calendar.registered' };
   if (e.alternative) return { tone: 'muted', glyph: 'circle-slash', key: 'calendar.alternative' };
   if (e.required) return Date.parse(e.end) < Date.now() ? { tone: 'muted', glyph: 'history', key: 'calendar.missed' } : { tone: 'fail', glyph: 'error', key: 'calendar.toRegister' };
@@ -25,7 +25,7 @@ function state(e: CalendarEventVM): { tone: Tone; glyph: string; key: string } {
 }
 
 /** Asks the host for the week holding the shown day, when it is not the loaded one. */
-function ensureLoaded(ctx: Ctx, v: View): void {
+export function ensureLoaded(ctx: Ctx, v: View): void {
   const from = isoDay(weekStart(parseDay(v.date))), to = isoDay(addDays(parseDay(from), 6));
   const cal = ctx.calendar;
   if (cal && cal.from === from && cal.to === to && (cal.events || cal.loading || cal.error)) return;
@@ -134,7 +134,7 @@ function timetable(ctx: Ctx, events: CalendarEventVM[], days: Date[], openDay: (
 }
 
 /** A session's facts and its registration: one confirmed click, or a free slot to pick. */
-function detail(ctx: Ctx, e: CalendarEventVM): HTMLElement {
+export function detail(ctx: Ctx, e: CalendarEventVM): HTMLElement {
   const { t, lang } = ctx, v = view(ctx), s = state(e), cal = ctx.calendar!;
   const busy = cal.pending !== null;
   const open = canRegister(e) && !e.full;
@@ -261,7 +261,7 @@ window.addEventListener('keydown', e => {
  * Automatic registration, as a sheet over the calendar: the switch, what it will do this week (a live preview from the
  * shown sessions), the preferred slots per kind of session, and what it did lately.
  */
-function renderSettings(ctx: Ctx, prefs: CalendarPrefs, events: CalendarEventVM[], log: Array<{ at: number; text: string; ok: boolean }>): HTMLElement {
+export function renderSettings(ctx: Ctx, prefs: CalendarPrefs, events: CalendarEventVM[], log: Array<{ at: number; text: string; ok: boolean }>): HTMLElement {
   const { t, lang } = ctx, v = view(ctx);
   sheetCtx = ctx;
   const close = () => { v.settings = false; ctx.rerender(); };
