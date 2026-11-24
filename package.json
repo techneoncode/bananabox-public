@@ -2,7 +2,7 @@
   "name": "bananabox",
   "displayName": "Bananabox",
   "description": "%extension.description%",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "publisher": "techneoncode",
   "license": "MIT",
   "icon": "images/icon_nobg.png",
