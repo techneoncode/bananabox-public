@@ -3,7 +3,7 @@
 All notable changes to Bananabox are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [2.1.0] - 2026-11-25
 
 ### Added
 - CLion plugin: the shared extension code now runs as a CLion 2026.3 plugin. Download the plugin ZIP from the release page; the remote configuration exposes it as `clion_latest`.
