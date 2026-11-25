@@ -3,6 +3,13 @@
 All notable changes to Bananabox are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.1.1] - 2026-11-25
+
+### Changed
+- Updates are considerably faster and smoother. The auto-updater now restarts only Bananabox, without reloading VS Code, at a quiet moment: never during a grader run or a debug session, nor while you are typing. A short countdown tells you first, and **Later** pushes it back by 5 minutes, up to three times.
+- Defense reminders are now optional and off by default. Turn them on in **Me** to get the full-screen countdown before a defense, follow-up or midterm.
+- New VS Code Marketplace page, with its own overview and current screenshots. The GitHub README is rewritten too.
+
 ## [2.1.0] - 2026-11-25
 
 ### Added
