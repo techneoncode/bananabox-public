@@ -1,3 +1,4 @@
+import { inflateRawSync } from 'node:zlib';
 import * as vscode from 'vscode';
 import { compareVersions } from '../domain/remotePolicy';
 import type { ReleaseStep } from '../shared/adminTypes';
@@ -33,6 +34,41 @@ async function github(token: string, method: string, url: string, body?: unknown
   return response.status === 204 ? {} : response.json();
 }
 
+/** The first entry whose name passes `wanted`, read from the ZIP directory (stored or deflated). */
+function zipEntry(zip: Buffer, wanted: (name: string) => boolean): Buffer | undefined {
+  let end = zip.length - 22;
+  while (end >= 0 && zip.readUInt32LE(end) !== 0x06054b50) end--;
+  if (end < 0) throw new Error('not a zip');
+  const count = zip.readUInt16LE(end + 10);
+  let offset = zip.readUInt32LE(end + 16);
+  for (let i = 0; i < count; i++) {
+    const nameLength = zip.readUInt16LE(offset + 28);
+    const name = zip.subarray(offset + 46, offset + 46 + nameLength).toString('utf8');
+    if (wanted(name)) {
+      const local = zip.readUInt32LE(offset + 42);
+      const start = local + 30 + zip.readUInt16LE(local + 26) + zip.readUInt16LE(local + 28);
+      const data = zip.subarray(start, start + zip.readUInt32LE(offset + 20));
+      const method = zip.readUInt16LE(offset + 10);
+      if (method !== 0 && method !== 8) throw new Error(`unsupported compression ${method}`);
+      return method === 8 ? inflateRawSync(data, { maxOutputLength: 64 * 1024 * 1024 }) : data;
+    }
+    offset += 46 + nameLength + zip.readUInt16LE(offset + 30) + zip.readUInt16LE(offset + 32);
+  }
+  return undefined;
+}
+
+/** The CLion ZIP holds the plugin jar (`<plugin>/lib/*.jar`), whose root carries META-INF/plugin.xml. */
+function assertClionZip(zip: Buffer, version: string): void {
+  let valid = false;
+  try {
+    const jar = zipEntry(zip, name => /(^|\/)lib\/[^/]+\.jar$/.test(name));
+    valid = !!jar && !!zipEntry(jar, name => name === 'META-INF/plugin.xml');
+  } catch {
+    valid = false;
+  }
+  if (!valid) throw new ReleaseError('not_clion', `bananabox-clion-${version}.zip is not a CLion plugin ZIP.`);
+}
+
 export interface PublishedRelease {
   version: string;
   url: string;
@@ -47,8 +83,9 @@ export async function publishRelease(
   bytes: Buffer,
   notes: string,
   currentVersion: string,
-  apply: (version: string, latest: string) => Promise<unknown>,
+  apply: (version: string, latest: string, clionLatest: string | null) => Promise<unknown>,
   step: (step: ReleaseStep, version?: string) => void,
+  clionBytes?: Buffer,
 ): Promise<PublishedRelease> {
   step('reading');
   const manifest = vsixManifest(bytes);
@@ -59,6 +96,7 @@ export async function publishRelease(
   if (compareVersions(version, currentVersion) <= 0) {
     throw new ReleaseError('not_newer', `Version ${version} is not newer than ${currentVersion}.`);
   }
+  if (clionBytes) assertClionZip(clionBytes, version);
 
   step('account', version);
   const session = await vscode.authentication.getSession('github', ['repo'], { createIfNone: true });
@@ -81,9 +119,14 @@ export async function publishRelease(
 
   step('uploading', version);
   const name = `bananabox-${version}.vsix`;
+  const clionName = `bananabox-clion-${version}.zip`;
   let asset: any;
+  let clionAsset: any;
   try {
     asset = await github(token, 'POST', `https://uploads.github.com/repos/${REPO}/releases/${release.id}/assets?name=${name}`, undefined, bytes);
+    if (clionBytes) {
+      clionAsset = await github(token, 'POST', `https://uploads.github.com/repos/${REPO}/releases/${release.id}/assets?name=${clionName}`, undefined, clionBytes);
+    }
   } catch (error) {
     // A release without its VSIX would break every automatic update: take it back.
     await github(token, 'DELETE', `/releases/${release.id}`).catch(() => undefined);
@@ -91,16 +134,19 @@ export async function publishRelease(
     throw error;
   }
   const latest = asset?.browser_download_url ?? `https://github.com/${REPO}/releases/download/v${version}/${name}`;
+  // Without a CLion ZIP in this release the policy must not keep the previous one.
+  const clionLatest = clionBytes ? clionAsset?.browser_download_url ?? `https://github.com/${REPO}/releases/download/v${version}/${clionName}` : null;
 
   step('policy', version);
-  await apply(version, latest);
+  await apply(version, latest, clionLatest);
 
   step('apiJson', version);
   const file = await github(token, 'GET', '/contents/api.json?ref=main');
   if (file?.content) {
     const text = Buffer.from(file.content, 'base64').toString('utf8')
       .replace(/("version":\s*)"[^"]*"/, `$1"${version}"`)
-      .replace(/("latest":\s*)"[^"]*"/, `$1"${latest}"`);
+      .replace(/("latest":\s*)"[^"]*"/, `$1"${latest}"`)
+      .replace(/("clion_latest":\s*)(?:null|"[^"]*")/, `$1${clionLatest ? `"${clionLatest}"` : 'null'}`);
     await github(token, 'PUT', '/contents/api.json', {
       message: `release: ${version}`,
       content: Buffer.from(text).toString('base64'),

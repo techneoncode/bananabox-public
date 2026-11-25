@@ -57,7 +57,7 @@ test('responses are uniform JSON and unknown routes or methods are rejected clea
   const res = await call('GET', '/v1/config');
   assert.equal(res.json.ok, true);
   assert.equal(res.headers.get('cache-control'), 'no-store');
-  assert.deepEqual(Object.keys(res.json.data).sort(), ['admins', 'authorized', 'banned', 'banned_groups', 'latest', 'lens_active', 'my_api_active', 'version']);
+  assert.deepEqual(Object.keys(res.json.data).sort(), ['admins', 'authorized', 'banned', 'banned_groups', 'clion_latest', 'latest', 'lens_active', 'my_api_active', 'version']);
   const missing = await call('GET', '/nope');
   assert.deepEqual([missing.status, missing.json.ok, missing.json.error.code], [404, false, 'not_found']);
   const method = await call('DELETE', '/v1/config');
@@ -185,6 +185,27 @@ test('policy: validated like the extension and reflected in the public config', 
   }
   assert.equal((await fetch(BASE + '/v1/policy', { method: 'PUT', headers: { Authorization: `Bearer ${session}` }, body: '{' })).status, 400);
   await asAdmin('PUT', '/v1/policy', { ...good, version: '1.3.4', latest: good.latest.replaceAll('1.4.0', '1.3.4'), my_api_active: true });
+});
+
+test('policy: the CLion ZIP is validated against the version, exposed, kept when omitted and cleared on a version change', async () => {
+  const base = 'https://github.com/techneoncode/bananabox-public/releases/download/v1.5.0/';
+  const good = { lens_active: true, my_api_active: true, version: '1.5.0', latest: `${base}bananabox-1.5.0.vsix` };
+  const clion = `${base}bananabox-clion-1.5.0.zip`;
+  for (const bad of [clion.replace('v1.5.0', 'v1.5.1'), clion.replace('bananabox-clion-', 'bananabox-'), `${base}bananabox-clion-1.5.0.jar`, 'https://evil.example/bananabox-clion-1.5.0.zip']) {
+    assert.equal((await asAdmin('PUT', '/v1/policy', { ...good, clion_latest: bad })).status, 400, bad);
+  }
+  assert.equal((await asAdmin('PUT', '/v1/policy', { ...good, clion_latest: clion })).status, 200);
+  assert.equal((await call('GET', '/v1/config')).json.data.clion_latest, clion);
+  assert.equal((await asAdmin('GET', '/v1/policy')).json.data.clion_latest, clion);
+  assert.equal((await asAdmin('PUT', '/v1/policy', good)).json.data.clion_latest, clion, 'omitted keeps the stored ZIP');
+  assert.equal((await asAdmin('PUT', '/v1/policy', { ...good, clion_latest: null })).json.data.clion_latest, null, 'null clears it');
+  await asAdmin('PUT', '/v1/policy', { ...good, clion_latest: clion });
+  const next = { lens_active: true, my_api_active: true, version: '1.5.1', latest: `${base.replace('v1.5.0', 'v1.5.1')}bananabox-1.5.1.vsix` };
+  assert.equal((await asAdmin('PUT', '/v1/policy', next)).json.data.clion_latest, null, 'a version change clears the stale ZIP');
+  const audited = (await logs()).find(l => l.action === 'policy.update');
+  assert.equal(audited.detail.to.clion_latest, null, 'policy.update records clion_latest');
+  // Back to the version the stats test expects.
+  await asAdmin('PUT', '/v1/policy', { lens_active: true, my_api_active: true, version: '1.3.4', latest: 'https://github.com/techneoncode/bananabox-public/releases/download/v1.3.4/bananabox-1.3.4.vsix' });
 });
 
 test('admin accounts: @epitech.eu only, strong password, unique, never exposes secrets', async () => {

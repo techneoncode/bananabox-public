@@ -8,7 +8,7 @@ Every response is JSON: `{ "ok": true, "data": ... }` or `{ "ok": false, "error"
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/v1/config` | Policy read every minute: `lens_active`, `my_api_active`, `version`, `latest`, `authorized` (names), `banned` (`[{ user, features }]`) and `admins` (the `whoami` of each admin, which only decides who sees the dashboard in the extension). |
+| `GET` | `/v1/config` | Policy read every minute: `lens_active`, `my_api_active`, `version`, `latest`, `clion_latest` (`null` when unset), `authorized` (names), `banned` (`[{ user, features }]`) and `admins` (the `whoami` of each admin, which only decides who sees the dashboard in the extension). |
 | `POST` | `/v1/nonce` | Returns a single-use nonce (valid 5 minutes). |
 | `POST` | `/v1/installs` | `{ installId, version, account?, nonce }`: records a launch. `account` is the OS account name; it is stored if valid as a ban name, and listed in `users` by `GET /v1/stats`. Repeats within 60 s are not counted. |
 | `DELETE` | `/v1/installs` | `{ installId, nonce }`: deletes everything stored for this installation. |
@@ -53,7 +53,7 @@ Usable by any admin account and by root.
 | `DELETE` | `/v1/banned/:id` | Remove an entry. |
 | `GET` / `POST` | `/v1/authorized` | List / add `{ name, reason? }`: accounts that bypass the activation switches. |
 | `DELETE` | `/v1/authorized/:id` | Remove an entry. |
-| `GET` / `PUT` | `/v1/policy` | `{ lens_active, my_api_active, version, latest }`. `latest` must be the `bananabox-<version>.vsix` asset of release `v<version>`. |
+| `GET` / `PUT` | `/v1/policy` | `{ lens_active, my_api_active, version, latest, clion_latest? }`. `latest` must be the `bananabox-<version>.vsix` asset of release `v<version>`. `clion_latest` is optional: the `bananabox-clion-<version>.zip` asset of the same release, or `null`. Omitting it keeps the stored value, unless `version` changes, which clears it. |
 | `GET` | `/v1/stats` | Installations, active (seen in the last 30 days), inactive, obsolete (older than the policy version), launches, per-version counts, `users` (reported account names) and `timeline` (30 UTC days: `new` installations and `last_seen` counts). |
 | `GET` | `/v1/versions` | Per-version counts with an `obsolete` flag. |
 | `GET` | `/v1/updates?limit=` | Update history, newest first (1 to 500, default 100). |

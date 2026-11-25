@@ -2611,6 +2611,8 @@ const clion: Record<Lang, Dict> = {
     'update.finished': 'Ready to install on restart',
     'update.step.installing': 'Prepare installation in CLion',
     'update.reloadHint': 'Restart CLion to activate the new version.',
+    'update.clionAvailable': 'Bananabox {version} is available for CLion. Download the plugin ZIP, install it from disk in CLion, then restart the IDE.',
+    'update.clionDownload': 'Download',
   },
   fr: {
     'availability.refreshVSCode': 'Redémarrer CLion',
@@ -2625,6 +2627,8 @@ const clion: Record<Lang, Dict> = {
     'update.finished': 'Prêt à installer au redémarrage',
     'update.step.installing': 'Préparer l’installation dans CLion',
     'update.reloadHint': 'Redémarrez CLion pour activer la nouvelle version.',
+    'update.clionAvailable': 'Bananabox {version} est disponible pour CLion. Téléchargez le ZIP du plugin, installez-le depuis le disque dans CLion, puis redémarrez l’IDE.',
+    'update.clionDownload': 'Télécharger',
   },
 };
 

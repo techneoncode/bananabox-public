@@ -113,13 +113,13 @@ export class AdminView implements vscode.WebviewViewProvider {
     }
   }
 
-  private async publish(file: string, bytes: Buffer, notes: string): Promise<void> {
+  private async publish(file: string, bytes: Buffer, notes: string, clionBytes?: Buffer): Promise<void> {
     if (this.state.release && !['done', 'error'].includes(this.state.release.step)) return;
     const current = this.state.snapshot?.policy.version;
     if (!current) return;
     const release = (step: ReleaseStep, version?: string) => this.set({ release: { file, step, version } });
     try {
-      const published = await publishRelease(bytes, notes, current, (version, latest) => this.service.setPolicy({ version, latest }), release);
+      const published = await publishRelease(bytes, notes, current, (version, latest, clion_latest) => this.service.setPolicy({ version, latest, clion_latest }), release, clionBytes);
       this.set({ release: { file, step: 'done', version: published.version, url: published.url } });
       await this.run(async () => undefined);
     } catch (error) {
@@ -200,7 +200,8 @@ export class AdminView implements vscode.WebviewViewProvider {
       case 'publishRelease':
         if (!isText(message.file, 200) || typeof message.data !== 'string' || message.data.length > MAX_VSIX_BASE64) return;
         if (message.notes !== undefined && !isText(message.notes, 20_000)) return;
-        return this.publish(message.file, Buffer.from(message.data, 'base64'), message.notes ?? '');
+        if (message.clionData !== undefined && (typeof message.clionData !== 'string' || message.clionData.length > MAX_VSIX_BASE64)) return;
+        return this.publish(message.file, Buffer.from(message.data, 'base64'), message.notes ?? '', message.clionData ? Buffer.from(message.clionData, 'base64') : undefined);
     }
   }
 }

@@ -5,6 +5,8 @@ export interface RemoteConfig {
   my_api_active: boolean;
   version: string;
   latest: string;
+  /** The CLion plugin ZIP of the same release; absent from older API versions. */
+  clion_latest?: string;
   authorized: string[];
   banned: BannedEntry[];
   /** Whole promotions and campuses; absent from older API versions. */
@@ -170,6 +172,19 @@ export function latestUrl(latest: string, version: string): string {
   return latest;
 }
 
+/**
+ * Checks that `value` is the CLion plugin ZIP of the public release tagged
+ * `v<version>`, named `bananabox-clion-<version>.zip`. Anything else is dropped:
+ * the field is optional and must never disable the VS Code side.
+ */
+export function clionLatestUrl(value: unknown, version: string): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const match = RELEASE_URL.exec(value);
+  return match && match[1] === `v${version}` && match[2] === `bananabox-clion-${version}.zip`
+    ? value
+    : undefined;
+}
+
 const isFeature = (value: unknown): value is RemoteFeature =>
   value === 'lens_active' || value === 'my_api_active';
 
@@ -223,12 +238,14 @@ export function parseRemoteConfig(value: unknown): RemoteConfig {
   }
   parseSemver(config.version);
   latestUrl(config.latest, config.version);
+  const clionLatest = clionLatestUrl(config.clion_latest, config.version);
 
   return {
     lens_active: config.lens_active,
     my_api_active: config.my_api_active,
     version: config.version,
     latest: config.latest,
+    ...(clionLatest !== undefined && { clion_latest: clionLatest }),
     authorized: [...config.authorized],
     banned: config.banned.map(entry => ({ user: entry.user, ...detail(entry) })),
     banned_groups: (config.banned_groups ?? []).map(entry => ({

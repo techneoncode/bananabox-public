@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { deflateRawSync } from 'node:zlib';
 import { readFile } from 'node:fs/promises';
 import * as vscode from 'vscode';
-import { compareVersions, latestUrl, matchesGroup, parseRemoteConfig, remoteStatus, type RemoteConfig, type RemoteFeature } from '../domain/remotePolicy';
+import { clionLatestUrl, compareVersions, latestUrl, matchesGroup, parseRemoteConfig, remoteStatus, type RemoteConfig, type RemoteFeature } from '../domain/remotePolicy';
 import { RemoteControl, REMOTE_CONFIG_URL } from '../services/remoteControl';
 import { remoteFeatures } from '../services/remoteFeatures';
 import { downloadAndInstall, validateVsix, type ExtensionUpdateProgress } from '../services/extensionUpdate';
@@ -465,4 +465,15 @@ test('a temporary ban applies until its end, also from a cached policy, then lif
   for (const until of ['tomorrow', {}]) {
     assert.throws(() => parseRemoteConfig({ ...baseline, banned: [{ ...ban('zoe'), until }] }));
   }
+});
+
+test('remote config: clion_latest is optional and kept only when it is the CLion ZIP of the same release', () => {
+  const release = 'https://github.com/techneoncode/bananabox-public/releases/download/v2.0.2';
+  const base = { lens_active: true, my_api_active: true, version: '2.0.2', latest: `${release}/bananabox-2.0.2.vsix`, authorized: [], banned: [] };
+  const zip = `${release}/bananabox-clion-2.0.2.zip`;
+  assert.equal(parseRemoteConfig({ ...base, clion_latest: zip }).clion_latest, zip);
+  assert.equal(parseRemoteConfig(base).clion_latest, undefined);
+  assert.equal(parseRemoteConfig({ ...base, clion_latest: base.latest }).clion_latest, undefined);
+  assert.equal(parseRemoteConfig({ ...base, clion_latest: 'https://example.com/bananabox-clion-2.0.2.zip' }).clion_latest, undefined);
+  assert.equal(clionLatestUrl(42, '2.0.2'), undefined);
 });

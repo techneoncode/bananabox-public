@@ -53,6 +53,7 @@ const draft = {
 };
 /** VSIX chosen for the next release, and whether a file is dragged over the drop zone. */
 let picked: File | null = null;
+let pickedClion: File | null = null;
 let dragging = false;
 const RELEASE_STEPS: ReleaseStep[] = ['reading', 'account', 'creating', 'uploading', 'policy', 'apiJson'];
 
@@ -930,19 +931,30 @@ function policy(snapshot: AdminSnapshot, t: T): Child[] {
 function releaseBlock(t: T): HTMLElement {
   const release = state.release;
   const publishing = !!release && release.step !== 'done' && release.step !== 'error';
-  const choose = (file: File | undefined) => {
-    if (!file || publishing) return;
-    picked = file.name.toLowerCase().endsWith('.vsix') ? file : null;
+  // The CLion ZIP is optional: it is picked alongside the VSIX, by its extension.
+  const choose = (files: File[]) => {
+    if (publishing) return;
+    for (const file of files) {
+      const name = file.name.toLowerCase();
+      if (name.endsWith('.vsix')) picked = file;
+      else if (name.endsWith('.zip')) pickedClion = file;
+    }
     render();
   };
-  const fileInput = h('input', { type: 'file', accept: '.vsix', hidden: true, onchange: (e: Event) => choose((e.target as HTMLInputElement).files?.[0]) });
+  const fileInput = h('input', { type: 'file', accept: '.vsix,.zip', multiple: true, hidden: true, onchange: (e: Event) => choose(Array.from((e.target as HTMLInputElement).files ?? [])) });
   const publish = () => {
     const file = picked;
     if (!file || publishing) return;
-    const reader = new FileReader();
-    reader.onload = () => send({ type: 'publishRelease', file: file.name, data: String(reader.result).split(',')[1] ?? '', notes: draft.releaseNotes });
-    reader.readAsDataURL(file);
+    const clion = pickedClion;
     picked = null;
+    pickedClion = null;
+    const base64 = (blob: Blob) => new Promise<string>(resolve => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '');
+      reader.readAsDataURL(blob);
+    });
+    void Promise.all([base64(file), clion ? base64(clion) : undefined]).then(([data, clionData]) =>
+      send({ type: 'publishRelease', file: file.name, data, clionData, notes: draft.releaseNotes }));
   };
   const at = release ? RELEASE_STEPS.indexOf(release.failed ?? release.step) : -1;
   return block(t('admin.release.title'), { glyph: 'cloud-upload', hint: t('admin.release.hint') },
@@ -951,10 +963,10 @@ function releaseBlock(t: T): HTMLElement {
         class: `${dragging ? 'over' : ''} ${publishing ? 'disabled' : ''}`,
         ondragover: (e: DragEvent) => { e.preventDefault(); if (!dragging) { dragging = true; render(); } },
         ondragleave: () => { dragging = false; render(); },
-        ondrop: (e: DragEvent) => { e.preventDefault(); dragging = false; choose(e.dataTransfer?.files[0]); },
+        ondrop: (e: DragEvent) => { e.preventDefault(); dragging = false; choose(Array.from(e.dataTransfer?.files ?? [])); },
       },
         icon('package'),
-        h('strong', picked ? picked.name : t('admin.release.drop')),
+        h('strong', picked ? [picked.name, pickedClion?.name].filter(Boolean).join(' + ') : t('admin.release.drop')),
         h('span.adm-hint', picked ? t('admin.release.size', { mb: (picked.size / 1048576).toFixed(1) }) : t('admin.release.browse')),
         fileInput),
       h('textarea.adm-input.adm-notes', { id: 'adm-release-notes', rows: 4, placeholder: t('admin.release.notes'), disabled: publishing,

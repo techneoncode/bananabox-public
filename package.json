@@ -1400,7 +1400,10 @@
     "test": "node esbuild.mjs --tests && node --test dist-test/*.test.js test/codingStyle/*.test.js",
     "package": "npm run typecheck && npm run build -- --production && vsce package --no-dependencies",
     "vscode:prepublish": "npm run build -- --production",
-    "test:coding-style": "node esbuild.mjs --tests && node --test test/codingStyle/*.test.js"
+    "test:coding-style": "node esbuild.mjs --tests && node --test test/codingStyle/*.test.js",
+    "clion:build": "node clion/scripts/build.mjs",
+    "clion:typecheck": "tsc -p clion/tsconfig.json --noEmit",
+    "clion:test": "node clion/test/run.mjs"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
