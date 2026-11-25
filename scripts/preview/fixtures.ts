@@ -8,6 +8,7 @@ import { renderProject } from '../../src/webview/views/detail';
 import { renderLogin } from '../../src/webview/views/login';
 import { renderAvailability, renderLensRestriction } from '../../src/webview/views/availability';
 import { remoteStatus, type RemoteConfig, type RemoteFeature } from '../../src/domain/remotePolicy';
+import { parseChangelog, selectChangelog } from '../../src/domain/changelog';
 import { h } from '../../src/webview/dom';
 import { markFresh, setClockLang } from '../../src/webview/motion';
 import { renderAppearance } from '../../src/webview/views/appearance';
@@ -140,6 +141,22 @@ function fakeAvatars(): Map<string, string | null> {
   ]);
 }
 
+const CHANGES = `## [0.6.1] - 2026-11-25
+
+### Highlights
+- The update screen lists **what changed** before the update installs, so you know why it is needed.
+- Agenda: sessions that overlap sit side by side, each with its own times. See the [release notes](https://github.com/techneoncode/bananabox-public/releases).
+
+### Changes
+- Project screen: the \`Check\` and \`Run\` buttons stay above the tab bar.
+- Narrow cards wrap long labels inside the card instead of scrolling sideways.
+
+## [0.6.0] - 2026-11-20
+
+### Fixes
+- Valgrind only runs on the project open in this window.
+`;
+
 function availability(kind: string): void {
   const policy: RemoteConfig = { lens_active: true, my_api_active: true, version: '0.6.1', latest: '', authorized: [], banned: [] };
   const ban = (...features: RemoteFeature[]) => { policy.banned = [{ user: 'preview', features }]; };
@@ -148,11 +165,12 @@ function availability(kind: string): void {
   if (kind === 'lens_revoked') ban('lens_active');
   if (kind === 'my_disabled') { policy.my_api_active = false; }
   const updating = kind.startsWith('update_');
-  const status = remoteStatus(policy, updating ? '0.6.0' : '0.6.1', 'preview', kind === 'offline');
+  const status = remoteStatus(policy, updating ? '0.5.1' : '0.6.1', 'preview', kind === 'offline');
   if (updating) {
     status.update = kind === 'update_installed' ? 'installed' : kind === 'update_error' ? 'error' : 'downloading';
     status.updateProgress = { receivedBytes: 4.5 * 1024 * 1024, totalBytes: 10 * 1024 * 1024 };
     if (kind === 'update_error') status.updateError = 'HTTP 404 while downloading bananabox-0.6.1.vsix';
+    status.changelog = { state: 'ready', entries: selectChangelog(parseChangelog(CHANGES), '0.5.1', '0.6.1') };
   }
   (ctx.state as { availability?: unknown }).availability = status;
   ctx.state.apiActivity = { startedAt: now, endpoints: kind === 'revoked' ? [{ method: 'GET', route: '/api/projects', calls: 14, rateLimitedResponses: 1 }, { method: 'POST', route: '/api/activities/{id}/slots/{id}', calls: 2, rateLimitedResponses: 0 }] : [] } as never;

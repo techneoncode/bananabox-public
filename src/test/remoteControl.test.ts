@@ -477,3 +477,30 @@ test('remote config: clion_latest is optional and kept only when it is the CLion
   assert.equal(parseRemoteConfig({ ...base, clion_latest: 'https://example.com/bananabox-clion-2.0.2.zip' }).clion_latest, undefined);
   assert.equal(clionLatestUrl(42, '2.0.2'), undefined);
 });
+
+test('an update required brings the changelog of the target version to the status, fetched once', async () => {
+  reset();
+  const changelog = '## [0.5.2] - 2026-11-25\n- Fixed the thing.\n\n## [0.5.1] - 2026-11-20\n- Installed already.\n';
+  const value = { ...baseline, version: '0.5.2', latest: release('0.5.2') };
+  const requested: string[] = [];
+  const fetchMock = (async (url: string | URL | Request) => {
+    requested.push(String(url));
+    return String(url).endsWith('/CHANGELOG.md') ? new Response(changelog) : envelope(value);
+  }) as typeof fetch;
+  const install = async (_url: string, _version: string, _id: string, signal: AbortSignal) => {
+    await new Promise<void>((_resolve, reject) => signal.addEventListener('abort', () => reject(new Error('stopped'))));
+  };
+  const service = new RemoteControl(context(), { username: 'niels', fetch: fetchMock, install });
+  const changelogRequests = () => requested.filter((url) => url.endsWith('/CHANGELOG.md')).length;
+  try {
+    await service.refresh();
+    for (let i = 0; i < 100 && remoteFeatures.status.changelog?.state !== 'ready'; i++) await new Promise((resolve) => setTimeout(resolve, 5));
+    assert.equal(remoteFeatures.status.changelog?.state, 'ready');
+    assert.deepEqual(remoteFeatures.status.changelog.entries.map((entry) => entry.version), ['0.5.2']);
+    assert.equal(changelogRequests(), 1);
+    await service.refresh();
+    await flush();
+    assert.equal(changelogRequests(), 1, 'the changelog of a target version is fetched once');
+    assert.equal(remoteFeatures.status.changelog?.state, 'ready');
+  } finally { service.dispose(); reset(); }
+});

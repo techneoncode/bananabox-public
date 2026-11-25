@@ -1,3 +1,5 @@
+import type { ChangelogEntry } from './changelog';
+
 export type RemoteFeature = 'lens_active' | 'my_api_active';
 
 export interface RemoteConfig {
@@ -79,6 +81,8 @@ export interface RemoteStatus {
     | 'error';
   updateProgress?: { receivedBytes: number; totalBytes?: number };
   updateError?: string;
+  /** What changed between the installed and the required version; only while an update is required. */
+  changelog?: { state: 'loading' | 'ready' | 'failed'; entries: ChangelogEntry[] };
   uninstall?: 'uninstalling' | 'uninstalled' | 'error';
   uninstallError?: string;
 }

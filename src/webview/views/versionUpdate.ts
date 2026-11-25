@@ -3,6 +3,8 @@ import { h, icon } from '../dom';
 import { uninstallControls } from './uninstallControls';
 import { statusHeading } from './availability';
 import { chip } from '../ui';
+import { renderMarkdown } from './markdown';
+import type { RemoteStatus } from '../../domain/remotePolicy';
 
 export function renderVersionUpdate(ctx: Ctx): HTMLElement {
   const state = ctx.state.availability!, { t } = ctx;
@@ -52,5 +54,26 @@ export function renderVersionUpdate(ctx: Ctx): HTMLElement {
         h('button.btn', { type: 'button', disabled: activeStep >= 0, onclick: () => ctx.post({ type: 'refresh' }) },
           icon(failed ? 'debug-restart' : 'versions'), t(failed ? 'update.retry' : 'availability.fetchVersion')),
         uninstallControls(ctx))),
-    h('p.update-hint', icon(installed ? 'check' : 'lock'), h('span', t(installed ? 'update.reloadHint' : 'update.pausedHint'))));
+    h('p.update-hint', icon(installed ? 'check' : 'lock'), h('span', t(installed ? 'update.reloadHint' : 'update.pausedHint'))),
+    renderWhatsNew(ctx, state));
+}
+
+/** What changed between the installed and the required version, below the update screen. */
+function renderWhatsNew(ctx: Ctx, state: RemoteStatus): HTMLElement | null {
+  const { t } = ctx;
+  const changelog = state.changelog;
+  if (!changelog) return null;
+  const releaseUrl = `https://github.com/techneoncode/bananabox-public/releases/tag/v${state.requiredVersion}`;
+  const ready = changelog.state === 'ready' && changelog.entries.length > 0;
+  return h('section.status-card.whats-new', { 'aria-labelledby': 'whats-new-title' },
+    h('h2.status-title', { id: 'whats-new-title' }, icon('note', 'ic-accent'), h('span', t('whatsNew.title'))),
+    changelog.state === 'loading'
+      ? h('p.whats-new-status', { role: 'status' }, icon('sync', 'spin'), h('span', t('whatsNew.loading')))
+      : ready
+        ? h('div.whats-new-list', { tabIndex: 0 }, ...changelog.entries.map((entry) =>
+          h('article.whats-new-entry', h('h3', h('span.mono', `v${entry.version}`), entry.date ? h('span.whats-new-date.mono', entry.date) : null),
+            renderMarkdown(entry.body, (url) => ctx.post({ type: 'openExternal', url })))))
+        : h('p.whats-new-status', h('span', t('whatsNew.unavailable'))),
+    changelog.state === 'loading' || ready ? null
+      : h('p.whats-new-link', h('a', { href: releaseUrl, onclick: (e: Event) => { e.preventDefault(); ctx.post({ type: 'openExternal', url: releaseUrl }); } }, icon('link-external'), t('whatsNew.release'))));
 }
