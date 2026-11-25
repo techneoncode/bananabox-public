@@ -43,11 +43,13 @@ test('Bananabox navigation uses a local SVG box and the commit icon keeps its al
 test('extension overview uses direct HTTPS image URLs accepted by the VS Code sanitiser', () => {
   const source = readFileSync('README.md', 'utf8');
   const images = [...source.matchAll(/<img\b[^>]*src="([^"]+)"/g)].map(match => match[1]);
-  assert.equal(images.length, 12);
+  assert.equal(images.length, 10);
   const hosts = ['i.imgur.com', 'raw.githubusercontent.com'];
   images.forEach(image => {
     const uri = new URL(image);
     assert.equal(uri.protocol, 'https:');
+    // shields.io is a badge provider vsce trusts, so its SVGs are allowed.
+    if (uri.hostname === 'img.shields.io') return;
     assert.ok(hosts.includes(uri.hostname), `${uri.hostname} is not an image CDN`);
     assert.match(uri.pathname, /\.png$/);
   });
