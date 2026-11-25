@@ -77,6 +77,10 @@ Coding style works without signing in, in trusted workspaces only.
 - Corrections are off by default. Old `bananalens.*` settings and `.bananalens.json` files still work. Disable the standalone Banana Lens extension to avoid duplicate findings.
 - Interface in English or French (`bananabox.language`). Search **Bananabox** in settings for everything else.
 
+## CLion
+
+The same engine and interface also run in **CLion 2026.3**. Download `bananabox-clion-<version>.zip` from the [releases page](https://github.com/techneoncode/bananabox-public/releases) and install it with **Settings → Plugins → ⚙ → Install Plugin from Disk**. It needs Node.js 20+ and epiclang. The setup steps, the differences from VS Code and the features that do not work in CLion are described in [clion/README.md](clion/README.md) (French).
+
 ## Links
 
 [Submission guide (FR)](docs/grader.fr.md) · [Coding style](docs/coding-style.md) · [Development](docs/development.md) · [Remote API](docs/remote-control.md) · [Terms and data collected](docs/terms.md) · [MIT license](LICENSE)

@@ -13,6 +13,7 @@ import { log } from '../util/log';
 import { downloadAndInstall } from './extensionUpdate';
 import { remoteFeatures } from './remoteFeatures';
 import { tr } from '../util/text';
+import { isClion } from '../util/host';
 
 export const API_BASE_URL = 'https://bananabox-api.niels-christophe.workers.dev';
 export const REMOTE_CONFIG_URL = `${API_BASE_URL}/v1/config`;
@@ -50,6 +51,7 @@ export class RemoteControl implements vscode.Disposable {
   private updating?: string;
   private updateAbort?: AbortController;
   private announced?: string;
+  private announcedDownload?: string;
   private readonly username: string;
   private readonly userId: string;
   private readonly version: string;
@@ -219,7 +221,29 @@ export class RemoteControl implements vscode.Disposable {
     }
   }
 
+  /**
+   * CLion cannot install a VSIX: the plugin ZIP of the same release is offered for a manual install instead.
+   * Falls back to the release page when the remote configuration has no `clion_latest`.
+   */
+  private offerClionDownload(remote: RemoteConfig): void {
+    const url = remote.clion_latest
+      ?? `https://github.com/techneoncode/bananabox-public/releases/tag/v${remote.version}`;
+    if (this.announcedDownload === url) return;
+    this.announcedDownload = url;
+    const t = createT(config.language());
+    const download = t('update.clionDownload');
+    void vscode.window
+      .showInformationMessage(t('update.clionAvailable', { version: remote.version }), download)
+      .then((choice) => {
+        if (choice === download) void vscode.env.openExternal(vscode.Uri.parse(url));
+      });
+  }
+
   private async update(remote: RemoteConfig): Promise<void> {
+    if (isClion) {
+      this.offerClionDownload(remote);
+      return;
+    }
     const latest = remote.latest;
     const key = `${remote.version}|${latest}`;
     this.updating = key;

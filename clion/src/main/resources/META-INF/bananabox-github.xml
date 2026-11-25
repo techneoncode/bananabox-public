@@ -1,0 +1,5 @@
+<idea-plugin>
+  <extensions defaultExtensionNs="com.intellij">
+    <applicationService serviceInterface="eu.bananabox.clion.GithubSessions" serviceImplementation="eu.bananabox.clion.GithubIntegration"/>
+  </extensions>
+</idea-plugin>

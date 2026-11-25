@@ -8,3 +8,4 @@ dist-tsc/
 .bananabox-inspect/
 .wrangler/
 .admin_token
+clion/build/

@@ -1,0 +1,10 @@
+import esbuild from 'esbuild';
+import { spawnSync } from 'node:child_process';
+import { mkdir } from 'node:fs/promises';
+await mkdir('clion/build/tests', { recursive: true });
+await esbuild.build({ entryPoints: ['clion/test/model.test.ts'], outdir: 'clion/build/tests', bundle: true, platform: 'node', format: 'cjs', target: 'node20', define: { __BANANABOX_IDE__: JSON.stringify('CLion') } });
+await esbuild.build({ entryPoints: ['clion/test/commitHost.ts'], outdir: 'clion/build/tests', bundle: true, platform: 'node', format: 'cjs', target: 'node20', alias: { vscode: './clion/host/vscode.ts' } });
+let result = spawnSync(process.execPath, ['clion/scripts/build.mjs', '--host-only'], { stdio: 'inherit' });
+if (result.status !== 0) process.exit(result.status ?? 1);
+result = spawnSync(process.execPath, ['--test', 'clion/build/tests/model.test.js', 'clion/test/host.test.mjs'], { stdio: 'inherit' });
+process.exitCode = result.status ?? 1;

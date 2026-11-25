@@ -1,0 +1,40 @@
+<idea-plugin>
+  <id>eu.bananabox.clion</id>
+  <name>Bananabox</name>
+  <version>@VERSION@</version>
+  <vendor url="https://github.com/techneoncode">techneoncode</vendor>
+  <description><![CDATA[Epitech projects, subjects, grader and Banana coding style. Reuses the BananaBox engine and interface. Requires Node.js 20+ and epiclang for coding style.]]></description>
+  <idea-version since-build="263" until-build="263.*"/>
+  <depends>com.intellij.modules.platform</depends>
+  <depends>com.intellij.modules.clion</depends>
+  <depends>com.intellij.modules.jcef</depends>
+  <depends optional="true" config-file="bananabox-github.xml">org.jetbrains.plugins.github</depends>
+  <extensions defaultExtensionNs="com.intellij">
+    <toolWindow id="Bananabox" anchor="left" icon="/bananabox.svg" factoryClass="eu.bananabox.clion.BananaboxToolWindow"/>
+    <applicationService serviceImplementation="eu.bananabox.clion.Settings"/>
+    <projectService serviceImplementation="eu.bananabox.clion.ProjectSettings"/>
+    <projectService serviceImplementation="eu.bananabox.clion.Host"/>
+    <applicationConfigurable id="eu.bananabox.clion.settings" displayName="Bananabox" instance="eu.bananabox.clion.SettingsPage"/>
+    <notificationGroup id="Bananabox" displayType="BALLOON"/>
+    <fileEditorProvider implementation="eu.bananabox.clion.WebviewEditorProvider"/>
+    <postStartupActivity implementation="eu.bananabox.clion.Startup"/>
+    <intentionAction>
+      <className>eu.bananabox.clion.QuickFix</className>
+      <category>Bananabox</category>
+      <skipBeforeAfter>true</skipBeforeAfter>
+    </intentionAction>
+  </extensions>
+  <actions>
+    <group id="Bananabox.Actions" text="Bananabox" popup="true">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+      <action id="Bananabox.Open" class="eu.bananabox.clion.OpenAction" text="Open Bananabox"/>
+      <action id="Bananabox.GithubLogin" class="eu.bananabox.clion.GithubLoginAction" text="Sign in to GitHub"/>
+      <action id="Bananabox.Restart" class="eu.bananabox.clion.RestartAction" text="Restart Bananabox Engine"/>
+      <separator/>
+      <!-- COMMANDS -->
+    </group>
+    <reference ref="bananabox.codingStyle.acceptCorrections"><keyboard-shortcut keymap="$default" first-keystroke="control alt ENTER"/></reference>
+    <reference ref="bananabox.codingStyle.run"><add-to-group group-id="EditorPopupMenu" anchor="last"/></reference>
+    <reference ref="bananabox.codingStyle.showIssues"><add-to-group group-id="EditorPopupMenu" anchor="last"/></reference>
+  </actions>
+</idea-plugin>
