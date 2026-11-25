@@ -49,6 +49,7 @@ export function renderVersionUpdate(ctx: Ctx): HTMLElement {
           h('span.update-step-state', t(done ? 'update.done' : active ? 'update.inProgress' : 'update.pending')));
       })),
       failed && state.updateError ? h('details.update-error', h('summary', t('update.details')), h('p', state.updateError)) : null,
+      state.restart ? renderRestart(ctx, state.restart) : null,
       h('div.connection-actions',
         h('button.btn.primary', { type: 'button', disabled: !installed, onclick: () => { if (installed) ctx.post({ type: 'reloadVSCode' }); } }, icon('refresh'), t('update.reload')),
         h('button.btn', { type: 'button', disabled: activeStep >= 0, onclick: () => ctx.post({ type: 'refresh' }) },
@@ -56,6 +57,23 @@ export function renderVersionUpdate(ctx: Ctx): HTMLElement {
         uninstallControls(ctx))),
     h('p.update-hint', icon(installed ? 'check' : 'lock'), h('span', t(installed ? 'update.reloadHint' : 'update.pausedHint'))),
     renderWhatsNew(ctx, state));
+}
+
+const restartText = (ctx: Ctx, at: number, version: string) =>
+  ctx.t('update.restartIn', { seconds: Math.max(0, Math.ceil((at - Date.now()) / 1000)), version });
+let restartTicker: ReturnType<typeof setInterval> | undefined;
+
+/** The countdown before Bananabox restarts into the update, with the button that pushes it back. */
+function renderRestart(ctx: Ctx, restart: NonNullable<RemoteStatus['restart']>): HTMLElement {
+  const text = h('span', { role: 'timer', 'aria-live': 'off' }, restartText(ctx, restart.at, restart.version));
+  clearInterval(restartTicker);
+  restartTicker = setInterval(() => {
+    if (!text.isConnected) return void clearInterval(restartTicker);
+    text.textContent = restartText(ctx, restart.at, restart.version);
+  }, 1000);
+  return h('div.notice.accent.update-restart', icon('sync', 'spin'), h('div', text,
+    restart.postponesLeft > 0 && h('button.btn.small', { type: 'button', title: ctx.t('update.laterTooltip', { n: restart.postponesLeft }), onclick: () => ctx.post({ type: 'postponeUpdate' }) },
+      icon('clock'), ctx.t('update.later'))));
 }
 
 /** What changed between the installed and the required version, below the update screen. */

@@ -23,7 +23,10 @@ function renderTerms(ctx: Ctx): HTMLElement {
   const { t } = ctx;
   const accept = h('button.btn.primary.block.big', { disabled: true, onclick: () => ctx.post({ type: 'acceptTerms' }) }, icon('check'), t('terms.accept'));
   const box = h('input', { type: 'checkbox', id: 'terms-agree', onchange: () => { (accept as HTMLButtonElement).disabled = !(box as HTMLInputElement).checked; } });
+  // Signed in already: this installation predates the terms screen.
+  const upgraded = ctx.state.auth.status === 'signedIn';
   return h('section.terms',
+    upgraded && notice('accent', 'rocket', h('strong', t('terms.upgradeTitle')), h('span', t('terms.upgradeBody'))),
     h('p.small', icon('shield'), ' ', t('terms.summary')),
     h('p', h('button.btn.ghost', { onclick: () => ctx.post({ type: 'openExternal', url: termsUrl(ctx.state.lang) }) }, icon('link-external'), t('terms.read'))),
     h('label.small', { htmlFor: 'terms-agree' }, box, ' ', t('terms.agree')),

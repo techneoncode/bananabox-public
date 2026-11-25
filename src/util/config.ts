@@ -49,6 +49,8 @@ export const config = {
   statistics: (): boolean => cfg().get<boolean>('anonymousStatistics') ?? true,
   /** Bananabox's own accent on buttons instead of the theme's. */
   bananaTheme: (): boolean => cfg().get<boolean>('bananaTheme') === true,
+  /** Off unless the student turns it on: a new setting, so earlier installs start off too. */
+  defenseReminders: (): boolean => cfg().get<boolean>('defenseReminders') === true,
   language: (): 'en' | 'fr' => {
     const v = cfg().get<string>('language') ?? 'auto';
     if (v === 'en' || v === 'fr') {

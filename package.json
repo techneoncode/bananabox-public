@@ -36,7 +36,7 @@
     "type": "git",
     "url": "https://github.com/techneoncode/bananabox-public"
   },
-  "main": "./dist/extension.js",
+  "main": "./dist/loader.js",
   "activationEvents": [
     "onStartupFinished",
     "onLanguage:c",
@@ -537,6 +537,11 @@
           "type": "boolean",
           "default": true,
           "markdownDescription": "Show the grader summary (remaining tokens and latest score) in the status bar when a project repository is open."
+        },
+        "bananabox.defenseReminders": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Show a full-screen countdown 60, 30 and 15 minutes before a defense, follow-up or midterm you are registered to. Off by default; also switchable from the **Me** tab."
         },
         "bananabox.bananaTheme": {
           "type": "boolean",
@@ -1397,8 +1402,8 @@
     "build": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
     "typecheck": "tsc --noEmit",
-    "test": "node esbuild.mjs --tests && node --test dist-test/*.test.js test/codingStyle/*.test.js",
-    "package": "npm run typecheck && npm run build -- --production && vsce package --no-dependencies",
+    "test": "node esbuild.mjs --tests && node --test dist-test/*.test.js test/codingStyle/*.test.js test/*.test.js",
+    "package": "npm run typecheck && npm run build -- --production && vsce package --no-dependencies --readme-path README.marketplace.md",
     "vscode:prepublish": "npm run build -- --production",
     "test:coding-style": "node esbuild.mjs --tests && node --test test/codingStyle/*.test.js",
     "clion:build": "node clion/scripts/build.mjs",

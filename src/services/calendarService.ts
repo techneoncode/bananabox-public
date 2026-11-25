@@ -63,6 +63,7 @@ export class CalendarService implements vscode.Disposable {
   private rateLimited = false;
   private readonly skipped = new Set<number>();
   private timer: ReturnType<typeof setInterval> | undefined;
+  private firstRun: ReturnType<typeof setTimeout> | undefined;
   private generation = 0;
   private loadTimer: ReturnType<typeof setTimeout> | undefined;
   private loadWaiters: Array<() => void> = [];
@@ -111,7 +112,7 @@ export class CalendarService implements vscode.Disposable {
    */
   start(): void {
     this.timer ??= setInterval(() => void this.autoRun(), AUTO_EVERY);
-    setTimeout(() => void this.autoRun(), 30_000);
+    this.firstRun ??= setTimeout(() => void this.autoRun(), 30_000);
   }
 
   clear(): void {
@@ -127,6 +128,7 @@ export class CalendarService implements vscode.Disposable {
 
   dispose(): void {
     clearInterval(this.timer);
+    clearTimeout(this.firstRun);
     clearTimeout(this.loadTimer);
     this.loadWaiters.splice(0).forEach(resolve => resolve());
     this.emitter.dispose();

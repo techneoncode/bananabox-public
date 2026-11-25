@@ -73,7 +73,7 @@ export function updateDefenseReminders(c: Controller): void {
   const enabled = c.auth.isSignedIn && remoteFeatures.status.myApiActive;
   c.defenseReminders.update(
     enabled ? c.auth.snapshot.login : null,
-    enabled
+    enabled && config.defenseReminders()
       ? (c.projects.projects ?? []).flatMap(p =>
         defenseEvents(p, c.activities.get(p.id) ?? []),
       )

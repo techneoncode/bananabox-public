@@ -43,6 +43,7 @@ export async function activate(
   }
 
   const controller = new Controller(context);
+  remote.busy = () => controller.grader.busy;
   controller.onTermsAccepted = () => void stats?.report();
   // The name, promotion and campus come with the sign-in: bans on them apply at once and are reported with the statistics.
   let reportedIdentity = JSON.stringify(reporter());

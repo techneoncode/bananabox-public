@@ -16,3 +16,12 @@ test('other actions stay closed before sign-in', async () => {
   await handleMessage(controller, {} as Surface, { type: 'runGrader', projectId: 1 } as never);
   assert.equal(accepted, 0);
 });
+
+test('a signed-in installation that never accepted the terms can only accept them', async () => {
+  let accepted = 0, pushed = 0;
+  const controller = { auth: { isSignedIn: true }, termsAccepted: false, acceptTerms: async () => { accepted++; }, pushState: () => { pushed++; } } as unknown as Controller;
+  await handleMessage(controller, {} as Surface, { type: 'runGrader', projectId: 1 } as never);
+  assert.equal(pushed, 0);
+  await handleMessage(controller, {} as Surface, { type: 'acceptTerms' });
+  assert.equal(accepted, 1);
+});

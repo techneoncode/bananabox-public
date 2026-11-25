@@ -168,6 +168,8 @@ function availability(kind: string): void {
   const status = remoteStatus(policy, updating ? '0.5.1' : '0.6.1', 'preview', kind === 'offline');
   if (updating) {
     status.update = kind === 'update_installed' ? 'installed' : kind === 'update_error' ? 'error' : 'downloading';
+    // `update_installed`: Bananabox restarts into the update in a few seconds, two postpones left.
+    if (kind === 'update_installed') status.restart = { at: Date.now() + 8_000, version: '0.6.1', postponesLeft: 2 };
     status.updateProgress = { receivedBytes: 4.5 * 1024 * 1024, totalBytes: 10 * 1024 * 1024 };
     if (kind === 'update_error') status.updateError = 'HTTP 404 while downloading bananabox-0.6.1.vsix';
     status.changelog = { state: 'ready', entries: selectChangelog(parseChangelog(CHANGES), '0.5.1', '0.6.1') };
@@ -247,7 +249,9 @@ function draw(): void {
   else if (screen === 'paused') { ctx.state.network = { active: 0, queued: 0, lastMinute: 9, pausedUntil: now + 14 * 60_000 + 32_000 }; node = renderList(ctx); }
   else if (screen === 'home') { ctx.home = true; node = renderHome(ctx, () => undefined); }
   else if (screen.startsWith('login')) {
-    ctx.state.auth = { ...ctx.state.auth, status: screen === 'login-expired' ? 'expired' : 'signedOut', pending: screen === 'login-browser' ? { mode: 'browser', url: 'https://login.microsoftonline.com/' } : screen === 'login-paste' ? { mode: 'paste', url: 'https://login.microsoftonline.com/' } : null } as never;
+    // `login-upgrade`: signed in from a version that predates the terms screen.
+    if (screen === 'login-upgrade') (ctx.state as { termsAccepted?: boolean }).termsAccepted = false;
+    ctx.state.auth = { ...ctx.state.auth, status: screen === 'login-expired' ? 'expired' : screen === 'login-upgrade' ? 'signedIn' : 'signedOut', pending: screen === 'login-browser' ? { mode: 'browser', url: 'https://login.microsoftonline.com/' } : screen === 'login-paste' ? { mode: 'paste', url: 'https://login.microsoftonline.com/' } : null } as never;
     node = renderLogin(ctx);
   } else if (['offline', 'revoked', 'my_revoked', 'my_disabled', 'update_downloading', 'update_installed', 'update_error'].includes(screen)) {
     availability(screen); node = renderAvailability(ctx)!.node;

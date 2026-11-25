@@ -81,6 +81,8 @@ export interface RemoteStatus {
     | 'error';
   updateProgress?: { receivedBytes: number; totalBytes?: number };
   updateError?: string;
+  /** The installed update is about to restart Bananabox: when, and how many times it can still be postponed. */
+  restart?: { at: number; version: string; postponesLeft: number };
   /** What changed between the installed and the required version; only while an update is required. */
   changelog?: { state: 'loading' | 'ready' | 'failed'; entries: ChangelogEntry[] };
   uninstall?: 'uninstalling' | 'uninstalled' | 'error';

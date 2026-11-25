@@ -76,6 +76,8 @@ export interface StateSnapshot {
   palette?: Palette;
   /** Setting: buttons wear the Banana accent instead of the theme's. */
   bananaTheme?: boolean;
+  /** The defense countdown is on (setting bananabox.defenseReminders, off by default). */
+  defenseReminders?: boolean;
   /** Checks turned off on the Prepare page, per event (setting). */
   disabledChecks?: DisabledChecks;
 }
@@ -178,6 +180,7 @@ export type WebviewMessage =
   | { type: 'uninstall' }
   | { type: 'fetchVersion' }
   | { type: 'reloadVSCode' }
+  | { type: 'postponeUpdate' }
   | { type: 'refreshVSCode' }
   | { type: 'openProject'; projectId: number; tab?: PanelTab }
   | { type: 'openCurrentProject' }
@@ -185,6 +188,7 @@ export type WebviewMessage =
   | { type: 'focusProject'; projectId: number | null }
   | { type: 'setPalette'; palette: Palette }
   | { type: 'setBananaTheme'; value: boolean }
+  | { type: 'setDefenseReminders'; value: boolean }
   | { type: 'loadActivities'; projectId: number }
   | { type: 'testDefensePopup'; projectId: number }
   | {

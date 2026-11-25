@@ -338,6 +338,7 @@ export class Controller implements vscode.Disposable {
       vscode.workspace.onDidChangeConfiguration((e) => {
         if (e.affectsConfiguration('bananabox')) {
           updateStatusBar(this);
+          if (e.affectsConfiguration('bananabox.defenseReminders')) updateDefenseReminders(this);
           this.schedulePush();
         }
       }),
@@ -400,6 +401,7 @@ export class Controller implements vscode.Disposable {
       localProjects: this.localProjects(),
       palette: this.palette(),
       bananaTheme: config.bananaTheme(),
+      defenseReminders: config.defenseReminders(),
       disabledChecks: config.disabledChecks(),
     };
   }

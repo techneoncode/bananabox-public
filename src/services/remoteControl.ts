@@ -17,6 +17,8 @@ import { downloadAndInstall } from './extensionUpdate';
 import { remoteFeatures } from './remoteFeatures';
 import { tr } from '../util/text';
 import { isClion } from '../util/host';
+import { UpdateRestart, type RestartCountdown } from './updateRestart';
+import type { BananaboxLoader } from '../loader';
 
 export const API_BASE_URL = 'https://bananabox-api.niels-christophe.workers.dev';
 export const REMOTE_CONFIG_URL = `${API_BASE_URL}/v1/config`;
@@ -56,6 +58,13 @@ export class RemoteControl implements vscode.Disposable {
   private updateAbort?: AbortController;
   private announced?: string;
   private announcedDownload?: string;
+  private restarter?: UpdateRestart;
+  private restartWatch?: vscode.Disposable;
+  private restartTicker?: NodeJS.Timeout;
+  private restartItem?: vscode.StatusBarItem;
+  private lastEdit = 0;
+  /** A Bananabox run is in progress: the update restart waits for it. Set by the extension. */
+  busy: () => boolean = () => false;
   private readonly username: string;
   private readonly userId: string;
   private readonly version: string;
@@ -332,17 +341,12 @@ export class RemoteControl implements vscode.Disposable {
         updateError: undefined,
       });
 
-      const t = createT(config.language());
-      const reload = t('availability.reload');
-      void vscode.window
-        .showInformationMessage(t('availability.installed'), reload)
-        .then((choice) => {
-          if (choice === reload) {
-            void vscode.commands.executeCommand(
-              'workbench.action.reloadWindow',
-            );
-          }
-        });
+      // The install succeeded: a failure to schedule the restart must not report it as failed.
+      try {
+        this.scheduleRestart(remote.version);
+      } catch (error) {
+        log().error('Cannot schedule the update restart.', error);
+      }
     } catch (error) {
       if (signal.aborted) return;
       const message = error instanceof Error ? error.message : String(error);
@@ -357,7 +361,73 @@ export class RemoteControl implements vscode.Disposable {
     }
   }
 
+  /** Restarts Bananabox into the installed `version` at a quiet moment, after a countdown. */
+  private scheduleRestart(version: string): void {
+    this.restarter?.dispose();
+    this.restartWatch ??= vscode.workspace.onDidChangeTextDocument((e) => {
+      if (e.contentChanges.length) this.lastEdit = Date.now();
+    });
+    const restarter = new UpdateRestart({
+      busy: () => this.busy(),
+      debugging: () => vscode.debug.activeDebugSession !== undefined,
+      lastEdit: () => this.lastEdit,
+      show: (countdown) => this.showCountdown(countdown),
+      restart: () => this.restartInto(version),
+    });
+    this.restarter = restarter;
+    void restarter.run(version);
+  }
+
+  /** The update screen's "Later" button. */
+  postponeUpdate(): void {
+    this.restarter?.postpone();
+  }
+
+  private showCountdown(countdown: RestartCountdown | undefined): void {
+    remoteFeatures.set({ ...remoteFeatures.status, restart: countdown });
+    clearInterval(this.restartTicker);
+    if (!countdown) {
+      this.restartItem?.hide();
+      return;
+    }
+    const t = createT(config.language());
+    const item = this.restartItem ??= vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1000);
+    item.command = countdown.postponesLeft > 0 ? 'bananabox.postponeUpdate' : undefined;
+    item.tooltip = countdown.postponesLeft > 0 ? t('update.laterTooltip', { n: countdown.postponesLeft }) : undefined;
+    const tick = () => {
+      const seconds = Math.max(0, Math.ceil((countdown.at - Date.now()) / 1000));
+      item.text = `$(sync~spin) ${t('update.restartIn', { seconds, version: countdown.version })}`;
+    };
+    tick();
+    item.show();
+    this.restartTicker = setInterval(tick, 1000);
+    const later = t('update.later');
+    void vscode.window
+      .showInformationMessage(t('update.restartIn', { seconds: Math.round((countdown.at - Date.now()) / 1000), version: countdown.version }),
+        ...(countdown.postponesLeft > 0 ? [later] : []))
+      .then((choice) => { if (choice === later) this.postponeUpdate(); });
+  }
+
+  /** Only Bananabox restarts when the new version can run in place; otherwise the window reloads. */
+  private async restartInto(version: string): Promise<void> {
+    const loader = (globalThis as Record<symbol, unknown>)[Symbol.for('techneoncode.bananabox.loader')] as BananaboxLoader | undefined;
+    const root = loader?.swappable(version);
+    if (loader && root) {
+      try {
+        await loader.swap(root);
+        return;
+      } catch (error) {
+        log().error('Bananabox could not restart in place; reloading the window.', error);
+      }
+    }
+    await vscode.commands.executeCommand('workbench.action.reloadWindow');
+  }
+
   dispose(): void {
+    this.restarter?.dispose();
+    this.restartWatch?.dispose();
+    clearInterval(this.restartTicker);
+    this.restartItem?.dispose();
     clearInterval(this.timer);
     this.lifetime.abort();
     this.updateAbort?.abort();

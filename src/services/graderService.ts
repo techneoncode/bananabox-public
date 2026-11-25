@@ -49,6 +49,11 @@ export class GraderService implements vscode.Disposable {
   readonly onDidChange = this.emitter.event;
 
   private readonly states = new Map<number, GraderVM>();
+
+  /** A grader run is being submitted or followed: an update must not restart Bananabox now. */
+  get busy(): boolean {
+    return this.submitting.size > 0 || [...this.states.values()].some((s) => s.running);
+  }
   private readonly details = new Map<number, TestResultDetail>();
   private readonly pollers = new Map<number, NodeJS.Timeout>();
   private disposed = false;

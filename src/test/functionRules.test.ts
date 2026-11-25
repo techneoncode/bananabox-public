@@ -44,6 +44,8 @@ test('webview rule messages save preferences, invalidate checks and acknowledge 
   const messages: any[] = [], controller: any = Object.create(Controller.prototype);
   let status = 'done', invalidated = 0;
   const reads: Array<[number, boolean]> = [];
+  // termsAccepted is a getter on Controller: define it rather than assign it.
+  Object.defineProperty(controller, 'termsAccepted', { value: true });
   Object.assign(controller, { auth: { isSignedIn: true, snapshot: { login: 'alice' } }, functionRules: rules,
     graderCommand: { get: () => '' },
     subjectFunctions: { get: () => ({ status: 'found', names: ['opendir'], doc: 'my_ls.pdf' }), ensure: async (_s: string, p: { id: number }, force: boolean) => { reads.push([p.id, force]); return { status: 'found', names: [] }; } },

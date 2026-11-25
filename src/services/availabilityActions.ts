@@ -5,7 +5,7 @@ import { config } from '../util/config';
 
 export function registerAvailabilityActions(
   context: vscode.ExtensionContext,
-  remote: { refresh(): Promise<void>; dispose?(): void },
+  remote: { refresh(): Promise<void>; dispose?(): void; postponeUpdate?(): void },
 ): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('bananabox.refreshVSCode', async () => {
@@ -16,6 +16,7 @@ export function registerAvailabilityActions(
       if (remoteFeatures.status.update !== 'installed') return;
       await vscode.commands.executeCommand('workbench.action.reloadWindow');
     }),
+    vscode.commands.registerCommand('bananabox.postponeUpdate', () => remote.postponeUpdate?.()),
     vscode.commands.registerCommand('bananabox.appeal', () => {
       return vscode.env.openExternal(
         vscode.Uri.parse('https://teams.microsoft.com/'),

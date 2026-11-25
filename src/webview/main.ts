@@ -132,7 +132,8 @@ function route(): { key: string; node: HTMLElement } {
   }
   const unavailable = renderAvailability(ctx);
   if (unavailable) return unavailable;
-  if (state.auth.status !== 'signedIn') {
+  // Installations from before the terms existed stay signed in but must accept them before using the app.
+  if (state.auth.status !== 'signedIn' || !state.termsAccepted) {
     return { key: 'login', node: renderLogin(ctx) };
   }
   if (isCalendar) return { key: 'calendar', node: renderCalendar(ctx) };
@@ -190,7 +191,7 @@ function render(): void {
     focused = shownProject;
     ctx.post({ type: 'focusProject', projectId: shownProject });
   }
-  const nextKey = ctx.state.auth.status !== 'signedIn' ? 'login' : isHome ? 'home' : isCalendar ? 'calendar' : String(shownProject);
+  const nextKey = ctx.state.auth.status !== 'signedIn' || !ctx.state.termsAccepted ? 'login' : isHome ? 'home' : isCalendar ? 'calendar' : String(shownProject);
   const changedRoute = nextKey !== lastRoute;
   if (changedRoute) {
     ui.tab = null;

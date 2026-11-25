@@ -40,12 +40,12 @@ test('Bananabox navigation uses a local SVG box and the commit icon keeps its al
   assert.equal(png[25], 6, 'the commit icon must have an RGBA alpha channel');
 });
 
-test('extension overview uses direct HTTPS image URLs accepted by the VS Code sanitiser', () => {
-  const source = readFileSync('README.md', 'utf8');
-  const images = [...source.matchAll(/<img\b[^>]*src="([^"]+)"/g)].map(match => match[1]);
-  assert.equal(images.length, 10);
+test('GitHub and Marketplace READMEs use direct HTTPS image URLs accepted by the VS Code sanitiser', () => {
+  const imagesOf = (file: string) => [...readFileSync(file, 'utf8').matchAll(/<img\b[^>]*src="([^"]+)"/g)].map(match => match[1]);
+  assert.equal(imagesOf('README.md').length, 10);
+  assert.equal(imagesOf('README.marketplace.md').length, 5);
   const hosts = ['i.imgur.com', 'raw.githubusercontent.com'];
-  images.forEach(image => {
+  [...imagesOf('README.md'), ...imagesOf('README.marketplace.md')].forEach(image => {
     const uri = new URL(image);
     assert.equal(uri.protocol, 'https:');
     // shields.io is a badge provider vsce trusts, so its SVGs are allowed.
@@ -55,5 +55,6 @@ test('extension overview uses direct HTTPS image URLs accepted by the VS Code sa
   });
   const manifest = JSON.parse(readFileSync('package.json', 'utf8'));
   assert.ok(!manifest.scripts.package.includes('--no-rewrite-relative-links'), 'vsce must validate HTTPS README images');
-  assert.ok(!manifest.scripts.package.includes('--readmePath'), 'package the source README rather than the obsolete base64 document');
+  assert.ok(!manifest.scripts.package.includes('--readmePath'), 'package a markdown README rather than the obsolete base64 document');
+  assert.ok(manifest.scripts.package.includes('--readme-path README.marketplace.md'), 'the Marketplace page has its own README');
 });

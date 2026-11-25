@@ -1,6 +1,8 @@
 /** Sidebar app strings: shell area (tab bar, Agenda, Me, shared kit). Every key exists in both languages. */
 export const shellStrings: Record<'en' | 'fr', Record<string, string>> = {
   en: {
+    'app.me.reminders': 'Defense reminders',
+    'app.me.remindersSub': 'Full-screen countdown 60, 30 and 15 min before a defense, follow-up or midterm',
     'app.me.bananaTheme': 'Banana theme',
     'app.me.bananaThemeSub': 'Buttons in the Bananabox colours instead of the VS Code theme',
     'action.close': 'Close',
@@ -21,6 +23,8 @@ export const shellStrings: Record<'en' | 'fr', Record<string, string>> = {
     'app.me.signOut': 'Sign out',
   },
   fr: {
+    'app.me.reminders': 'Rappels de soutenance',
+    'app.me.remindersSub': 'Compte à rebours plein écran 60, 30 et 15 min avant une soutenance, un follow-up ou un midterm',
     'app.me.bananaTheme': 'Thème Banana',
     'app.me.bananaThemeSub': 'Boutons aux couleurs de Bananabox plutôt que celles du thème VS Code',
     'action.close': 'Fermer',

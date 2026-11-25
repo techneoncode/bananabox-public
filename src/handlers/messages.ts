@@ -54,6 +54,7 @@ export async function handleMessage(
     m.type === 'uninstall' ||
     m.type === 'fetchVersion' ||
     m.type === 'reloadVSCode' ||
+    m.type === 'postponeUpdate' ||
     m.type === 'refreshVSCode'
   ) {
     return void (await vscode.commands.executeCommand(`bananabox.${m.type}`));
@@ -76,11 +77,11 @@ export async function handleMessage(
       'submitRedirect',
       'cancelSignIn',
       'signOut',
-      // The terms page is shown before sign-in.
+      // The terms page is shown before sign-in, and to signed-in installations that never accepted them.
       'acceptTerms',
       'openExternal',
     ].includes(m.type) &&
-    !c.auth.isSignedIn
+    (!c.auth.isSignedIn || !c.termsAccepted)
   ) {
     return;
   }
@@ -541,6 +542,8 @@ export async function handleMessage(
       return;
     case 'setBananaTheme':
       return void (await vscode.workspace.getConfiguration('bananabox').update('bananaTheme', m.value === true, vscode.ConfigurationTarget.Global));
+    case 'setDefenseReminders':
+      return void (await vscode.workspace.getConfiguration('bananabox').update('defenseReminders', m.value === true, vscode.ConfigurationTarget.Global));
     case 'openSettings':
       // Only the two setting searches the app offers; anything else falls back to the Bananabox filter.
       return void (await vscode.commands.executeCommand('workbench.action.openSettings', m.query === 'bananabox.language' ? m.query : 'bananabox'));

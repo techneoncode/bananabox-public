@@ -930,6 +930,7 @@ body.vscode-high-contrast .lane.selected .bar-text, body.vscode-high-contrast .l
 .terms h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1.1em; }
 .terms p, .terms ul { margin: 0; }
 .terms ul { padding-left: 18px; display: grid; gap: 4px; }
+.terms .btn.ghost { max-width: 100%; height: auto; min-height: 28px; white-space: normal; text-align: left; }
 .login-features li { display: flex; align-items: center; gap: 10px; font-size: var(--t-sm); }
 .feature-icon { display: grid; place-items: center; width: 26px; height: 26px; border-radius: var(--r-lg); background: var(--layer-2); color: var(--fg-2); flex-shrink: 0; }
 /* activities */

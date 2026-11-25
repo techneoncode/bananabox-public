@@ -10,12 +10,13 @@
 
 <p align="center">
   <a href="https://github.com/techneoncode/bananabox-public/releases/latest"><img src="https://img.shields.io/github/v/release/techneoncode/bananabox-public?label=release&color=f5c518" alt="Latest release" /></a>
-  <a href="#installation"><img src="https://img.shields.io/badge/VS%20Code-1.95%2B-007ACC" alt="VS Code 1.95 or later" /></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=techneoncode.bananabox"><img src="https://img.shields.io/visual-studio-marketplace/v/techneoncode.bananabox?label=VS%20Code%20Marketplace&color=007ACC" alt="VS Code Marketplace" /></a>
   <a href="clion/README.md"><img src="https://img.shields.io/badge/CLion-2026.3-21D789" alt="CLion 2026.3" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/techneoncode/bananabox-public?color=blue" alt="MIT license" /></a>
 </p>
 
 <p align="center">
+  <a href="https://marketplace.visualstudio.com/items?itemName=techneoncode.bananabox">Marketplace</a> ·
   <a href="#installation">Installation</a> ·
   <a href="#features">Features</a> ·
   <a href="#documentation">Documentation</a> ·
@@ -33,7 +34,7 @@
 - **Checks before you spend a token.** Coding style, build, local tests, required files and allowed functions read from the subject.
 - **Agenda.** Your week of sessions, free time and overlaps shown as they are, registration in one tap or automatically.
 - **Coding style as you type.** epiclang findings in the editor, with corrections you review before they apply.
-- **Defense reminders.** A full-screen countdown 60, 30 and 15 minutes before your slot.
+- **Defense reminders.** An optional full-screen countdown 60, 30 and 15 minutes before your slot. Off by default: turn it on in **Me**.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/techneoncode/bananabox-public/main/images/readme/home.png" width="200" alt="Home: what needs you and the project open in this window" />
@@ -44,7 +45,7 @@
 
 ## Installation
 
-**VS Code** (1.95 or later): search **Bananabox** in the Extensions view, or run
+**VS Code** (1.95 or later): install it from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=techneoncode.bananabox), search **Bananabox** in the Extensions view, or run
 
 ```sh
 code --install-extension techneoncode.bananabox

@@ -18,6 +18,7 @@ export function renderMeTab(ctx: Ctx): HTMLElement {
   return h('div.me-tab', appBar({ title: t('app.tab.me'), large: true }), card,
     listGroup(t('app.me.group.app'),
       listRow({ icon: 'symbol-color', label: t('appearance.title'), chevron: true, onclick: () => { ui.page = 'appearance'; ctx.rerender(); } }),
+      remindersRow(ctx),
       bananaThemeRow(ctx),
       listRow({ icon: 'globe', label: t('app.me.language'), meta: lang === 'fr' ? 'Français' : 'English', chevron: true,
         onclick: () => ctx.post({ type: 'openSettings', query: 'bananabox.language' }) }),
@@ -30,17 +31,24 @@ export function renderMeTab(ctx: Ctx): HTMLElement {
       listRow({ icon: 'sign-out', tone: 'fail', label: t('app.me.signOut'), chevron: false, onclick: () => ctx.post({ type: 'signOut' }) })));
 }
 
+/** A switch row of the Me tab, flipped at once and saved to the matching setting by the host. */
+function switchRow(ctx: Ctx, opts: { on: boolean; glyph: string; label: string; detail: string; toggle(on: boolean): void }): HTMLElement {
+  return h('button.lr.me-switch-row', { type: 'button', role: 'switch', 'aria-checked': String(opts.on), onclick: () => { opts.toggle(!opts.on); ctx.rerender(); } },
+    h('span.lr-ic.t-accent', icon(opts.glyph)),
+    h('span.lr-text', h('span.lr-label', opts.label), h('span.lr-detail', opts.detail)),
+    h('span.me-switch', { class: opts.on ? 'on' : '', 'aria-hidden': 'true' }, h('span.me-knob')));
+}
+
 /** Switch: Bananabox's accent on buttons instead of the VS Code theme's (setting bananabox.bananaTheme). */
 function bananaThemeRow(ctx: Ctx): HTMLElement {
-  const { t } = ctx, on = ctx.state.bananaTheme === true;
-  const toggle = () => {
-    ctx.state.bananaTheme = !on;
-    document.body.classList.toggle('bb-brand', !on);
-    ctx.post({ type: 'setBananaTheme', value: !on });
-    ctx.rerender();
-  };
-  return h('button.lr.me-switch-row', { type: 'button', role: 'switch', 'aria-checked': String(on), onclick: toggle },
-    h('span.lr-ic.t-accent', icon('paintcan')),
-    h('span.lr-text', h('span.lr-label', t('app.me.bananaTheme')), h('span.lr-detail', t('app.me.bananaThemeSub'))),
-    h('span.me-switch', { class: on ? 'on' : '', 'aria-hidden': 'true' }, h('span.me-knob')));
+  const { t } = ctx;
+  return switchRow(ctx, { on: ctx.state.bananaTheme === true, glyph: 'paintcan', label: t('app.me.bananaTheme'), detail: t('app.me.bananaThemeSub'),
+    toggle: (on) => { ctx.state.bananaTheme = on; document.body.classList.toggle('bb-brand', on); ctx.post({ type: 'setBananaTheme', value: on }); } });
+}
+
+/** Switch: the full-screen defense countdown (setting bananabox.defenseReminders, off by default). */
+function remindersRow(ctx: Ctx): HTMLElement {
+  const { t } = ctx;
+  return switchRow(ctx, { on: ctx.state.defenseReminders === true, glyph: 'bell', label: t('app.me.reminders'), detail: t('app.me.remindersSub'),
+    toggle: (on) => { ctx.state.defenseReminders = on; ctx.post({ type: 'setDefenseReminders', value: on }); } });
 }
