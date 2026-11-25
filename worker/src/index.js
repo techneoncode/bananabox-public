@@ -61,6 +61,7 @@ const publicPolicy = row => ({
   my_api_active: !!row.my_api_active,
   version: row.version,
   latest: row.latest,
+  clion_latest: row.clion_latest,
 });
 
 /** What the banned user is shown: the admin's name is the email's local part, or nothing when anonymized. */
@@ -269,9 +270,11 @@ async function issueNonce(env) {
 async function putPolicy(request, env, _id, actor) {
   const p = v.policy(await readBody(request));
   const before = publicPolicy(await readPolicy(env));
+  // An omitted clion_latest keeps the stored ZIP, but a ZIP of another version must not stay behind a new version.
+  if (p.clion_latest === undefined) p.clion_latest = p.version === before.version ? before.clion_latest : null;
   await env.DB.batch([
-    env.DB.prepare('UPDATE policy SET lens_active = ?, my_api_active = ?, version = ?, latest = ?, updated_at = ? WHERE id = 1')
-      .bind(+p.lens_active, +p.my_api_active, p.version, p.latest, Date.now()),
+    env.DB.prepare('UPDATE policy SET lens_active = ?, my_api_active = ?, version = ?, latest = ?, clion_latest = ?, updated_at = ? WHERE id = 1')
+      .bind(+p.lens_active, +p.my_api_active, p.version, p.latest, p.clion_latest, Date.now()),
     audit(env, actor, 'policy.update', null, { from: before, to: p }),
   ]);
   return ok(publicPolicy(await readPolicy(env)));

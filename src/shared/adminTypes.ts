@@ -84,6 +84,8 @@ export interface AdminPolicy {
   my_api_active: boolean;
   version: string;
   latest: string;
+  /** Absent from workers that predate the CLion plugin. */
+  clion_latest?: string | null;
 }
 
 export interface UpdateEntry {
@@ -148,7 +150,7 @@ export type AdminWebviewMessage =
   | { type: 'authorize'; name: string; reason?: string }
   | { type: 'unauthorize'; id: number }
   | { type: 'setPolicy'; lens_active?: boolean; my_api_active?: boolean }
-  | { type: 'publishRelease'; file: string; data: string; notes?: string }
+  | { type: 'publishRelease'; file: string; data: string; notes?: string; clionData?: string }
   | { type: 'rootUnlock'; token: string }
   | { type: 'rootLock' }
   | { type: 'createAdmin'; email: string; whoami: string; password: string }

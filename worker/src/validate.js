@@ -143,21 +143,31 @@ export function nonce(value) {
   return value;
 }
 
+/** A release asset of this version: the URL must name the release tag v<version> and the file. */
+function releaseAsset(value, version, file) {
+  const match = typeof value === 'string' && RELEASE_URL.exec(value);
+  return !!match && match[1] === `v${version}` && match[2] === file;
+}
+
+/** clion_latest is optional: undefined (absent) or null keeps nothing to validate. */
 export function policy(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) throw bad('Body must be a JSON object.');
   for (const key of ['lens_active', 'my_api_active']) {
     if (typeof body[key] !== 'boolean') throw bad(`${key} must be a boolean.`);
   }
   const version = semver(body.version, 'version');
-  const match = typeof body.latest === 'string' && RELEASE_URL.exec(body.latest);
-  if (!match || match[1] !== `v${version}` || match[2] !== `bananabox-${version}.vsix`) {
+  if (!releaseAsset(body.latest, version, `bananabox-${version}.vsix`)) {
     throw bad('latest must be https://github.com/techneoncode/bananabox-public/releases/download/v<version>/bananabox-<version>.vsix.');
+  }
+  if (body.clion_latest != null && !releaseAsset(body.clion_latest, version, `bananabox-clion-${version}.zip`)) {
+    throw bad('clion_latest must be https://github.com/techneoncode/bananabox-public/releases/download/v<version>/bananabox-clion-<version>.zip or null.');
   }
   return {
     lens_active: body.lens_active,
     my_api_active: body.my_api_active,
     version,
     latest: body.latest,
+    clion_latest: body.clion_latest,
   };
 }
 

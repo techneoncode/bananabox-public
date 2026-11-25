@@ -3,6 +3,7 @@
   "my_api_active": true,
   "version": "2.0.2",
   "latest": "https://github.com/techneoncode/bananabox-public/releases/download/v2.0.2/bananabox-2.0.2.vsix",
+  "clion_latest": null,
   "authorizedUsers": [],
   "bannedUsers": [],
   "bannedFeatures": ["lens_active", "my_api_active"]
