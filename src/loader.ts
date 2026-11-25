@@ -42,10 +42,32 @@ let running: { root: string; manifest: Record<string, unknown> };
 let current: Generation | undefined;
 const views = new Map<string, ViewSlot>();
 
+// Methods are bound to their object; classes (vscode.Uri, vscode.Range...) keep their statics and identity.
 const bound = (target: object, key: PropertyKey) => {
   const value = Reflect.get(target, key, target);
-  return typeof value === 'function' ? value.bind(target) : value;
+  return typeof value === 'function' && !Object.prototype.hasOwnProperty.call(value, 'prototype') ? value.bind(target) : value;
 };
+
+/**
+ * A plain object that reads every property of `target` (own and inherited) through to it, except
+ * `overrides`. VS Code freezes objects such as the extension context, and a Proxy may not report
+ * another value for a frozen property, so a copy with getters is the only safe wrapper.
+ */
+function delegate<T extends object>(target: T, overrides: Record<PropertyKey, unknown> = {}): T {
+  const out: Record<PropertyKey, unknown> = {};
+  const keys = new Set<PropertyKey>(Reflect.ownKeys(overrides));
+  for (let o: object | null = target; o && o !== Object.prototype; o = Object.getPrototypeOf(o)) {
+    Reflect.ownKeys(o).forEach(k => { if (k !== 'constructor') keys.add(k); });
+  }
+  for (const k of keys) {
+    Object.defineProperty(out, k, {
+      enumerable: true,
+      get: () => k in overrides ? overrides[k] : bound(target, k),
+      set: (v: unknown) => { Reflect.set(target, k, v, target); },
+    });
+  }
+  return out as T;
+}
 
 /** Event registrations of one generation on a shared webview view, so they end with it. */
 function track(gen: Generation, view: vscode.WebviewView): vscode.WebviewView {
@@ -55,15 +77,11 @@ function track(gen: Generation, view: vscode.WebviewView): vscode.WebviewView {
     disposables?.push(d);
     return d;
   };
-  const webview = new Proxy(view.webview, {
-    get: (t, k) => k === 'onDidReceiveMessage' ? wrap(t.onDidReceiveMessage) : bound(t, k),
-    set: (t, k, v) => Reflect.set(t, k, v, t),
-  });
-  return new Proxy(view, {
-    get: (t, k) => k === 'webview' ? webview
-      : k === 'onDidDispose' || k === 'onDidChangeVisibility' ? wrap(t[k] as vscode.Event<unknown>)
-      : bound(t, k),
-    set: (t, k, v) => Reflect.set(t, k, v, t),
+  const webview = delegate(view.webview, { onDidReceiveMessage: wrap(view.webview.onDidReceiveMessage) });
+  return delegate(view, {
+    webview,
+    onDidDispose: wrap(view.onDidDispose),
+    onDidChangeVisibility: wrap(view.onDidChangeVisibility),
   });
 }
 
@@ -93,29 +111,24 @@ function registerView(gen: Generation, viewType: string, provider: vscode.Webvie
 }
 
 function apiFor(gen: Generation): typeof vscode {
-  const window = new Proxy(vscode.window, {
-    get: (t, k) => k === 'registerWebviewViewProvider'
-      ? (viewType: string, provider: vscode.WebviewViewProvider, options?: { webviewOptions?: { retainContextWhenHidden?: boolean } }) =>
-        registerView(gen, viewType, provider, options)
-      : Reflect.get(t, k),
+  const window = delegate(vscode.window, {
+    registerWebviewViewProvider: (viewType: string, provider: vscode.WebviewViewProvider, options?: { webviewOptions?: { retainContextWhenHidden?: boolean } }) =>
+      registerView(gen, viewType, provider, options),
   });
-  return new Proxy(vscode, { get: (t, k) => k === 'window' ? window : Reflect.get(t, k) });
+  return delegate(vscode, { window });
 }
 
 /** The extension context as the version in `root` should see it: its own folder, manifest and subscriptions. */
 function contextFor(gen: Generation, root: string, manifest: Record<string, unknown>): vscode.ExtensionContext {
   const uri = vscode.Uri.file(root);
-  const extension = new Proxy(base.extension, {
-    get: (t, k) => k === 'packageJSON' ? manifest : k === 'extensionUri' ? uri : k === 'extensionPath' ? root : bound(t, k),
-  });
-  const overrides: Record<PropertyKey, unknown> = {
+  const extension = delegate(base.extension, { packageJSON: manifest, extensionUri: uri, extensionPath: root });
+  return delegate(base, {
     subscriptions: gen.subscriptions,
     extensionUri: uri,
     extensionPath: root,
     asAbsolutePath: (relative: string) => path.join(root, relative),
     extension,
-  };
-  return new Proxy(base, { get: (t, k) => k in overrides ? overrides[k] : bound(t, k) });
+  });
 }
 
 const readManifest = (root: string): Record<string, unknown> =>

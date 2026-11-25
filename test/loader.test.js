@@ -17,8 +17,10 @@ const fakeView = () => ({
   onDidChangeVisibility: event(),
   visible: true,
 });
+// Frozen like VS Code's own API and extension context: wrappers must not trip over frozen properties.
+class Uri { constructor(p) { this.fsPath = p; this.scheme = 'file'; } static file(p) { return new Uri(p); } }
 const vscode = {
-  Uri: { file: (p) => ({ fsPath: p, scheme: 'file' }) },
+  Uri,
   Disposable: class { constructor(fn) { this.dispose = fn; } },
   CancellationTokenSource: class { token = { isCancellationRequested: false }; },
   commands: { registerCommand: (id, fn) => { assert.ok(!commands.has(id), `${id} registered twice`); commands.set(id, fn); return disposable(() => commands.delete(id)); } },
@@ -30,11 +32,15 @@ const vscode = {
     },
   },
 };
+Object.freeze(vscode.window);
+Object.freeze(vscode);
 
 // Each fake version registers a command and the sidebar view, and says which version answered.
 const bundle = (version) => `
 const vscode = globalThis[Symbol.for('techneoncode.bananabox.vscode')];
 exports.activate = (context) => {
+  if (!(vscode.Uri.file('/x') instanceof vscode.Uri)) throw new Error('vscode classes lost their identity');
+  if (context.asAbsolutePath('a') !== require('node:path').join(context.extensionPath, 'a')) throw new Error('asAbsolutePath');
   context.subscriptions.push(
     vscode.commands.registerCommand('bananabox.version', () => '${version}@' + context.extension.packageJSON.version + '@' + context.extensionPath),
     vscode.window.registerWebviewViewProvider('bananabox.sidebar', { resolveWebviewView(view) {
@@ -66,7 +72,11 @@ test('the loader swaps Bananabox for a newer installed version without restartin
     const loader = require(path.resolve('dist/loader.js'));
     const manifest = JSON.parse(fs.readFileSync(path.join(v1, 'package.json'), 'utf8'));
     const subscriptions = [];
-    await loader.activate({ subscriptions, extensionPath: v1, extensionUri: vscode.Uri.file(v1), extension: { id: 'techneoncode.bananabox', packageJSON: manifest } });
+    await loader.activate(Object.freeze({
+      subscriptions, extensionPath: v1, extensionUri: vscode.Uri.file(v1),
+      asAbsolutePath: (p) => path.join(v1, p),
+      extension: Object.freeze({ id: 'techneoncode.bananabox', packageJSON: manifest }),
+    }));
     assert.equal(commands.get('bananabox.version')(), `2.1.0@2.1.0@${v1}`);
 
     // VS Code shows the sidebar once, with the provider the loader registered.
