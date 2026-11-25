@@ -1,5 +1,6 @@
 import { inflateRawSync } from 'node:zlib';
 import * as vscode from 'vscode';
+import { parseChangelog } from '../domain/changelog';
 import { compareVersions } from '../domain/remotePolicy';
 import type { ReleaseStep } from '../shared/adminTypes';
 import { vsixManifest } from './extensionUpdate';
@@ -7,6 +8,14 @@ import { vsixManifest } from './extensionUpdate';
 const REPO = 'techneoncode/bananabox-public';
 const EXTENSION_ID = 'techneoncode.bananabox';
 const WRITE_ROLES = ['admin', 'maintain', 'write'];
+
+/** The CHANGELOG.md section of `version` on main, used as the release notes when none are given. */
+async function changelogNotes(token: string, version: string): Promise<string> {
+  const file = await github(token, 'GET', '/contents/CHANGELOG.md?ref=main').catch(() => null);
+  if (!file?.content) return '';
+  const text = Buffer.from(file.content, 'base64').toString('utf8');
+  return parseChangelog(text).find((entry) => entry.version === version)?.body ?? '';
+}
 
 export class ReleaseError extends Error {
   constructor(readonly code: string, message: string) {
@@ -110,11 +119,12 @@ export async function publishRelease(
   }
 
   step('creating', version);
+  const body = notes.trim() || await changelogNotes(token, version);
   const release = await github(token, 'POST', '/releases', {
     tag_name: `v${version}`,
     target_commitish: 'main',
     name: `Bananabox ${version}`,
-    ...(notes.trim() ? { body: notes.trim() } : { generate_release_notes: true }),
+    ...(body ? { body } : { generate_release_notes: true }),
   });
 
   step('uploading', version);

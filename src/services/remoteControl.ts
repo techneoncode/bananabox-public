@@ -6,7 +6,10 @@ import {
   remoteStatus,
   type Identity,
   type RemoteConfig,
+  type RemoteStatus,
 } from '../domain/remotePolicy';
+import { parseChangelog, selectChangelog } from '../domain/changelog';
+import { fetchChangelog } from './changelog';
 import { createT } from '../shared/i18n';
 import { config } from '../util/config';
 import { log } from '../util/log';
@@ -18,6 +21,7 @@ import { isClion } from '../util/host';
 export const API_BASE_URL = 'https://bananabox-api.niels-christophe.workers.dev';
 export const REMOTE_CONFIG_URL = `${API_BASE_URL}/v1/config`;
 const CACHE_KEY = 'bananabox.remoteConfig.v1';
+const CHANGELOG_KEY = 'bananabox.changelog.v1';
 const UPDATE_KEY = 'bananabox.installedUpdate.v1';
 const IDENTITY_KEY = 'bananabox.identity.v1';
 const POLL_MS = 60_000;
@@ -56,6 +60,9 @@ export class RemoteControl implements vscode.Disposable {
   private readonly userId: string;
   private readonly version: string;
   private remote?: RemoteConfig;
+  private changelogText?: { version: string; text: string };
+  private changelogLoading?: string;
+  private changelogFailed?: string;
   private offline = true;
   private known: Identity = { promotion: null, cursus: null, campus: null };
 
@@ -80,6 +87,10 @@ export class RemoteControl implements vscode.Disposable {
       cursus: typeof stored?.cursus === 'string' ? stored.cursus : null,
       campus: typeof stored?.campus === 'string' ? stored.campus : null,
     };
+    const changelog = context.globalState.get<{ version?: unknown; text?: unknown }>(CHANGELOG_KEY);
+    if (typeof changelog?.version === 'string' && typeof changelog.text === 'string') {
+      this.changelogText = { version: changelog.version, text: changelog.text };
+    }
     this.apply();
   }
 
@@ -145,7 +156,39 @@ export class RemoteControl implements vscode.Disposable {
       state.update = 'installed';
       state.updateError = undefined;
     }
+    if (state.versionMismatch && state.requiredVersion) {
+      state.changelog = this.changelogFor(state.requiredVersion, state.installedVersion);
+    }
     remoteFeatures.set(state);
+  }
+
+  /** The changes the update screen lists; the changelog of each required version is fetched once and kept. */
+  private changelogFor(target: string, installed: string): NonNullable<RemoteStatus['changelog']> {
+    if (this.changelogText?.version === target) {
+      const entries = selectChangelog(parseChangelog(this.changelogText.text), installed, target);
+      return { state: 'ready', entries };
+    }
+    if (this.changelogFailed === target) return { state: 'failed', entries: [] };
+    if (this.changelogLoading !== target) void this.loadChangelog(target);
+    return { state: 'loading', entries: [] };
+  }
+
+  private async loadChangelog(target: string): Promise<void> {
+    this.changelogLoading = target;
+    try {
+      const text = await fetchChangelog(target, this.deps.fetch ?? fetch, this.lifetime.signal);
+      if (this.lifetime.signal.aborted) return;
+      this.changelogText = { version: target, text };
+      void this.context.globalState.update(CHANGELOG_KEY, this.changelogText)
+        .then(undefined, (error) => log().warn('Cannot cache changelog.', error));
+    } catch (error) {
+      if (this.lifetime.signal.aborted) return;
+      this.changelogFailed = target;
+      log().warn('Cannot load the changelog.', error);
+    } finally {
+      if (this.changelogLoading === target) this.changelogLoading = undefined;
+    }
+    this.apply();
   }
 
   private async check(): Promise<void> {

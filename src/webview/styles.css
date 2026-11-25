@@ -640,6 +640,14 @@ body[data-surface='sidebar'] .connection-screen { margin-top: 4px; }
 .update-error > summary { color: var(--fail); font-size: var(--t-sm); }
 .update-error p { margin-top: 6px; font-size: var(--t-sm); overflow-wrap: anywhere; }
 .update-hint { display: flex; align-items: center; gap: 6px; color: var(--fg-2); font-size: var(--t-sm); }
+.whats-new { width: 100%; }
+.whats-new-status, .whats-new-link { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--fg-2); font-size: var(--t-sm); }
+.whats-new-list { display: grid; gap: 18px; max-height: min(420px, 55vh); overflow-y: auto; padding-right: 6px; }
+.whats-new-entry { display: grid; gap: 4px; }
+.whats-new-entry h3 { display: flex; align-items: baseline; gap: 10px; margin: 0; font-size: 1rem; font-weight: 600; }
+.whats-new-entry h3 + .md { padding-top: 0; }
+.whats-new-entry .md h4 { margin: 8px 0 0; font-size: var(--t-sm); font-weight: 600; color: var(--fg-2); }
+.whats-new-date { color: var(--fg-2); font-size: var(--t-sm); font-weight: 400; }
 
 /* ───────────── defense reminder ───────────── */
 .defense-screen { display: grid; place-items: center; min-height: 100vh; padding: 32px; }
