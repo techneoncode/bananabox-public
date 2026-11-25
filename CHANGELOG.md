@@ -3,6 +3,11 @@
 All notable changes to Bananabox are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.1.2] - 2026-11-25
+
+### Fixed
+- Bananabox no longer stays on an endless loading screen after updating to 2.1.1.
+
 ## [2.1.1] - 2026-11-25
 
 ### Changed

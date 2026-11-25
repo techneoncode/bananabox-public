@@ -1,9 +1,9 @@
 {
   "lens_active": true,
   "my_api_active": true,
-  "version": "2.1.1",
-  "latest": "https://github.com/techneoncode/bananabox-public/releases/download/v2.1.1/bananabox-2.1.1.vsix",
-  "clion_latest": "https://github.com/techneoncode/bananabox-public/releases/download/v2.1.1/bananabox-clion-2.1.1.zip",
+  "version": "2.1.2",
+  "latest": "https://github.com/techneoncode/bananabox-public/releases/download/v2.1.2/bananabox-2.1.2.vsix",
+  "clion_latest": "https://github.com/techneoncode/bananabox-public/releases/download/v2.1.2/bananabox-clion-2.1.2.zip",
   "authorizedUsers": [],
   "bannedUsers": [],
   "bannedFeatures": ["lens_active", "my_api_active"]
