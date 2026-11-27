@@ -51,6 +51,11 @@ export const config = {
   bananaTheme: (): boolean => cfg().get<boolean>('bananaTheme') === true,
   /** Off unless the student turns it on: a new setting, so earlier installs start off too. */
   defenseReminders: (): boolean => cfg().get<boolean>('defenseReminders') === true,
+  /** 12 or 24-hour clock; undefined follows the language. */
+  timeFormat: (): '12h' | '24h' | undefined => {
+    const v = cfg().get<string>('timeFormat');
+    return v === '12h' || v === '24h' ? v : undefined;
+  },
   language: (): 'en' | 'fr' => {
     const v = cfg().get<string>('language') ?? 'auto';
     if (v === 'en' || v === 'fr') {

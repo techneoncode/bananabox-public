@@ -22,6 +22,8 @@ export function renderMeTab(ctx: Ctx): HTMLElement {
       bananaThemeRow(ctx),
       listRow({ icon: 'globe', label: t('app.me.language'), meta: lang === 'fr' ? 'Français' : 'English', chevron: true,
         onclick: () => ctx.post({ type: 'openSettings', query: 'bananabox.language' }) }),
+      listRow({ icon: 'clock', label: t('app.me.timeFormat'), meta: state.timeFormat ?? t('app.me.timeFormatAuto'), chevron: true,
+        onclick: () => ctx.post({ type: 'openSettings', query: 'bananabox.timeFormat' }) }),
       listRow({ icon: 'settings-gear', label: t('app.me.settings'), detail: t('app.me.settingsSub'), meta: icon('link-external'), chevron: false,
         onclick: () => ctx.post({ type: 'openSettings', query: 'bananabox' }) })),
     listGroup(t('app.me.group.data'),

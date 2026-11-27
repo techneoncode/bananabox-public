@@ -548,6 +548,16 @@
           "default": false,
           "markdownDescription": "Paint Bananabox buttons and focus rings with the Banana accent (or your chosen colours) instead of the VS Code theme's. High contrast themes are never overridden."
         },
+        "bananabox.timeFormat": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "24h",
+            "12h"
+          ],
+          "default": "auto",
+          "markdownDescription": "Clock used for times in Bananabox. `auto` follows the interface language (24-hour in French, 12-hour in English)."
+        },
         "bananabox.language": {
           "type": "string",
           "enum": [
