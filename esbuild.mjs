@@ -6,8 +6,9 @@ import { join } from 'node:path';
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
 const tests = process.argv.includes('--tests');
-// Test builds only: `--test-update=2.1.3` makes this build act as if the API required that GitHub release.
-const testUpdate = process.argv.find((a) => a.startsWith('--test-update='))?.split('=')[1];
+// Test builds only: `--test-update=2.1.3` (or BANANABOX_TEST_UPDATE=2.1.3, which `vsce package` keeps through
+// its prepublish build) makes this build act as if the API required that GitHub release.
+const testUpdate = process.argv.find((a) => a.startsWith('--test-update='))?.split('=')[1] ?? process.env.BANANABOX_TEST_UPDATE;
 if (testUpdate !== undefined && !/^\d+\.\d+\.\d+$/.test(testUpdate)) throw new Error(`--test-update: not a version: ${testUpdate}`);
 
 if (tests) {
