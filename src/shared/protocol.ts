@@ -78,6 +78,8 @@ export interface StateSnapshot {
   palette?: Palette;
   /** Setting: buttons wear the Banana accent instead of the theme's. */
   bananaTheme?: boolean;
+  /** Setting bananabox.timeFormat; missing follows the language. */
+  timeFormat?: '12h' | '24h';
   /** The defense countdown is on (setting bananabox.defenseReminders, off by default). */
   defenseReminders?: boolean;
   /** Checks turned off on the Prepare page, per event (setting). */
@@ -263,6 +265,6 @@ export type WebviewMessage =
       target: 'editor' | 'browser' | 'desktop' | 'binaries';
     }
   | { type: 'openExternal'; url: string }
-  | { type: 'openSettings'; query: 'bananabox' | 'bananabox.language' | 'bananabox.browserPath' }
+  | { type: 'openSettings'; query: 'bananabox' | 'bananabox.language' | 'bananabox.timeFormat' | 'bananabox.browserPath' }
   | { type: 'openCommit'; projectId: number; commit: string }
   | { type: 'copy'; text: string; what?: string };

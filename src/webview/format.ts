@@ -1,10 +1,16 @@
 export type Lang = 'en' | 'fr';
+export type TimeFormat = '12h' | '24h';
+
+/** Clock style from the setting bananabox.timeFormat: unset follows the language. */
+let cycle: Intl.DateTimeFormatOptions = {};
+export function setTimeFormat(f: TimeFormat | undefined): void { cycle = f ? { hourCycle: f === '12h' ? 'h12' : 'h23' } : {}; }
+export const hourCycle = (): Intl.DateTimeFormatOptions => cycle;
 
 export function dateTime(iso: string | null | undefined, lang: Lang): string {
   if (!iso || Number.isNaN(Date.parse(iso))) {
     return '—';
   }
-  return new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
+  return new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', ...cycle }).format(new Date(iso));
 }
 
 export function dateOnly(iso: string | null | undefined, lang: Lang): string {
@@ -18,7 +24,7 @@ export function timeOnly(iso: string | null | undefined, lang: Lang): string {
   if (!iso || Number.isNaN(Date.parse(iso))) {
     return '';
   }
-  return new Intl.DateTimeFormat(lang, { hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
+  return new Intl.DateTimeFormat(lang, { hour: '2-digit', minute: '2-digit', ...cycle }).format(new Date(iso));
 }
 
 /** "in 3 days" / "2 hours ago", picking the largest sensible unit. */

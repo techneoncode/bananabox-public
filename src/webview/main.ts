@@ -3,7 +3,7 @@ import type { ValgrindCheck, ValgrindVM } from '../shared/types';
 import { createT } from '../shared/i18n';
 import type { Ctx, UiState } from './ctx';
 import { clear, h, icon } from './dom';
-import { relative } from './format';
+import { relative, setTimeFormat } from './format';
 import { renderProject } from './views/detail';
 import { renderList } from './views/list';
 import { renderAppearance } from './views/appearance';
@@ -373,6 +373,7 @@ window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
       received = true;
       applyPalette(m.state.palette);
       document.body.classList.toggle('bb-brand', m.state.bananaTheme === true);
+      setTimeFormat(m.state.timeFormat);
       if (m.state.lang !== ctx.lang) {
         ctx.lang = m.state.lang;
         ctx.t = createT(m.state.lang);

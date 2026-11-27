@@ -92,6 +92,7 @@ export function notifyDeadline(
   hours: number,
 ): void {
   const language = config.language();
+  const tf = config.timeFormat();
   const t = createT(language);
   const when = new Intl.DateTimeFormat(language, {
     weekday: 'short',
@@ -99,6 +100,7 @@ export function notifyDeadline(
     month: 'short',
     hour: '2-digit',
     minute: '2-digit',
+    ...(tf ? { hourCycle: tf === '12h' ? 'h12' : 'h23' } as const : {}),
   }).format(new Date(project.endDate));
   const open = t('deadline.open');
   const run = t('deadline.run');

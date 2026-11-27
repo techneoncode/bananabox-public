@@ -4,6 +4,7 @@ import { personTag } from '../avatars';
 import { chip, notice, waitBlock, waitLine, type Tone } from '../ui';
 import { autoPlan, canRegister, isoDay, weekStart, type AutoPlanItem } from '../../domain/calendar';
 import { enterPart } from '../motion';
+import { hourCycle } from '../format';
 import type { CalendarEventVM, CalendarPrefs, SlotPreference } from '../../shared/types';
 
 const DAY = 86_400_000;
@@ -14,7 +15,7 @@ export const view = (ctx: Ctx): View => ctx.ui.calendar ??= { mode: 'day', date:
 export const parseDay = (iso: string) => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); };
 export const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 /** Slot times as the timetable shows them: 24h mono, the same in both languages. */
-export const timeOnly = (iso: string, lang: string) => new Intl.DateTimeFormat(lang, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso));
+export const timeOnly = (iso: string, lang: string) => new Intl.DateTimeFormat(lang, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', ...hourCycle() }).format(new Date(iso));
 
 /** What a session means for the student: drives colour, icon and label together (never colour alone). */
 export function state(e: CalendarEventVM): { tone: Tone; glyph: string; key: string } {
@@ -111,7 +112,7 @@ function timetable(ctx: Ctx, events: CalendarEventVM[], days: Date[], openDay: (
     type: 'button', class: isoDay(d) === today ? 'today' : '', title: t('calendar.openDay'), onclick: () => openDay(d) },
     h('span', new Intl.DateTimeFormat(lang, { weekday: 'short' }).format(d)), h('strong', String(d.getDate())))));
   const grid = h('div.cal-grid', { class: n > 1 ? 'week' : '', style: `height:${(last - first) * HOUR_PX}px` });
-  for (let hr = first; hr < last; hr++) grid.append(h('div.cal-hour', { style: `top:${(hr - first) * HOUR_PX}px` }, h('span', `${String(hr).padStart(2, '0')}:00`)));
+  for (let hr = first; hr < last; hr++) grid.append(h('div.cal-hour', { style: `top:${(hr - first) * HOUR_PX}px` }, h('span', hourCycle().hourCycle === 'h12' ? new Intl.DateTimeFormat(lang, { hour: 'numeric', hourCycle: 'h12' }).format(new Date(2000, 0, 1, hr)) : `${String(hr).padStart(2, '0')}:00`)));
   for (let d = 1; d < n; d++) grid.append(h('div.cal-col-line', { style: `left:${x(d / n)}`, 'aria-hidden': 'true' }));
   const todayAt = days.findIndex(d => isoDay(d) === today);
   if (todayAt >= 0) {

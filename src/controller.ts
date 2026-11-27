@@ -404,6 +404,7 @@ export class Controller implements vscode.Disposable {
       localProjects: this.localProjects(),
       palette: this.palette(),
       bananaTheme: config.bananaTheme(),
+      timeFormat: config.timeFormat(),
       defenseReminders: config.defenseReminders(),
       disabledChecks: config.disabledChecks(),
     };

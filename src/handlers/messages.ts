@@ -556,7 +556,7 @@ export async function handleMessage(
       return void (await vscode.workspace.getConfiguration('bananabox').update('defenseReminders', m.value === true, vscode.ConfigurationTarget.Global));
     case 'openSettings':
       // Only the two setting searches the app offers; anything else falls back to the Bananabox filter.
-      return void (await vscode.commands.executeCommand('workbench.action.openSettings', m.query === 'bananabox.language' || m.query === 'bananabox.browserPath' ? m.query : 'bananabox'));
+      return void (await vscode.commands.executeCommand('workbench.action.openSettings', ['bananabox.language', 'bananabox.timeFormat', 'bananabox.browserPath'].includes(m.query) ? m.query : 'bananabox'));
     case 'copy':
       if (typeof m.text !== 'string') return;
       await vscode.env.clipboard.writeText(m.text);
