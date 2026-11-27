@@ -33,6 +33,7 @@ export function sidebarNav(ctx: Ctx, p: ProjectVM, page: Tab | null): HTMLElemen
   const canClone = p.repoEnabled && p.registered && !isCurrent && !(ctx.state.localProjects ?? []).includes(p.id);
   const items: MenuItem[] = [
     ...(canClone ? [{ label: t('action.cloneOpen'), icon: 'repo-clone', onSelect: () => ctx.post({ type: 'openFolder', projectId: p.id }), title: p.repoLink ?? t('action.cloneUnknown') }] : []),
+    ...(canClone ? [{ label: t('action.locateRepo'), icon: 'search', onSelect: () => ctx.post({ type: 'locateRepo', projectId: p.id }) }] : []),
     { label: t('action.intranet'), icon: 'globe', onSelect: () => ctx.post({ type: 'openExternal', url: p.intranetUrl }) },
     ...(p.hermesUrl ? [{ label: t('action.hermes'), icon: 'link-external', onSelect: () => ctx.post({ type: 'openExternal', url: p.hermesUrl! }) }] : []),
     ...(p.repoLink ? [{ label: t('action.copyRepo'), icon: 'copy', onSelect: () => ctx.post({ type: 'copy', text: p.repoLink!, what: t('detail.repoUrl') }) }] : []),
@@ -155,7 +156,8 @@ export function stateGroup(ctx: Ctx, p: ProjectVM): HTMLElement {
 function noLocal(ctx: Ctx, p: ProjectVM): HTMLElement {
   const canClone = p.repoEnabled && p.registered;
   return h('span.sb-note', icon('folder'), ctx.t('sb.noLocal'),
-    canClone && h('button.btn.small', { type: 'button', onclick: () => ctx.post({ type: 'openFolder', projectId: p.id }) }, icon('repo-clone'), ctx.t('action.cloneOpen')));
+    canClone && h('button.btn.small', { type: 'button', onclick: () => ctx.post({ type: 'openFolder', projectId: p.id }) }, icon('repo-clone'), ctx.t('action.cloneOpen')),
+    canClone && h('button.btn.small', { type: 'button', onclick: () => ctx.post({ type: 'locateRepo', projectId: p.id }) }, icon('search'), ctx.t('action.locateRepo')));
 }
 
 function deliveryRow(ctx: Ctx, p: ProjectVM): HTMLElement {

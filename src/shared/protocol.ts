@@ -257,6 +257,7 @@ export type WebviewMessage =
   | { type: 'loadResult'; projectId: number; resultId: number }
   | { type: 'cloneProject'; projectId: number }
   | { type: 'openFolder'; projectId: number }
+  | { type: 'locateRepo'; projectId: number }
   | { type: 'loadSubject'; projectId: number; docId?: string }
   | { type: 'pickSubject'; projectId: number }
   | {

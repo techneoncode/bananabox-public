@@ -523,6 +523,8 @@ export async function handleMessage(
       return c.cloneProject(m.projectId);
     case 'openFolder':
       return c.openFolder(m.projectId);
+    case 'locateRepo':
+      return c.locateRepo(m.projectId);
     case 'loadSubject':
       return c.loadSubject(
         surface,
