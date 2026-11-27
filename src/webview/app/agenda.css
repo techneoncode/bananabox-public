@@ -77,7 +77,10 @@
 .ag .cal-people { margin: 0; }
 .ag .cal-people summary { min-height: var(--tap); display: flex; align-items: center; cursor: pointer; }
 .ag .cal-sheet { max-height: min(86vh, 720px); border-radius: 16px 16px 0 0; }
-.ag .cal-switch { min-width: 52px; min-height: var(--tap); }
+/* same track as the Me tab switch; the tap target grows around it instead of stretching the track */
+.ag .cal-switch { flex: none; width: 40px; height: 24px; border-radius: 12px; }
+.ag .cal-switch::before { content: ''; position: absolute; inset: -10px -2px; }
+.ag .cal-switch-knob { width: 18px; height: 18px; }
 .ag .cal-sheet-part h3 { font-family: var(--display); font-size: 1em; }
 
 @media (prefers-reduced-motion: reduce) {
