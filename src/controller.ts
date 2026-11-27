@@ -74,6 +74,7 @@ import { handleMessage, loadAvatars } from './handlers/messages';
 import {
   afterClone,
   cloneProject,
+  locateRepo,
   loadSubject,
   localGitState,
   localRoot,
@@ -552,6 +553,10 @@ export class Controller implements vscode.Disposable {
 
   openFolder(projectId: number) {
     return openFolder(this, projectId);
+  }
+
+  locateRepo(projectId: number) {
+    return locateRepo(this, projectId);
   }
 
   openSubjectCommand() {

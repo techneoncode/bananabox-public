@@ -186,6 +186,39 @@ export async function afterClone(c: Controller, name: string, folder: string) {
   }
 }
 
+/** Points Bananabox at a copy of the repository already on disk, so it is not cloned again. */
+export async function locateRepo(c: Controller, projectId: number) {
+  const project = c.projects.get(projectId);
+  if (!project) return;
+  const picked = await vscode.window.showOpenDialog({
+    canSelectFolders: true,
+    canSelectFiles: false,
+    canSelectMany: false,
+    defaultUri: vscode.Uri.file(config.defaultCloneDirectory() || homedir()),
+    openLabel: tr('Use this folder'),
+    title: tr('Locate the repository of “{name}”', { name: project.name }),
+  });
+  const folder = picked?.[0]?.fsPath;
+  if (!folder) return;
+  const remote = project.repoLink ? parseRemote(project.repoLink) : null;
+  const matches = remote !== null && (await readRemotes(folder)).some((r) => {
+    const ref = parseRemote(r);
+    return ref !== null && sameRepo(ref, remote);
+  });
+  if (!matches) {
+    const useAnyway = tr('Use anyway');
+    const answer = await vscode.window.showWarningMessage(
+      tr('{path} is not a clone of the repository of “{name}”.', { path: folder, name: project.name }),
+      { modal: true },
+      useAnyway,
+    );
+    if (answer !== useAnyway) return;
+  }
+  await c.projects.rememberLocalPath(project.id, folder);
+  c.schedulePush();
+  await c.afterClone(project.name, folder);
+}
+
 export async function openFolder(c: Controller, projectId: number) {
   const path = c.projects.localPath(projectId);
   if (path && existsSync(path)) {

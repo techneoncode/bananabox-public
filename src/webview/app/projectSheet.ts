@@ -44,7 +44,9 @@ export function renderProjectSheet(ctx: Ctx, p: ProjectVM): HTMLElement[] {
     : local ? bigButton(t('action.openFolder'), 'folder-opened', openFolder, 'secondary', { title: t('action.openFolderHint') })
     : canClone ? bigButton(t('action.cloneOpen'), 'repo-clone', openFolder, 'secondary', { title: p.repoLink ?? t('action.cloneUnknown') })
     : null;
-  const view = folder
+  const view = !isCurrent && !local && canClone
+    ? bigButton(t('action.locateRepo'), 'search', () => ctx.post({ type: 'locateRepo', projectId: p.id }), 'secondary')
+    : folder
     ? h('button.bd-view', { type: 'button', title: t('app.board.openProject'), 'aria-label': t('app.board.openProject'), onclick: () => openProject(ctx, p.id) }, icon('arrow-right'))
     : bigButton(t('app.board.openProject'), 'arrow-right', () => openProject(ctx, p.id), 'secondary');
 

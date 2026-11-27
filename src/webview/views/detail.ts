@@ -90,6 +90,7 @@ function header(ctx: Ctx, p: ProjectVM, isCurrent: boolean): HTMLElement {
   const primary = local ? h('button.btn.primary', { onclick: () => ctx.post({ type: 'openFolder', projectId: p.id }), title: t('action.openFolderHint') }, icon('folder-opened'), t('action.openFolder'))
     : canClone ? h('button.btn.primary', { onclick: () => ctx.post({ type: 'openFolder', projectId: p.id }), title: p.repoLink ?? t('action.cloneUnknown') }, icon('repo-clone'), t('action.cloneOpen')) : null;
   const items: MenuItem[] = [
+    ...(canClone && !local ? [{ label: t('action.locateRepo'), icon: 'search', onSelect: () => ctx.post({ type: 'locateRepo', projectId: p.id }) }] : []),
     ...(p.hermesUrl ? [{ label: t('action.hermes'), icon: 'link-external', onSelect: () => ctx.post({ type: 'openExternal', url: p.hermesUrl! }) }] : []),
     ...(p.repoLink ? [{ label: t('action.copyRepo'), icon: 'copy', onSelect: () => ctx.post({ type: 'copy', text: p.repoLink!, what: t('detail.repoUrl') }) }] : []),
   ];

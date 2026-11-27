@@ -507,6 +507,7 @@ const en: Dict = {
 
   'action.back': 'Back',
   'action.cloneOpen': 'Clone & open',
+  'action.locateRepo': 'Locate repo',
   'action.openFolder': 'Open folder',
   'action.openFolderHint': 'Open this project’s folder in this window, like “code .” in it',
   'action.overview': 'Overview',
@@ -1842,6 +1843,7 @@ const fr: Dict = {
 
   'action.back': 'Retour',
   'action.cloneOpen': 'Cloner & ouvrir',
+  'action.locateRepo': 'Localiser le dépôt',
   'action.openFolder': 'Ouvrir le dossier',
   'action.openFolderHint': 'Ouvrir le dossier du projet dans cette fenêtre, comme un « code . » dedans',
   'action.overview': 'Vue d’ensemble',
