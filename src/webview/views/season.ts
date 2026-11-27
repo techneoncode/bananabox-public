@@ -125,5 +125,7 @@ function loadChart(ctx: Ctx, projects: ProjectVM[], w: Window, nowPos: number): 
   const chart = svg('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', class: 'load-svg', role: 'img', 'aria-label': ctx.t('season.loadAria', { n: peak }) },
     svg('path', { d, class: 'load-area' }),
     svg('line', { x1: (nowPos / 100) * W, x2: (nowPos / 100) * W, y1: 0, y2: H, class: 'load-now' }));
-  return h('div.season-load', h('span.load-label', ctx.t('season.load'), h('b', String(peak))), h('div.load-track', chart));
+  // The number reads as "right now", like the other project counters; the chart keeps showing the peak.
+  const current = projects.filter(p => p.status === 'ongoing').length;
+  return h('div.season-load', h('span.load-label', ctx.t('season.load'), h('b', String(current))), h('div.load-track', chart));
 }
