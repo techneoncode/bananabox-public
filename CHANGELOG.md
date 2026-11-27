@@ -3,6 +3,23 @@
 All notable changes to Bananabox are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.1.3] - 2026-11-27
+
+### Added
+- Sign-in: choose the browser for the Microsoft window. Installed Chrome, Edge, Brave, Chromium and Firefox are detected and shown with their logo.
+- Sign-in: paste an access token directly on the page. A copied `Bearer ` prefix is accepted.
+
+### Changed
+- Redesigned sign-in page: short steps, a Microsoft / Token switch and a **Stuck?** section. **Expand** opens it in a full tab, guide and sign-in side by side.
+- Severity colours are set in one place, the Style Lens colour settings, and the Bananabox views follow them.
+- Agenda: in Day view the badge counts the selected day, and days with a session to register get their own dot.
+
+### Fixed
+- No more "Firefox is already running" error: a Firefox left open by an earlier sign-in is closed first.
+- With Firefox, the session renews in the background again, so you no longer have to sign in every day.
+- The project list no longer jumps back to the top when the session renews.
+- Agenda and Me no longer open over a project opened from Projects or Home.
+
 ## [2.1.2] - 2026-11-25
 
 ### Fixed
