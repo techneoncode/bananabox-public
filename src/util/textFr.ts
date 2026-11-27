@@ -26,6 +26,7 @@ export const FR_TEXT: Record<string, string> = {
   'Could not reach Microsoft: {p0}': 'Impossible de joindre Microsoft : {p0}',
   'Could not register to {p0}: {p1}': 'Impossible de s’inscrire à {p0} : {p1}',
   'Could not start Firefox: {p0}': 'Impossible de démarrer Firefox : {p0}',
+  'No Chrome, Edge, Brave, Chromium or Firefox found.': 'Aucun navigateur compatible trouvé (Chrome, Edge, Brave, Chromium, Firefox).',
   'Could not start git: {p0}': 'Impossible de démarrer git : {p0}',
   'Could not start the browser: {p0}': 'Impossible de démarrer le navigateur : {p0}',
   'Expected a Bananabox configuration with version: 1.': 'Configuration Bananabox attendue avec version : 1.',

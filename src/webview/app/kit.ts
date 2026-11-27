@@ -1,5 +1,6 @@
 import { h, icon } from '../dom';
 import type { AppTab, Ctx, Tab } from '../ctx';
+import { applyPalette } from '../palette';
 
 type Child = Node | string | number | false | null | undefined;
 
@@ -9,7 +10,9 @@ type Child = Node | string | number | false | null | undefined;
 export function switchTab(ctx: Ctx, tab: AppTab): void {
   const ui = ctx.ui;
   const current = ui.appTab ?? 'projects';
-  if (tab === current) { ui.sidebarProject = null; ui.tab = null; ui.page = null; }
+  if (tab === current) { ui.sidebarProject = null; ui.tab = null; }
+  // The Colours page sits over every tab: leaving it drops an unsaved preview, as its back button does.
+  if (ui.page) { ui.page = null; ui.paletteDraft = undefined; applyPalette(ctx.state.palette); }
   ui.appTab = tab;
   ui.sheetProject = null;
   ctx.rerender();

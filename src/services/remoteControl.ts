@@ -22,6 +22,22 @@ import type { BananaboxLoader } from '../loader';
 
 export const API_BASE_URL = 'https://bananabox-api.niels-christophe.workers.dev';
 export const REMOTE_CONFIG_URL = `${API_BASE_URL}/v1/config`;
+
+declare const __BANANABOX_TEST_UPDATE__: string | undefined;
+
+/**
+ * Test builds only (`node esbuild.mjs --test-update=<version>`): the API answer
+ * requires that GitHub release, so the auto-updater can be tried on one machine
+ * before the API points everyone to it. Normal builds leave the answer as it is.
+ */
+export function withTestUpdate(remote: RemoteConfig, target = typeof __BANANABOX_TEST_UPDATE__ === 'string' ? __BANANABOX_TEST_UPDATE__ : undefined): RemoteConfig {
+  if (!target) return remote;
+  return {
+    ...remote,
+    version: target,
+    latest: `https://github.com/techneoncode/bananabox-public/releases/download/v${target}/bananabox-${target}.vsix`,
+  };
+}
 const CACHE_KEY = 'bananabox.remoteConfig.v1';
 const CHANGELOG_KEY = 'bananabox.changelog.v1';
 const UPDATE_KEY = 'bananabox.installedUpdate.v1';
@@ -215,7 +231,7 @@ export class RemoteControl implements vscode.Disposable {
 
       const envelope = (await response.json()) as { ok?: boolean; data?: unknown };
       if (envelope?.ok !== true) throw new Error('Unexpected API response');
-      const remote = parseRemoteConfig(envelope.data);
+      const remote = withTestUpdate(parseRemoteConfig(envelope.data));
       if (this.lifetime.signal.aborted) return;
 
       const targetChanged = remote.latest !== this.remote?.latest;

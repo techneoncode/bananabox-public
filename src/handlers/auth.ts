@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { BrowserAuthError, findBrowser } from '../auth/browser';
+import { BrowserAuthError, detectBrowsers, findBrowser, type DetectedBrowser } from '../auth/browser';
 import { browserProfileDir, captureRedirect } from '../auth/capture';
 import {
   buildAuthRequest,
@@ -15,6 +15,7 @@ import type { Controller } from '../controller';
 import { tr } from '../util/text';
 
 export function authChanged(c: Controller, a: AuthVM): void {
+  const previousLogin = c.activityLogin;
   if (a.status === 'signedIn' && a.login) {
     if (c.activityLogin && c.activityLogin !== a.login) {
       c.client.activity.clear();
@@ -24,7 +25,10 @@ export function authChanged(c: Controller, a: AuthVM): void {
   }
 
   if (a.status === 'signedIn' && c.sessionToken !== c.auth.accessToken) {
+    // A silent renewal rotates the token of the same account: keep what is on screen (and the scroll) as it is.
+    const renewed = c.sessionToken !== undefined && previousLogin !== undefined && previousLogin === a.login;
     c.sessionToken = c.auth.accessToken;
+    if (renewed) return c.schedulePush();
     c.projects.reset();
     c.grader.clear();
     c.subject.clear();
@@ -81,13 +85,9 @@ export async function signInMicrosoft(
   c.abortBrowser();
 
   const executable = opts.paste ? undefined : findBrowser(config.browserPath());
-  if (
-    executable &&
-    (await c.signInWithBrowser(executable)) !== 'unavailable'
-  ) {
-    return;
-  }
-  return c.signInWithPaste();
+  if (!executable) return c.signInWithPaste(opts.paste ? undefined : tr('No Chrome, Edge, Brave, Chromium or Firefox found.'));
+  const outcome = await c.signInWithBrowser(executable);
+  if (typeof outcome === 'object') return c.signInWithPaste(outcome.unavailable);
 }
 
 export async function signIn(c: Controller): Promise<void> {
@@ -106,7 +106,15 @@ export async function signIn(c: Controller): Promise<void> {
         : undefined,
   });
   if (!token) return;
+  return signInWithToken(c, token);
+}
 
+/** Token pasted on the sign-in page or in the prompt; a failure shows on the page (and here, with a retry). */
+export async function signInWithToken(c: Controller, token: string, fromPage = false): Promise<void> {
+  c.openHomeAfterSignIn = true;
+  if (!remoteFeatures.status.myApiActive || c.auth.snapshot.busy) return;
+  // The header is often copied whole.
+  token = token.trim().replace(/^Bearer\s+/i, '');
   try {
     await vscode.window.withProgress(
       {
@@ -120,12 +128,28 @@ export async function signIn(c: Controller): Promise<void> {
       tr('Bananabox: signed in as {name}.', { name: c.auth.snapshot.firstname ?? c.auth.snapshot.login ?? '' }),
     );
   } catch (e) {
+    if (fromPage) return;
     const choice = await vscode.window.showErrorMessage(
       tr('Bananabox: sign-in failed · {error}', { error: (e as Error).message }),
       tr('Try again'),
     );
     if (choice === tr('Try again')) return c.signIn();
   }
+}
+
+/** Browsers the sign-in page offers, the one that will open marked. */
+export function browserChoices(): (DetectedBrowser & { selected: boolean })[] {
+  const own = config.browserPath();
+  const used = findBrowser(own);
+  return detectBrowsers(own).map((b) => ({ ...b, selected: b.path === used }));
+}
+
+/** Only a detected browser can be picked from the page; any other path goes through the setting. */
+export async function selectBrowser(path: string): Promise<void> {
+  if (!browserChoices().some((b) => b.path === path)) return;
+  await vscode.workspace
+    .getConfiguration('bananabox')
+    .update('browserPath', path, vscode.ConfigurationTarget.Global);
 }
 
 export function abortBrowser(c: Controller) {
@@ -187,7 +211,8 @@ export async function submitRedirect(c: Controller, input: string) {
 export async function silentBrowserLogin(
   c: Controller,
 ): Promise<MicrosoftTokens | null> {
-  if (!remoteFeatures.status.myApiActive) return null;
+  // A visible sign-in owns the profile: a hidden renewal would stop its window.
+  if (!remoteFeatures.status.myApiActive || c.browserAbort) return null;
   const executable = findBrowser(config.browserPath());
   if (!executable) return null;
 
@@ -218,7 +243,7 @@ export function browserProfile(c: Controller, executable: string): string {
 export async function signInWithBrowser(
   c: Controller,
   executable: string,
-): Promise<'done' | 'cancelled' | 'unavailable'> {
+): Promise<'done' | 'cancelled' | { unavailable: string }> {
   const request = buildAuthRequest();
   const ctrl = new AbortController();
   c.browserAbort = ctrl;
@@ -249,11 +274,12 @@ export async function signInWithBrowser(
   } catch (e) {
     if (e instanceof BrowserAuthError && e.code === 'unavailable') {
       log().error('browser sign-in unavailable, falling back to copy-paste', e);
-      c.auth.setPending(null);
-      return 'unavailable';
+      if (c.browserAbort === ctrl) c.auth.setPending(null);
+      return { unavailable: e.message };
     }
     if (e instanceof BrowserAuthError && e.code === 'cancelled') {
-      c.auth.setPending(null);
+      // Aborted by a newer attempt ("Retry"): its window is the one on screen now.
+      if (c.browserAbort === ctrl) c.auth.setPending(null);
       return 'cancelled';
     }
     await c.failSignIn((e as Error).message);
@@ -263,10 +289,10 @@ export async function signInWithBrowser(
   }
 }
 
-export async function signInWithPaste(c: Controller) {
+export async function signInWithPaste(c: Controller, reason?: string) {
   const request = c.pendingAuth ?? buildAuthRequest();
   c.pendingAuth = request;
-  c.auth.setPending({ url: request.url, mode: 'paste' });
+  c.auth.setPending({ url: request.url, mode: 'paste', ...(reason && { reason }) });
   await vscode.env.openExternal(vscode.Uri.parse(request.url));
 }
 

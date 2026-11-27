@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import type { spawn } from 'node:child_process';
-import { BrowserAuthError, browserArgs, captureChromium, findBrowser, isRedirectUrl } from '../auth/browser';
+import { BrowserAuthError, browserArgs, captureChromium, detectBrowsers, findBrowser, isRedirectUrl } from '../auth/browser';
+import { releaseProfile } from '../auth/capture';
 
 // ───────── helpers: a fake Chromium speaking the DevTools pipe protocol (NUL-delimited JSON on fd 3 / fd 4) ─────────
 
@@ -190,4 +191,47 @@ test('tolerates frames split across chunks and garbage between messages', async 
   await tick();
   (child.stdio[4] as PassThrough).write(raw.slice(20));
   assert.equal(await result, 'https://my.epitech.eu/#code=SPLIT&state=s');
+});
+
+// ───────── detectBrowsers / releaseProfile ─────────
+
+test('detectBrowsers lists one entry per installed browser, plus a custom path', () => {
+  const linux = { platform: 'linux' as const, env: { PATH: '/usr/bin' }, home: '/home/a' };
+  const found = detectBrowsers('/opt/vivaldi/vivaldi', {
+    ...linux,
+    exists: (p) => ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/snap/bin/firefox', '/usr/bin/brave-browser', '/opt/vivaldi/vivaldi'].includes(p),
+  });
+  assert.deepEqual(found.map((b) => [b.id, b.name, b.path]), [
+    ['chrome', 'Chrome', '/usr/bin/google-chrome-stable'],
+    ['brave', 'Brave', '/usr/bin/brave-browser'],
+    ['firefox', 'Firefox', '/snap/bin/firefox'],
+    ['other', 'vivaldi', '/opt/vivaldi/vivaldi'],
+  ]);
+  const win = detectBrowsers(undefined, { platform: 'win32', env: { PROGRAMFILES: 'C:\\PF' }, exists: (p) => p === 'C:\\PF\\Chromium\\Application\\chrome.exe' });
+  assert.deepEqual(win.map((b) => b.id), ['chromium']);
+});
+
+test('releaseProfile stops only browsers on the profile, then clears stale locks', () => {
+  const dir = '/home/a/snap/firefox/common/bananabox-firefox-profile';
+  const ps = [
+    `  713304 /snap/firefox/8107/usr/lib/firefox/firefox --no-remote --profile ${dir} --headless about:blank`,
+    '  9 /usr/lib/firefox/firefox',
+    `  10 grep ${dir}`,
+    '  11 /opt/google/chrome/chrome --user-data-dir=/x/browser-profile-chromium',
+  ].join('\n');
+  const killed: [number, string][] = [];
+  const removed: string[] = [];
+  const deps = { platform: 'linux' as const, processes: () => ps, kill: (pid: number, s: string) => { killed.push([pid, s]); }, remove: (p: string) => { removed.push(p); } };
+  releaseProfile(dir, 'SIGKILL', deps);
+  assert.deepEqual(killed, [[713304, 'SIGKILL']]);
+  assert.ok(removed.includes(`${dir}/lock`) && removed.includes(`${dir}/.parentlock`));
+
+  // After a sign-in: a browser still closing removes its own locks.
+  killed.length = 0; removed.length = 0;
+  releaseProfile(dir, 'SIGTERM', deps);
+  assert.deepEqual(killed, [[713304, 'SIGTERM']]);
+  assert.deepEqual(removed, []);
+
+  releaseProfile('/x/browser-profile-chromium', 'SIGKILL', { ...deps, platform: 'win32' });
+  assert.equal(killed.length, 1);
 });

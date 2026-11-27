@@ -5,7 +5,7 @@ import { rollNumber, resetMotion } from './motion';
 import { BAN_MAX_AHEAD as MAX_AHEAD, expiryOf, relative, type BanDuration } from './format';
 import { initialsOf } from './avatars';
 import { countBars, heatGrid, timelineChart, versionBars } from './adminCharts';
-import { cumulative, donut, gauge, histogram, radialBars, scatter, sunburst, topWithOther, treemap } from './adminViz';
+import { byPerson, cumulative, donut, gauge, histogram, personKey, radialBars, scatter, sunburst, topWithOther, treemap } from './adminViz';
 import { createT } from '../shared/i18n';
 import { compareVersions, matchesGroup, type BanScope, type RemoteFeature } from '../domain/remotePolicy';
 import type {
@@ -37,6 +37,8 @@ let animate = true;
 let search = '';
 /** Person (user id) whose inline ban form is open in the Users tab. */
 let banning: string | null = null;
+/** People (personKey) whose computers are listed in the Users tab. */
+const expanded = new Set<string>();
 /** Admin account waiting for the second click that removes it. */
 let confirmingAdmin: number | null = null;
 /** Switch waiting for its confirmation: turning a feature off hits every user. */
@@ -168,7 +170,7 @@ function dashboard(snapshot: AdminSnapshot, t: T): HTMLElement {
     { id: 'overview', label: t('admin.nav.overview'), icon: TAB_ICON.overview },
     { id: 'cohorts', label: t('admin.nav.cohorts'), icon: TAB_ICON.cohorts },
     { id: 'graphs', label: t('admin.nav.graphs'), icon: TAB_ICON.graphs },
-    { id: 'users', label: t('admin.nav.users'), icon: TAB_ICON.users, count: snapshot.stats.users.length },
+    { id: 'users', label: t('admin.nav.users'), icon: TAB_ICON.users, count: byPerson(snapshot.stats.users).length },
     { id: 'moderation', label: t('admin.nav.moderation'), icon: TAB_ICON.moderation, count: snapshot.banned.length },
     { id: 'policy', label: t('admin.nav.policy'), icon: TAB_ICON.policy, count: off },
     { id: 'admins', label: t('admin.nav.admins'), icon: TAB_ICON.admins },
@@ -461,14 +463,15 @@ function users(snapshot: AdminSnapshot, t: T): Child[] {
   const busy = !!state.busy;
   const list = h('ul.adm-list');
   const count = h('span');
-  const total = snapshot.stats.users.length;
+  const people = byPerson(snapshot.stats.users);
+  const total = people.length;
   const fill = () => {
     const needle = search.trim().toLowerCase();
-    const shown = snapshot.stats.users.filter((u) => [personName(t, u), u.campus, u.cursus, u.promotion].filter(Boolean).join(' ').toLowerCase().includes(needle));
+    const shown = people.filter(([u]) => [personName(t, u), u.campus, u.cursus, u.promotion].filter(Boolean).join(' ').toLowerCase().includes(needle));
     count.textContent = needle ? `${shown.length} / ${total}` : String(total);
     count.title = t('admin.users.count', { shown: shown.length, total });
     list.replaceChildren(...(shown.length
-      ? shown.map((user) => userRow(snapshot, user, t, busy))
+      ? shown.map((computers) => computers.length > 1 ? personRow(snapshot, computers, t, busy) : userRow(snapshot, computers[0], t, busy))
       : [h('li', empty(needle ? 'search' : 'organization', needle ? t('admin.users.none') : t('admin.empty')))]));
   };
   const box = h('input.search', { id: 'adm-search', type: 'search', placeholder: t('admin.users.search'), 'aria-label': t('admin.users.search'), value: search, oninput: () => { search = box.value; fill(); } });
@@ -479,7 +482,36 @@ function users(snapshot: AdminSnapshot, t: T): Child[] {
   ];
 }
 
-function userRow(snapshot: AdminSnapshot, user: AdminUser, t: T, busy: boolean): HTMLElement {
+function identityChips(snapshot: AdminSnapshot, user: AdminUser, withGroup = true): HTMLElement[] {
+  const promotion = promotionOf(user);
+  return [
+    withGroup && promotion ? chip('muted', icon(SCOPE_ICON.promotion), promotion) : null,
+    withGroup && user.campus ? chip('muted', icon(SCOPE_ICON.campus), user.campus) : null,
+    chip(isActive(snapshot, user) ? 'pass' : 'muted', h('span.mono', `v${user.version}`)),
+  ].filter((c): c is HTMLElement => !!c);
+}
+
+/** A person seen on several computers: one row, expanding to a row (and a ban) per computer. */
+function personRow(snapshot: AdminSnapshot, computers: AdminUser[], t: T, busy: boolean): HTMLElement {
+  const lead = computers[0], key = personKey(lead), open = expanded.has(key);
+  const name = personName(t, lead);
+  const banned = computers.filter((c) => matching(snapshot.banned, c).length).length;
+  const launches = computers.reduce((n, c) => n + c.launches, 0);
+  const toggle = () => { if (open) expanded.delete(key); else expanded.add(key); render(); };
+  return h('li.adm-user.adm-person', { class: `${banned ? 'banned' : ''} ${open ? 'expanded' : ''}` },
+    h('div.adm-user-row',
+      avatar(name, banned ? 'bad' : ''),
+      h('div.adm-user-main',
+        h('span.adm-name', { title: t('admin.users.seen', { when: ago(lead.last_seen), n: launches }) }, name),
+        h('span.adm-chips', ...identityChips(snapshot, lead), chip('accent', icon('device-desktop'), t('admin.users.computers', { n: computers.length }))),
+        banned ? h('span.adm-sub', t('admin.users.computersBanned', { n: banned, total: computers.length })) : null),
+      h('button.btn.ghost.small', { type: 'button', 'aria-expanded': String(open), onclick: toggle },
+        icon(open ? 'chevron-up' : 'chevron-down'), t(open ? 'admin.users.hideComputers' : 'admin.users.showComputers'))),
+    open ? h('ul.adm-list.adm-computers', computers.map((c) => userRow(snapshot, c, t, busy, t('admin.users.computer', { id: c.user_id.slice(0, 6) })))) : null);
+}
+
+/** One OS account; `computer` names it inside a person's group (the person's name is then shown above). */
+function userRow(snapshot: AdminSnapshot, user: AdminUser, t: T, busy: boolean, computer?: string): HTMLElement {
   const id = user.user_id;
   const name = personName(t, user);
   const own = exact(snapshot.banned, user);
@@ -505,7 +537,7 @@ function userRow(snapshot: AdminSnapshot, user: AdminUser, t: T, busy: boolean):
     if (expiresAt === undefined) return;
     send({
       type: 'ban', name: target, scope, features: [...draft.inlineFeatures],
-      ...(scope === 'uid' && { label: name }),
+      ...(scope === 'uid' && { label: computer ? `${name} (${computer})` : name }),
       ...(draft.inlineReason && { reason: draft.inlineReason }),
       ...(draft.inlineAnonymous && { anonymous: true }),
       ...(expiresAt !== null && { expiresAt }),
@@ -513,12 +545,7 @@ function userRow(snapshot: AdminSnapshot, user: AdminUser, t: T, busy: boolean):
     banning = null;
   };
   const reason = input('adm-inline-reason', { maxLength: 200, placeholder: t('admin.ban.reasonShown'), 'aria-label': t('admin.ban.reasonShown') }, draft.inlineReason, (v) => { draft.inlineReason = v; });
-  const promotion = promotionOf(user);
-  const identity = [
-    promotion ? chip('muted', icon(SCOPE_ICON.promotion), promotion) : null,
-    user.campus ? chip('muted', icon(SCOPE_ICON.campus), user.campus) : null,
-    chip(isActive(snapshot, user) ? 'pass' : 'muted', h('span.mono', `v${user.version}`)),
-  ].filter(Boolean);
+  const identity = identityChips(snapshot, user, !computer);
   const tags = [
     ...features.map((f) => chip('fail', icon(FEATURE_ICON[f]), featureLabel(t, f))),
     // A person under a permanent ban stays banned whatever the temporary ones say: only show the ends that matter.
@@ -527,9 +554,10 @@ function userRow(snapshot: AdminSnapshot, user: AdminUser, t: T, busy: boolean):
   const what = (s: BanScope, value: string) => (s === 'uid' ? name : `${t(`admin.scope.${s}`)} ${value}`);
   return h('li.adm-user', { class: `${bans.length ? 'banned' : ''} ${open ? 'open' : ''}` },
     h('div.adm-user-row',
-      avatar(name, bans.length ? 'bad' : ''),
+      computer ? h('span.adm-computer-icon', icon('device-desktop')) : avatar(name, bans.length ? 'bad' : ''),
       h('div.adm-user-main',
-        h('span.adm-name', { title: t('admin.users.seen', { when: ago(user.last_seen), n: user.launches }) }, name),
+        h('span.adm-name', { title: t('admin.users.seen', { when: ago(user.last_seen), n: user.launches }) }, computer ?? name),
+        computer ? h('span.adm-sub', t('admin.users.seen', { when: ago(user.last_seen), n: user.launches })) : null,
         h('span.adm-chips', identity),
         tags.length ? h('span.adm-chips', tags) : null,
         others.length ? h('span.adm-sub', t('admin.users.via', { what: others.map((b) => what(b.scope, b.name)).join(', ') })) : null),
@@ -701,7 +729,7 @@ const countBy = <K>(items: AdminUser[], key: (u: AdminUser) => K | null) => {
 };
 
 function cohorts(snapshot: AdminSnapshot, t: T): Child[] {
-  const people = snapshot.stats.users;
+  const people = byPerson(snapshot.stats.users).map(([lead]) => lead);
   const known = people.filter((u) => u.promotion !== null || u.campus !== null);
   const byPromotion = [...countBy(people, (u) => u.promotion)].sort((a, b) => b[0] - a[0]);
   const byCampus = [...countBy(people, (u) => u.campus)].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
@@ -720,7 +748,7 @@ function cohorts(snapshot: AdminSnapshot, t: T): Child[] {
 
 /** Promotions, campuses and cursus: every chart about who the users are, by name. */
 function cohortCharts(snapshot: AdminSnapshot, t: T) {
-  const people = snapshot.stats.users;
+  const people = byPerson(snapshot.stats.users).map(([lead]) => lead);
   const active = (u: AdminUser) => isActive(snapshot, u);
   const byPromotion = [...countBy(people, (u) => u.promotion)].sort((a, b) => b[0] - a[0]);
   const byCampus = [...countBy(people, (u) => u.campus)].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));

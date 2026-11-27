@@ -21,6 +21,7 @@
 .app-agenda .ag-day.today .ag-day-n { background: var(--glint); color: var(--banana-on); }
 .app-agenda .ag-day-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--fg-3); visibility: hidden; }
 .app-agenda .ag-day-dot.has { visibility: visible; }
+.app-agenda .ag-day-dot.todo { background: var(--fail); }
 .app-agenda .ag-day:focus-visible { outline: 1px solid var(--focus, var(--fg)); outline-offset: -2px; }
 
 /* summary chips */

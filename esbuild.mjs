@@ -6,6 +6,9 @@ import { join } from 'node:path';
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
 const tests = process.argv.includes('--tests');
+// Test builds only: `--test-update=2.1.3` makes this build act as if the API required that GitHub release.
+const testUpdate = process.argv.find((a) => a.startsWith('--test-update='))?.split('=')[1];
+if (testUpdate !== undefined && !/^\d+\.\d+\.\d+$/.test(testUpdate)) throw new Error(`--test-update: not a version: ${testUpdate}`);
 
 if (tests) {
   rmSync('dist-test', { recursive: true, force: true });
@@ -59,7 +62,7 @@ function copyAssets() {
 const common = { bundle: true, sourcemap: !production, minify: production, logLevel: 'info', legalComments: 'none' };
 
 // `vscode` comes from the loader, so a newer version's bundle can run in place of this one (see src/loader.ts).
-const extension = { ...common, entryPoints: ['src/extension.ts'], outfile: 'dist/extension.js', platform: 'node', format: 'cjs', target: 'node20', external: ['bufferutil', 'utf-8-validate'], alias: { vscode: './src/util/vscodeModule.cjs' } };
+const extension = { ...common, ...(testUpdate && { define: { __BANANABOX_TEST_UPDATE__: JSON.stringify(testUpdate) } }), entryPoints: ['src/extension.ts'], outfile: 'dist/extension.js', platform: 'node', format: 'cjs', target: 'node20', external: ['bufferutil', 'utf-8-validate'], alias: { vscode: './src/util/vscodeModule.cjs' } };
 // The extension's `main`: loads dist/extension.js and swaps it for a newer installed version.
 const loader = { ...common, entryPoints: ['src/loader.ts'], outfile: 'dist/loader.js', platform: 'node', format: 'cjs', target: 'node20', external: ['vscode'], logLevel: 'error' };
 const reminder = { ...common, entryPoints: ['src/webview/reminder.ts'], outfile: 'dist/webview/reminder.js', platform: 'browser', format: 'iife', target: 'es2022' };
@@ -67,7 +70,7 @@ const admin = { ...common, entryPoints: ['src/webview/admin.ts'], outfile: 'dist
 const pdfviewer = { ...common, entryPoints: ['src/webview/pdf.ts'], outfile: 'dist/webview/pdfviewer.js', platform: 'browser', format: 'iife', target: 'es2022' };
 // pdf.js for the extension host (reading a subject's allowed functions), loaded on demand from dist/pdftext.js.
 const pdftext = { ...common, entryPoints: ['src/pdfText/entry.ts'], outfile: 'dist/pdftext.js', platform: 'node', format: 'cjs', target: 'node20', minify: true, sourcemap: false, logLevel: 'warning' };
-const webview = { ...common, entryPoints: ['src/webview/main.ts'], outfile: 'dist/webview/main.js', platform: 'browser', format: 'iife', target: 'es2022' };
+const webview = { ...common, entryPoints: ['src/webview/main.ts'], outfile: 'dist/webview/main.js', platform: 'browser', format: 'iife', target: 'es2022', loader: { '.svg': 'dataurl' } };
 
 copyAssets();
 if (watch) {

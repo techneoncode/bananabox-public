@@ -9,7 +9,7 @@ const host = `${out}/host`;
 await mkdir(`${host}/dist/webview`, { recursive: true });
 const common = { bundle: true, minify: true, legalComments: 'none', logLevel: 'info', define: { __BANANABOX_IDE__: JSON.stringify('CLion') } };
 const nodeCommon = { ...common, platform: 'node', target: 'node20', alias: { vscode: './clion/host/vscode.ts' }, external: ['bufferutil', 'utf-8-validate'] };
-const webCommon = { ...common, platform: 'browser', format: 'iife', target: 'es2022' };
+const webCommon = { ...common, platform: 'browser', format: 'iife', target: 'es2022', loader: { '.svg': 'dataurl' } };
 await Promise.all([
   esbuild.build({ ...nodeCommon, entryPoints: ['clion/host/main.ts'], outfile: `${host}/main.cjs`, format: 'cjs' }),
   // pdf.js for the host, loaded on demand next to main.cjs (see src/services/pdfText.ts).

@@ -3,7 +3,7 @@ import type { Ctx } from '../ctx';
 import { ring, skyline } from '../charts';
 import { chip } from '../ui';
 import { applyPalette } from '../palette';
-import { normalizeHex, PALETTE_DEFAULTS, PALETTE_GROUPS, PALETTE_KEYS, PALETTE_PRESETS, samePalette, type Palette, type PaletteKey } from '../../shared/palette';
+import { normalizeHex, PALETTE_DEFAULTS, LENS_KEYS, PALETTE_GROUPS, PALETTE_PRESETS, samePalette, type Palette, type PaletteKey } from '../../shared/palette';
 
 /** CSS variable each key drives, to read the theme's own value when the key is left on "auto". */
 const TOKEN: Record<PaletteKey, string> = {
@@ -29,7 +29,7 @@ export function renderAppearance(ctx: Ctx): HTMLElement {
   const { t } = ctx;
   const palette = draft(ctx);
   const back = () => { ctx.ui.page = null; ctx.ui.paletteDraft = undefined; applyPalette(ctx.state.palette); ctx.rerender(); };
-  const custom = PALETTE_KEYS.some(k => palette[k]);
+  const custom = PALETTE_GROUPS.some(g => g.keys.some(k => palette[k]));
   return h('div.appearance',
     h('header.sb-nav', { style: { viewTransitionName: 'sb-nav' } },
       h('button.sb-back', { type: 'button', title: t('action.back'), onclick: back }, icon('chevron-left'), h('span', t(ctx.home ? 'appearance.backHome' : ctx.surface === 'sidebar' ? `app.tab.${ctx.ui.appTab ?? 'projects'}` : 'sb.projects'))),
@@ -41,6 +41,13 @@ export function renderAppearance(ctx: Ctx): HTMLElement {
     ...PALETTE_GROUPS.map((group, i) => h('section.panel.ap-group.rise', { style: { '--i': String(3 + i) }, 'aria-label': t(`appearance.group.${group.id}`) },
       h('h2', t(`appearance.group.${group.id}`)),
       ...group.keys.map(key => colorRow(ctx, palette, key)))),
+    // Severity colours are the Style Lens settings: one editor for them, the one the code editor uses.
+    h('section.panel.ap-group.rise', { style: { '--i': String(3 + PALETTE_GROUPS.length) }, 'aria-label': t('appearance.group.lens') },
+      h('h2', t('appearance.group.lens')),
+      h('button.ap-row.ap-link', { type: 'button', onclick: () => ctx.post({ type: 'openLensColors' }) },
+        h('span.ap-lens-dots', ...LENS_KEYS.map(k => h('span.ap-dot', { style: { background: palette[k] ?? themeValue(k) } }))),
+        h('span.ap-name', h('span', t('appearance.lensOpen')), h('span.ap-state', t('appearance.lensHint'))),
+        icon('link-external'))),
     h('p.ap-foot', icon('info'), t('appearance.saved')));
 }
 

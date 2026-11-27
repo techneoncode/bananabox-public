@@ -4,7 +4,7 @@ import { deflateRawSync } from 'node:zlib';
 import { readFile } from 'node:fs/promises';
 import * as vscode from 'vscode';
 import { clionLatestUrl, compareVersions, latestUrl, matchesGroup, parseRemoteConfig, remoteStatus, type RemoteConfig, type RemoteFeature } from '../domain/remotePolicy';
-import { RemoteControl, REMOTE_CONFIG_URL } from '../services/remoteControl';
+import { RemoteControl, REMOTE_CONFIG_URL, withTestUpdate } from '../services/remoteControl';
 import { remoteFeatures } from '../services/remoteFeatures';
 import { downloadAndInstall, validateVsix, type ExtensionUpdateProgress } from '../services/extensionUpdate';
 import { EpitechClient } from '../api/client';
@@ -503,4 +503,12 @@ test('an update required brings the changelog of the target version to the statu
     assert.equal(changelogRequests(), 1, 'the changelog of a target version is fetched once');
     assert.equal(remoteFeatures.status.changelog?.state, 'ready');
   } finally { service.dispose(); reset(); }
+});
+
+test('withTestUpdate: normal builds keep the API answer; a test build requires the GitHub release', () => {
+  const remote = { version: '2.1.2', latest: 'https://github.com/techneoncode/bananabox-public/releases/download/v2.1.2/bananabox-2.1.2.vsix' } as RemoteConfig;
+  assert.equal(withTestUpdate(remote), remote);
+  const target = withTestUpdate(remote, '2.1.3');
+  assert.equal(target.version, '2.1.3');
+  assert.equal(latestUrl(target.latest, target.version), target.latest);
 });

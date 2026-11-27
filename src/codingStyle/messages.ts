@@ -186,7 +186,7 @@ const PAGE_FR: Array<[string, string]> = [
     ['Content &amp; layout', 'Contenu &amp; mise en page'],
     ['Auto follows Compact / Full mode. Hidden details remain available on hover.', 'Auto suit le mode Compact / Complet. Les détails masqués restent disponibles au survol.'],
     ['Colours by severity', 'Couleurs par gravité'],
-    ['Pick a colour or enter a hex value. Add two hex digits for opacity (#RRGGBBAA). Theme keeps your theme’s adaptive colours. Colours also apply to the file summary.', 'Choisissez une couleur ou saisissez une valeur hexadécimale. Ajoutez deux chiffres hexadécimaux pour l’opacité (#RRGGBBAA). Thème conserve les couleurs adaptatives de votre thème. Les couleurs s’appliquent aussi au résumé du fichier.'],
+    ['Pick a colour or enter a hex value. Add two hex digits for opacity (#RRGGBBAA). Theme keeps your theme’s adaptive colours. Colours also apply to the file summary, and the foreground colours to the Bananabox views.', 'Choisissez une couleur ou saisissez une valeur hexadécimale. Ajoutez deux chiffres hexadécimaux pour l’opacité (#RRGGBBAA). Thème conserve les couleurs adaptatives de votre thème. Les couleurs s’appliquent aussi au résumé du fichier, et celles du texte aux vues Bananabox.'],
     ['<h2>Preview</h2>', '<h2>Aperçu</h2>'],
     ['Lens preview', 'Aperçu de la lentille'],
     ['>Apply changes<', '>Appliquer les changements<'],

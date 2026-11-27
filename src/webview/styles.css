@@ -566,23 +566,80 @@ details.unit-desc { grid-column: 1 / -1; }
 .md ul { padding-left: 18px; }
 
 /* ───────────── sign-in ───────────── */
-.login { display: grid; gap: 16px; width: 100%; max-width: 380px; margin: 8vh auto 0; }
-body[data-surface='sidebar'] .login { margin-top: 16px; }
-.login-hero { display: grid; justify-items: center; gap: 6px; text-align: center; margin-bottom: 8px; }
+.login { display: grid; gap: 14px; width: 100%; max-width: 420px; margin: 6vh auto 0; }
+body[data-surface='sidebar'] .login { margin-top: 12px; }
+.login-hero { display: grid; justify-items: center; gap: 6px; text-align: center; }
 .login-hero .logo { width: 56px; height: 56px; margin-bottom: 6px; }
 .login-hero h1 { font-size: var(--t-lg); }
-.login-main { display: grid; gap: 8px; }
+.login-hero p { margin: 0; }
 .login-hint { display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--fg-2); font-size: var(--t-sm); text-align: center; }
-.howto { display: grid; gap: 10px; padding-top: 4px; box-shadow: inset 0 1px 0 var(--line-soft); }
-.howto > summary { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 0 0; color: var(--fg-2); font-size: var(--t-sm); }
-.howto-body { display: grid; gap: 10px; }
-.howto ol, .pending ol { display: grid; gap: 4px; padding-left: 20px; color: var(--fg-2); font-size: var(--t-sm); }
+
+/* progress: terms, method, sign in */
+.login-steps { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: var(--t-sm); color: var(--fg-2); }
+.login-steps li { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 4px; border-radius: var(--r); white-space: nowrap; }
+.login-steps .num { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--layer-2); font-size: 11px; font-weight: 600; }
+.login-steps .num .codicon { font-size: 12px; }
+.login-steps .current { color: var(--fg); font-weight: 600; background: var(--layer-1); }
+.login-steps .current .num { background: var(--banana); color: var(--banana-on, #1f1a00); }
+.login-steps .done .num { color: var(--banana-ink); }
+
+.login-body { display: grid; gap: 14px; }
+.login-card { display: grid; gap: 12px; align-content: start; }
+.login-choices, .login-pane { display: grid; gap: 10px; }
+.login-label { color: var(--fg-2); font-size: var(--t-sm); font-weight: 600; }
+.login-tabs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; padding: 2px; border-radius: var(--r); background: var(--layer-1); box-shadow: inset 0 0 0 1px var(--line-soft); }
+.login-tab { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 30px; border: 0; border-radius: calc(var(--r) - 2px); background: transparent; color: var(--fg-2); font: inherit; cursor: pointer; }
+.login-tab:hover { color: var(--fg); }
+.login-tab.on { background: var(--layer-2); color: var(--fg); font-weight: 600; box-shadow: 0 1px 0 var(--edge); }
+.login-badge { padding: 1px 6px; border-radius: 999px; background: var(--banana); color: var(--banana-on, #1f1a00); font-size: 10px; font-weight: 600; }
+
+.browser-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
+.browser-tile { position: relative; display: grid; justify-items: center; gap: 6px; padding: 10px 6px 8px; border: 0; border-radius: var(--r); background: var(--layer-1); box-shadow: inset 0 0 0 1px var(--line-soft); color: var(--fg); font: inherit; font-size: var(--t-sm); cursor: pointer; }
+.browser-tile:hover:not(:disabled) { background: var(--layer-2); }
+.browser-tile.on { box-shadow: inset 0 0 0 2px var(--banana); background: var(--layer-2); font-weight: 600; }
+.browser-tile .tick { position: absolute; top: 4px; right: 4px; font-size: 13px; color: var(--banana-ink); }
+.browser-logo { width: 28px; height: 28px; font-size: 24px; }
+.pending-title .browser-logo { width: 20px; height: 20px; font-size: 18px; }
+
+.login-howto { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; counter-reset: step; font-size: var(--t-sm); }
+.login-howto li { display: flex; align-items: center; gap: 8px; counter-increment: step; }
+.login-howto li::before { content: counter(step); display: grid; place-items: center; flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--layer-2); color: var(--fg-2); font-size: 11px; font-weight: 600; }
+.login-token-row { display: flex; gap: 6px; }
+.login-token { flex: 1; min-width: 0; font-family: var(--mono); }
+
 .pending { display: grid; gap: 12px; padding: 16px; border-radius: var(--r); background: var(--raise); }
 .pending-title { display: flex; align-items: center; gap: 8px; font-weight: 600; }
 .pending-title .codicon { color: var(--banana-ink); }
+.pending-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: var(--t-sm); }
+.pending-list li { display: flex; align-items: center; gap: 8px; }
+.pending-list .codicon { color: var(--fg-2); }
+.pending-wait { display: flex; align-items: center; gap: 8px; color: var(--fg-2); font-size: var(--t-sm); }
 .pending-input { width: 100%; resize: vertical; font-family: var(--mono); font-size: var(--t-sm); }
 .pending-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.pending-foot { display: flex; justify-content: flex-end; }
+
+/* guide: keywords, then troubleshooting */
+.login-guide { display: grid; gap: 12px; align-content: start; padding: 14px; border-radius: var(--r-lg); background: var(--layer-1); box-shadow: inset 0 0 0 1px var(--line-soft); }
+.login-guide h2 { margin: 0; font-size: var(--t-sm); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-2); }
+.login-points { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; font-size: var(--t-sm); }
+.login-points li { display: flex; align-items: center; gap: 10px; }
+.login-points li > div { display: grid; }
+.login-points span:not(.codicon):not(.feature-icon) { color: var(--fg-2); }
+.login-help { box-shadow: inset 0 1px 0 var(--line-soft); padding-top: 4px; font-size: var(--t-sm); }
+.login-help > summary { display: flex; align-items: center; gap: 6px; padding: 8px 0 0; color: var(--fg-2); cursor: pointer; }
+.login-help dl { display: grid; gap: 4px; margin: 10px 0 0; }
+.login-help dt { font-weight: 600; }
+.login-help dd { margin: 0 0 6px; color: var(--fg-2); }
+
+/* "tablet": wide enough (editor tab, wide sidebar) for guide and action side by side */
+@media (min-width: 720px) {
+  .login { max-width: 900px; }
+  .login-steps { max-width: 520px; justify-self: center; width: 100%; }
+  .login-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 20px; align-items: start; }
+  .login-guide { order: -1; padding: 20px; }
+  .login-card { padding: 20px; border-radius: var(--r-lg); background: var(--layer-1); box-shadow: inset 0 0 0 1px var(--line-soft), inset 0 1px 0 var(--edge); }
+  .login-card .terms, .login-card .pending { padding: 0; background: none; box-shadow: none; }
+}
+.login-expand { justify-self: center; }
 
 /* ───────────── status pages: access, update ───────────── */
 .connection-screen { display: grid; gap: 16px; width: 100%; max-width: 640px; margin: 4vh auto 24px; }
@@ -925,13 +982,11 @@ body.vscode-high-contrast .lane.selected .bar-text, body.vscode-high-contrast .l
 /* sign-in */
 .logo-halo { display: grid; place-items: center; width: 84px; height: 84px; margin-bottom: 4px; border-radius: 50%; background: radial-gradient(circle at 50% 40%, var(--layer-2), transparent 70%); }
 .login-hero h1 { font-size: 1.6em; font-weight: 700; letter-spacing: -0.02em; }
-.login-features { list-style: none; padding: 12px 14px; margin: 0; display: grid; gap: 10px; border-radius: var(--r-lg); background: var(--layer-1); box-shadow: inset 0 0 0 1px var(--line-soft), inset 0 1px 0 var(--edge); }
 .terms { display: grid; gap: 10px; padding: 14px; border-radius: var(--r-lg); background: var(--layer-1); box-shadow: inset 0 0 0 1px var(--line-soft); font-size: var(--t-sm); }
 .terms h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1.1em; }
 .terms p, .terms ul { margin: 0; }
 .terms ul { padding-left: 18px; display: grid; gap: 4px; }
 .terms .btn.ghost { max-width: 100%; height: auto; min-height: 28px; white-space: normal; text-align: left; }
-.login-features li { display: flex; align-items: center; gap: 10px; font-size: var(--t-sm); }
 .feature-icon { display: grid; place-items: center; width: 26px; height: 26px; border-radius: var(--r-lg); background: var(--layer-2); color: var(--fg-2); flex-shrink: 0; }
 /* activities */
 .slot-load { display: inline-flex; margin-left: 8px; width: 120px; }
@@ -1063,7 +1118,7 @@ body.vscode-light .agenda-item .agenda-date span { color: inherit; opacity: 0.85
 .sb-row-link:focus-visible { outline: none; }
 .sb-row-meta { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; color: var(--fg-2); font-size: 0.82em; white-space: nowrap; }
 .sb-row button:not(.sb-row-link), .sb-row a { position: relative; z-index: 1; }
-.sb-meter { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 3px; }
+.sb-meter { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; }
 .sb-meter > i { height: 6px; border-radius: 2px; background: var(--line-soft); }
 .sb-meter > i.pass { background: var(--pass); }
 .sb-meter > i.fail { background: var(--fail); }
@@ -1397,6 +1452,12 @@ html[data-nav='swap']::view-transition-new(root) { animation: 220ms ease-out bot
 .ap-name > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ap-state { color: var(--fg-3); font-size: 0.8em; }
 .ap-row.custom .ap-state { color: var(--banana-ink); }
+.ap-link { width: 100%; grid-template-columns: auto minmax(0, 1fr) auto; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.ap-link:hover { background: var(--line-soft); }
+.ap-link:focus-visible { outline: 1px solid var(--focus); outline-offset: -1px; }
+.ap-lens-dots { display: flex; }
+.ap-lens-dots > .ap-dot { width: 14px; height: 14px; }
+.ap-lens-dots > .ap-dot + .ap-dot { margin-left: -4px; }
 .ap-hex { width: 100%; min-width: 0; height: 24px; padding: 0 6px; border: 1px solid var(--input-line); border-radius: var(--r); background: var(--input-bg); color: var(--input-fg); font-size: 0.85em; }
 .ap-hex::placeholder { color: var(--fg-3); }
 .ap-hex[aria-invalid='true'] { border-color: var(--fail); }
@@ -2141,3 +2202,8 @@ body.vscode-light .admin, body.vscode-high-contrast-light .admin { --s1: #2a78d6
 @media (prefers-reduced-motion: reduce) {
   .admin-enter .viz-mark, .admin-enter .viz-dot, .admin-enter .viz-line, .admin-enter .viz-gauge-value { animation: none; }
 }
+
+/* A person on several computers: the computers nest under their row. */
+.adm-computers { margin: 2px 0 0 38px; border-left: 1px solid var(--line-soft); }
+.adm-computers > li:first-child { border-top: 0; }
+.adm-computer-icon { display: grid; place-items: center; width: 28px; height: 28px; color: var(--fg-3); }

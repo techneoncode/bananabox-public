@@ -183,7 +183,8 @@ export interface AuthVM {
    * inside the window Bananabox opened (nothing to copy). `paste` (default):
    * the user must paste the address of the page they landed on.
    */
-  pending: { url: string; mode?: 'browser' | 'paste' } | null;
+  /** `reason`: why the automatic window could not be used, shown on the copy-paste fallback. */
+  pending: { url: string; mode?: 'browser' | 'paste'; reason?: string } | null;
 }
 
 /**

@@ -50,7 +50,8 @@ export function renderApp(ctx: Ctx): AppView {
     // Wide: the tab root stays on the left, the project opens on the right (no push animation between them).
     node = h('div.app-split', h('div.pane.pane-list', root()), h('div.pane.pane-detail.app-project', renderProjectScreen(ctx, project)));
     key = `split/${tab}/p${project.id}`; kind = 'wide';
-  } else if (project) {
+  } else if (project && (tab === 'projects' || tab === 'home')) {
+    // A pushed project belongs to the Projects and Home stacks: Agenda and Me show their own root over it.
     node = renderProjectScreen(ctx, project); key = `p${project.id}`; kind = 'project';
   } else {
     node = root(); key = `app/${tab}`; kind = tab;

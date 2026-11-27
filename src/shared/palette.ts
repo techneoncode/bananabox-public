@@ -27,8 +27,14 @@ export const PALETTE_GROUPS: Array<{
 }> = [
   { id: 'accent', keys: ['accent', 'accent2'] },
   { id: 'state', keys: ['pass', 'warn', 'fail'] },
-  { id: 'lens', keys: ['fatal', 'major', 'minor', 'info'] },
 ];
+
+/**
+ * Severity colours: not stored here but read from the Style Lens foreground
+ * settings (`bananalens.inline.colors.<key>.foreground`), so the views and the
+ * editor always show the same colour.
+ */
+export const LENS_KEYS = ['fatal', 'major', 'minor', 'info'] as const;
 
 /**
  * The built-in values, for the dark family of themes (swatches and "default"

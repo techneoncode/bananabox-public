@@ -23,8 +23,10 @@ export function renderAgendaTab(ctx: Ctx): HTMLElement {
     ctx.calendarRequested = undefined;
     ctx.post({ type: 'loadCalendar', from: isoDay(monday), to: isoDay(addDays(monday, 6)), force: true });
   };
-  const todo = events?.filter(e => e.required && canRegister(e)).length ?? 0;
+  // The badge sits over the selected day's list: it counts that day, not the whole loaded week.
+  const todo = events?.filter(e => e.required && canRegister(e) && isoDay(new Date(e.start)) === v.date).length ?? 0;
   const dayHas = (d: Date) => !!events?.some(e => isoDay(new Date(e.start)) === isoDay(d));
+  const dayTodo = (d: Date) => !!events?.some(e => e.required && canRegister(e) && isoDay(new Date(e.start)) === isoDay(d));
 
   const bar = appBar({ title: t('app.tab.agenda'), large: true, actions: [
     iconAction(t('calendar.today'), 'target', () => go(new Date()), { disabled: v.date === today }),
@@ -51,7 +53,7 @@ export function renderAgendaTab(ctx: Ctx): HTMLElement {
         h('span.ag-day-w', new Intl.DateTimeFormat(lang, { weekday: 'short' }).format(d)),
         h('span.ag-day-w1', new Intl.DateTimeFormat(lang, { weekday: 'narrow' }).format(d)),
         h('span.ag-day-n', String(d.getDate())),
-        h('span.ag-day-dot', { class: dayHas(d) ? 'has' : '', 'aria-hidden': 'true' }));
+        h('span.ag-day-dot', { class: dayTodo(d) ? 'has todo' : dayHas(d) ? 'has' : '', 'aria-hidden': 'true' }));
     })));
 
   const body: Array<HTMLElement | null> = [];

@@ -11,7 +11,7 @@ import { MILESTONES, milestoneCheckIds } from '../domain/milestones';
 import type { PanelTab, WebviewMessage } from '../shared/protocol';
 import { config } from '../util/config';
 import type { Controller, Surface } from '../controller';
-import { cancelSignIn, signInMicrosoft, submitRedirect } from './auth';
+import { cancelSignIn, selectBrowser, signInMicrosoft, signInWithToken, submitRedirect } from './auth';
 import { loadResult, runGrader, refreshRemoteCommit } from './grader';
 
 import {
@@ -60,6 +60,7 @@ export async function handleMessage(
     return void (await vscode.commands.executeCommand(`bananabox.${m.type}`));
   }
   if (m.type === 'setPalette') return c.setPalette(m.palette);
+  if (m.type === 'openLensColors') return void (await vscode.commands.executeCommand('bananabox.codingStyle.configureAppearance'));
   if (
     !remoteFeatures.status.myApiActive &&
     !['ready', 'refresh'].includes(m.type)
@@ -74,7 +75,12 @@ export async function handleMessage(
       'signIn',
       'signInMicrosoft',
       'signInPaste',
+      'signInToken',
+      'selectBrowser',
       'submitRedirect',
+      // The sign-in page opens in a full editor tab too ("Expand"), and the browser setting is a fix the page offers.
+      'openHome',
+      'openSettings',
       'cancelSignIn',
       'signOut',
       // The terms page is shown before sign-in, and to signed-in installations that never accepted them.
@@ -110,6 +116,10 @@ export async function handleMessage(
       return c.signInMicrosoft();
     case 'signInPaste':
       return c.signInMicrosoft({ paste: true });
+    case 'selectBrowser':
+      return typeof m.path === 'string' ? selectBrowser(m.path) : undefined;
+    case 'signInToken':
+      return typeof m.token === 'string' ? signInWithToken(c, m.token, true) : undefined;
     case 'submitRedirect':
       return typeof m.url === 'string' ? c.submitRedirect(m.url) : undefined;
     case 'cancelSignIn':
@@ -546,7 +556,7 @@ export async function handleMessage(
       return void (await vscode.workspace.getConfiguration('bananabox').update('defenseReminders', m.value === true, vscode.ConfigurationTarget.Global));
     case 'openSettings':
       // Only the two setting searches the app offers; anything else falls back to the Bananabox filter.
-      return void (await vscode.commands.executeCommand('workbench.action.openSettings', m.query === 'bananabox.language' ? m.query : 'bananabox'));
+      return void (await vscode.commands.executeCommand('workbench.action.openSettings', m.query === 'bananabox.language' || m.query === 'bananabox.browserPath' ? m.query : 'bananabox'));
     case 'copy':
       if (typeof m.text !== 'string') return;
       await vscode.env.clipboard.writeText(m.text);

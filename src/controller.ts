@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import * as vscode from 'vscode';
 import { RequestGuard } from './api/requestGuard';
-import { PALETTE_KEY, sanitizePalette, type Palette } from './shared/palette';
+import { LENS_KEYS, normalizeHex, PALETTE_KEY, sanitizePalette, type Palette } from './shared/palette';
 import type { Milestone } from './domain/milestones';
 import { EpitechClient } from './api/client';
 import { AuthManager } from './auth/authManager';
@@ -42,6 +42,7 @@ import { remoteFeatures } from './services/remoteFeatures';
 import {
   abortBrowser,
   authChanged,
+  browserChoices,
   browserProfile,
   cancelSignIn,
   failSignIn,
@@ -336,6 +337,7 @@ export class Controller implements vscode.Disposable {
         void this.projects.detectCurrent(),
       ),
       vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration('bananalens.inline.colors')) this.schedulePush();
         if (e.affectsConfiguration('bananabox')) {
           updateStatusBar(this);
           if (e.affectsConfiguration('bananabox.defenseReminders')) updateDefenseReminders(this);
@@ -389,6 +391,7 @@ export class Controller implements vscode.Disposable {
       apiActivity: this.client.activity.snapshot(),
       auth: this.auth.snapshot,
       termsAccepted: this.termsAccepted,
+      ...(!this.auth.isSignedIn && { browsers: browserChoices() }),
       projects: this.projects.projects,
       loading: this.projects.loading,
       error: this.projects.error,
@@ -423,11 +426,18 @@ export class Controller implements vscode.Disposable {
   }
 
   palette(): Palette {
-    return sanitizePalette(this.context.globalState.get<unknown>(PALETTE_KEY));
+    const palette = withoutLens(sanitizePalette(this.context.globalState.get<unknown>(PALETTE_KEY)));
+    const lens = vscode.workspace.getConfiguration('bananalens');
+    for (const key of LENS_KEYS) {
+      // #RRGGBBAA settings: the views take the colour without its opacity.
+      const value = normalizeHex(String(lens.get<unknown>(`inline.colors.${key}.foreground`) ?? '').slice(0, 7));
+      if (value) palette[key] = value;
+    }
+    return palette;
   }
 
   async setPalette(value: unknown) {
-    await this.context.globalState.update(PALETTE_KEY, sanitizePalette(value));
+    await this.context.globalState.update(PALETTE_KEY, withoutLens(sanitizePalette(value)));
     this.pushState();
   }
 
@@ -571,8 +581,8 @@ export class Controller implements vscode.Disposable {
     return signInWithBrowser(this, executable);
   }
 
-  signInWithPaste() {
-    return signInWithPaste(this);
+  signInWithPaste(reason?: string) {
+    return signInWithPaste(this, reason);
   }
 
   failSignIn(message: string) {
@@ -739,4 +749,10 @@ export class Controller implements vscode.Disposable {
     this.panels.closeAll();
     this.disposables.forEach((d) => d.dispose());
   }
+}
+
+/** Severity colours live in the Style Lens settings only (see LENS_KEYS): older saved palettes may still hold some. */
+function withoutLens(palette: Palette): Palette {
+  for (const key of LENS_KEYS) delete palette[key];
+  return palette;
 }

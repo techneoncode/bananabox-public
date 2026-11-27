@@ -381,7 +381,7 @@ button:disabled {
 <h1>Bananabox Coding Style appearance</h1><p>Choose what stays visible while you code. Preview changes here, then apply them to your editor.</p>
 <label for="scope">Save settings for </label><select id="scope" aria-label="Settings scope"></select>
 <form id="form"><section><h2>Content &amp; layout</h2><p>Auto follows Compact / Full mode. Hidden details remain available on hover.</p><div class="grid">${fields.slice(0, split).join('')}</div></section>
-<section><h2>Colours by severity</h2><p>Pick a colour or enter a hex value. Add two hex digits for opacity (#RRGGBBAA). Theme keeps your theme’s adaptive colours. Colours also apply to the file summary.</p><div class="grid">${fields.slice(split).join('')}</div></section>
+<section><h2>Colours by severity</h2><p>Pick a colour or enter a hex value. Add two hex digits for opacity (#RRGGBBAA). Theme keeps your theme’s adaptive colours. Colours also apply to the file summary, and the foreground colours to the Bananabox views.</p><div class="grid">${fields.slice(split).join('')}</div></section>
 <section><h2>Preview</h2><div class="preview" id="preview" aria-label="Lens preview"></div></section>
 <div class="toolbar"><button class="primary" id="apply" type="submit" disabled>Apply changes</button><button id="reset" type="button">Reset appearance</button><span id="status" role="status" aria-live="polite"></span></div></form>
 <script nonce="${nonce}">

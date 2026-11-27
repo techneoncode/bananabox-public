@@ -36,3 +36,12 @@ test('the treemap layout fills the box exactly, with areas proportional to the v
   layout([{ value: 0 }, { value: 0 }], box, zeros);
   assert.ok(zeros.every((b) => Number.isFinite(b.w) && Number.isFinite(b.h)), 'no NaN when everything is zero');
 });
+
+test('byPerson folds one student on two computers into one person, latest computer first', async () => {
+  const { byPerson } = await import('../webview/adminViz');
+  const user = (user_id: string, last_seen: number, first_name: string | null = 'Niels') => ({
+    user_id, first_name, last_initial: first_name && 'C', promotion: 2031, cursus: 'pge', campus: 'Strasbourg', version: '2.1.2', last_seen, launches: 1,
+  });
+  const groups = byPerson([user('a', 1), user('b', 3), user('c', 2, 'Alex'), user('d', 4, null), user('e', 5, null)]);
+  assert.deepEqual(groups.map((g) => g.map((u) => u.user_id)), [['b', 'a'], ['c'], ['d'], ['e']], 'unnamed installs never merge');
+});

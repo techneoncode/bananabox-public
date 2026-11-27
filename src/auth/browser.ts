@@ -100,6 +100,60 @@ export function browserKind(executable: string): BrowserKind {
     : 'chromium';
 }
 
+export type BrowserId = 'chrome' | 'edge' | 'brave' | 'chromium' | 'firefox' | 'other';
+
+const BROWSER_NAMES: Record<BrowserId, string> = {
+  chrome: 'Chrome',
+  edge: 'Edge',
+  brave: 'Brave',
+  chromium: 'Chromium',
+  firefox: 'Firefox',
+  other: '',
+};
+
+/** Which browser an executable path is (`chromium` before `chrome`: Windows Chromium ships a chrome.exe). */
+export function browserId(executable: string): BrowserId {
+  const p = executable.toLowerCase();
+  return p.includes('firefox') ? 'firefox'
+    : p.includes('brave') ? 'brave'
+      : p.includes('edge') ? 'edge'
+        : p.includes('chromium') ? 'chromium'
+          : p.includes('chrome') ? 'chrome'
+            : 'other';
+}
+
+export interface DetectedBrowser {
+  id: BrowserId;
+  name: string;
+  path: string;
+}
+
+/** Installed browsers, one per kind (first candidate found wins), plus the user's own path if it is something else. */
+export function detectBrowsers(
+  override: string | undefined,
+  deps: FindDeps = {},
+): DetectedBrowser[] {
+  const exists = deps.exists ?? existsSync;
+  const seen = new Set<BrowserId>();
+  const found: DetectedBrowser[] = [];
+  for (const path of browserCandidates(
+    deps.platform ?? process.platform,
+    deps.env ?? process.env,
+    deps.home ?? homedir(),
+  )) {
+    const id = browserId(path);
+    if (seen.has(id) || !exists(path)) continue;
+    seen.add(id);
+    found.push({ id, name: BROWSER_NAMES[id], path });
+  }
+  const own = override?.trim();
+  if (own && exists(own) && !found.some((b) => b.path === own)) {
+    const id = browserId(own);
+    found.push({ id, name: BROWSER_NAMES[id] || (own.split(/[\\/]/).pop() ?? own), path: own });
+  }
+  return found;
+}
+
 /**
  * Returns the browser to drive: the user's `bananabox.browserPath` if it exists,
  * else the first installed candidate.

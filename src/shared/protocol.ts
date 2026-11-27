@@ -56,6 +56,8 @@ export interface StateSnapshot {
   auth: AuthVM;
   /** The terms must be accepted before any sign-in. */
   termsAccepted: boolean;
+  /** Installed browsers for the sign-in window, sent only while signed out. */
+  browsers?: { id: 'chrome' | 'edge' | 'brave' | 'chromium' | 'firefox' | 'other'; name: string; path: string; selected: boolean }[];
   projects: ProjectVM[] | null;
   loading: boolean;
   error: string | null;
@@ -171,6 +173,8 @@ export type WebviewMessage =
   | { type: 'signIn' }
   | { type: 'signInMicrosoft' }
   | { type: 'signInPaste' }
+  | { type: 'signInToken'; token: string }
+  | { type: 'selectBrowser'; path: string }
   | { type: 'submitRedirect'; url: string }
   | { type: 'cancelSignIn' }
   | { type: 'acceptTerms' }
@@ -187,6 +191,7 @@ export type WebviewMessage =
   | { type: 'loadProject'; projectId: number; peek?: boolean }
   | { type: 'focusProject'; projectId: number | null }
   | { type: 'setPalette'; palette: Palette }
+  | { type: 'openLensColors' }
   | { type: 'setBananaTheme'; value: boolean }
   | { type: 'setDefenseReminders'; value: boolean }
   | { type: 'loadActivities'; projectId: number }
@@ -258,6 +263,6 @@ export type WebviewMessage =
       target: 'editor' | 'browser' | 'desktop' | 'binaries';
     }
   | { type: 'openExternal'; url: string }
-  | { type: 'openSettings'; query: 'bananabox' | 'bananabox.language' }
+  | { type: 'openSettings'; query: 'bananabox' | 'bananabox.language' | 'bananabox.browserPath' }
   | { type: 'openCommit'; projectId: number; commit: string }
   | { type: 'copy'; text: string; what?: string };

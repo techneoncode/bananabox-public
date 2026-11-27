@@ -1,4 +1,5 @@
 import { h, svg } from './dom';
+import type { AdminUser } from '../shared/adminTypes';
 
 /**
  * Charts of the "Advanced" admin theme. Categorical colours come from the validated 8-slot palette
@@ -259,4 +260,21 @@ export function gauge(ratio: number, o: { label: string; tone: 'pass' | 'warn' |
   text.textContent = `${Math.round(v * 100)}%`;
   chart.append(text);
   return h('div.viz-gauge-wrap', chart, h('span', o.label));
+}
+
+/**
+ * One person per signed-in identity: the server reports one row per OS account, so a student on two computers
+ * comes twice. shortcut: two students with the same first name, initial, promotion, cursus and campus merge;
+ * report a hashed login with the heartbeat if that ever matters.
+ */
+export const personKey = (u: AdminUser) => u.first_name ? ['p', u.first_name, u.last_initial, u.promotion, u.cursus, u.campus].join('\u0000') : u.user_id;
+
+/** Users grouped by person, each group's most recently seen computer first, in the server's order. */
+export function byPerson(users: AdminUser[]): AdminUser[][] {
+  const groups = new Map<string, AdminUser[]>();
+  for (const u of users) {
+    const key = personKey(u);
+    groups.set(key, [...(groups.get(key) ?? []), u]);
+  }
+  return [...groups.values()].map((g) => g.sort((a, b) => b.last_seen - a.last_seen));
 }

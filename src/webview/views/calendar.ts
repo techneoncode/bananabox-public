@@ -46,7 +46,8 @@ export function renderCalendar(ctx: Ctx): HTMLElement {
     : `${new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'short' }).format(monday)} – ${new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'short' }).format(addDays(monday, 6))}`;
 
   const events = cal?.events ?? [];
-  const todo = events.filter(e => e.required && canRegister(e)).length;
+  // The badge counts what the view shows: one day in Day mode, the loaded week otherwise.
+  const todo = events.filter(e => e.required && canRegister(e) && (v.mode !== 'day' || isoDay(new Date(e.start)) === v.date)).length;
   const head = h('div.cal-head',
     h('div.cal-title', h('h2.cal-range', { 'aria-live': 'polite' }, range), h('span.spacer'),
       h('button.icon-btn', { type: 'button', title: t('action.refresh'), 'aria-label': t('action.refresh'), disabled: !!cal?.loading,
